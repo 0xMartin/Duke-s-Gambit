@@ -43,6 +43,12 @@ var _panning: bool = false
 var _pan_start: Vector2 = Vector2.ZERO
 var _pan_pivot_start: Vector3 = Vector3.ZERO
 
+# Kill cam state
+const KILL_CAM_ORBIT_SPEED := 18.0   # deg/s slow cinematic orbit
+var _kill_cam_active:     bool    = false
+var _kill_cam_track:      Node3D  = null    # moving attacker piece
+var _kill_cam_target_pos: Vector3 = Vector3.ZERO  # capture destination (XZ)
+
 @onready var _cam: Camera3D = $Camera3D
 
 # ── Ready ──────────────────────────────────────────────────────────────────
@@ -55,6 +61,8 @@ func _ready() -> void:
 
 # ── Input ──────────────────────────────────────────────────────────────────
 func _unhandled_input(event: InputEvent) -> void:
+	if _kill_cam_active:
+		return   # block all camera controls during kill cam
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_RIGHT:
@@ -100,6 +108,16 @@ func _unhandled_input(event: InputEvent) -> void:
 
 # ── Process ────────────────────────────────────────────────────────────────
 func _process(delta: float) -> void:
+	if _kill_cam_active:
+		# Slowly orbit around the action point.
+		_target_azimuth += KILL_CAM_ORBIT_SPEED * delta
+		# Track the attacker: pivot smoothly follows midpoint between piece and capture square.
+		if _kill_cam_track != null and is_instance_valid(_kill_cam_track):
+			var piece_xz := Vector3(_kill_cam_track.global_position.x, 0.0,
+									_kill_cam_track.global_position.z)
+			var mid := (piece_xz + _kill_cam_target_pos) * 0.5
+			position = position.lerp(mid, smooth_speed * delta)
+
 	_azimuth  = _lerp_angle(_azimuth, _target_azimuth, smooth_speed * delta)
 	elevation = lerp(elevation, _target_elevation, smooth_speed * delta)
 	distance  = lerp(distance, _target_distance, smooth_speed * delta)
@@ -123,6 +141,12 @@ func _apply_transform() -> void:
 ## Called by GameController after a move. Smoothly rotates to face active player,
 ## resets pivot to board centre, and ensures a comfortable viewing distance.
 func face_player(color: int) -> void:
+	# Cancel any active drag or kill cam so the camera returns cleanly.
+	_dragging        = false
+	_panning         = false
+	_kill_cam_active = false
+	_kill_cam_track  = null
+
 	_target_azimuth   = AZIMUTH_WHITE if color == ChessEnums.PieceColor.WHITE else AZIMUTH_BLACK
 	_target_elevation = 40.0
 	position          = Vector3.ZERO                              # reset pivot to board centre
@@ -135,6 +159,46 @@ func snap_to_player(color: int) -> void:
 	elevation         = 40.0
 	_target_elevation = elevation
 	_apply_transform()
+
+## Dramatic close-up of a capture. Called by GameController before the capture animation.
+## Tracks the attacker piece, slowly orbits the action point, blocks user input.
+## face_player() restores the view after the animation finishes.
+func kill_cam(from_world: Vector3, to_world: Vector3, attacker: Node3D = null) -> void:
+	_dragging = false
+	_panning  = false
+	_kill_cam_active     = true
+	_kill_cam_track      = attacker
+	_kill_cam_target_pos = Vector3(to_world.x, 0.0, to_world.z)
+
+	# Pivot at midpoint between attacker origin and capture square.
+	var mid := (from_world + to_world) * 0.5
+	mid.y    = 0.0
+	position = mid
+
+	# Attack direction in XZ plane.
+	var dir: Vector3 = (to_world - from_world)
+	dir.y = 0.0
+	var len: float = dir.length()
+
+	# Perpendicular to attack (90° CCW in XZ) → side-on cinematic angle.
+	var perp: Vector3
+	if len > 0.01:
+		dir  = dir.normalized()
+		perp = Vector3(-dir.z, 0.0, dir.x)
+	else:
+		perp = Vector3(1.0, 0.0, 0.0)
+
+	# Azimuth: camera sits in the direction of `perp` from the pivot.
+	# Convention: camera offset = (sin(az)*cos(el), sin(el), cos(az)*cos(el)) * dist
+	_target_azimuth = rad_to_deg(atan2(perp.x, perp.z))
+	_azimuth        = _target_azimuth   # snap azimuth immediately, no spin
+
+	# Low cinematic elevation.
+	_target_elevation = 20.0
+
+	# Distance: show both pieces clearly, scaled by their separation.
+	var separation: float = maxf(len, 1.0)
+	_target_distance = clamp(separation * 2.0 + 1.5, 3.5, 7.0)
 
 ## Lerp shortest path between two angles
 func _lerp_angle(from: float, to: float, weight: float) -> float:

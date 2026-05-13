@@ -49,6 +49,21 @@ var _base_alpha:  float = 1.0
 signal move_finished          # emitted when piece arrives at destination
 signal attack_sequence_done   # emitted when full attack+death sequence is done
 
+# ── Selection outline ──────────────────────────────────────────────────────
+static var _outline_mat: ShaderMaterial = null
+
+func set_selected(v: bool) -> void:
+	_apply_outline_recursive(self, v)
+
+func _apply_outline_recursive(node: Node, active: bool) -> void:
+	if node is MeshInstance3D:
+		if _outline_mat == null:
+			_outline_mat = ShaderMaterial.new()
+			_outline_mat.shader = load("res://shaders/outline.gdshader") as Shader
+		(node as MeshInstance3D).material_overlay = _outline_mat if active else null
+	for child in node.get_children():
+		_apply_outline_recursive(child, active)
+
 # ──────────────────────────────────────────────────────────────────────────
 func _ready() -> void:
 	_find_children()
@@ -137,8 +152,12 @@ func attack_and_move_to(target: BasePiece, final_pos: Vector3) -> void:
 	_play(anim_walk)
 
 func _calc_attack_stop_pos(target_world: Vector3) -> Vector3:
-	var dir := (target_world - global_position).normalized()
-	return target_world - dir * ATTACK_STOP_DIST
+	var diff := target_world - global_position
+	diff.y = 0.0
+	var len := diff.length()
+	if len <= ATTACK_STOP_DIST:
+		return global_position   # already within range — stay put, we'll turn in _start_attack
+	return target_world - diff.normalized() * ATTACK_STOP_DIST
 
 # ── Process ────────────────────────────────────────────────────────────────
 func _process(delta: float) -> void:
@@ -169,6 +188,10 @@ func _process_walk(delta: float) -> void:
 
 func _start_attack() -> void:
 	_state = _State.ATTACKING
+	# Always face the target explicitly — handles cases where the piece didn't walk
+	# (adjacent squares) or approached from an odd angle.
+	if _attack_target != null and is_instance_valid(_attack_target):
+		_face_direction(_attack_target.global_position - global_position)
 	_play(anim_attack)
 	# Wait for attack animation to finish one cycle
 	if _anim and _anim.has_animation(anim_attack):

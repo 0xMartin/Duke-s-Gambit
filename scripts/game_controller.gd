@@ -30,6 +30,7 @@ var _controllers: Array           = []  # [white_ctrl, black_ctrl]
 
 var _sq_pieces:   Dictionary = {}   # Vector2i -> BasePiece (live scene nodes)
 var _selected_sq: Vector2i   = Vector2i(-1, -1)
+var _selected_piece: BasePiece = null
 var _legal_from_selected: Array = []
 
 var _busy:        bool = false   # true while piece animation is running
@@ -269,13 +270,16 @@ func _handle_human_click(sq: Vector2i, ctrl: HumanController) -> void:
 	for mv in _legal_from_selected:
 		if mv.to_sq == sq:
 			_board.clear_highlights()
+			_deselect_piece()
 			ctrl.try_move(mv)
 			return
 
 	# Clicking own piece?
 	var piece := _chess.get_piece(sq)
 	if not piece.is_empty() and piece["color"] == color:
+		_deselect_piece()
 		_selected_sq = sq
+		_select_piece(sq)
 		_legal_from_selected = ctrl.get_legal_moves_from(sq)
 		_board.clear_highlights()
 		_board.highlight_selected(sq)
@@ -286,9 +290,21 @@ func _handle_human_click(sq: Vector2i, ctrl: HumanController) -> void:
 		return
 
 	# Click on empty or enemy without selection → deselect
+	_deselect_piece()
 	_selected_sq = Vector2i(-1, -1)
 	_legal_from_selected.clear()
 	_board.clear_highlights()
+
+func _select_piece(sq: Vector2i) -> void:
+	var bp: BasePiece = _sq_pieces.get(sq) as BasePiece
+	if bp:
+		_selected_piece = bp
+		bp.set_selected(true)
+
+func _deselect_piece() -> void:
+	if _selected_piece != null and is_instance_valid(_selected_piece):
+		_selected_piece.set_selected(false)
+	_selected_piece = null
 
 func _raycast_board(screen_pos: Vector2) -> Vector2i:
 	var camera := _camera.get_node("Camera3D") as Camera3D
@@ -308,6 +324,7 @@ func _raycast_board(screen_pos: Vector2) -> Vector2i:
 # ── Move execution ─────────────────────────────────────────────────────────
 func _on_move_chosen(mv: ChessMove) -> void:
 	_busy = true
+	_deselect_piece()   # clear outline before move animation
 	# Track timing + deduct from clock
 	var elapsed: int = Time.get_ticks_msec() - _move_start_time_ms
 	_move_times_ms[mv.piece_color] += elapsed
@@ -324,6 +341,17 @@ func _on_move_chosen(mv: ChessMove) -> void:
 
 	# Apply to logic board BEFORE animation so board state is updated
 	_chess.make_move(mv)
+
+	# Kill cam: dramatic close-up for captures (if enabled in settings).
+	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
+	var _is_capture := mv.move_type == ChessEnums.MoveType.CAPTURE \
+		or mv.move_type == ChessEnums.MoveType.PROMOTION_CAPTURE \
+		or mv.move_type == ChessEnums.MoveType.EN_PASSANT
+	if _is_capture and cam_cfg != null and cam_cfg.kill_cam_enabled:
+		var from_world      := _board.sq_to_world(mv.from_sq)
+		var to_world        := _board.sq_to_world(mv.to_sq)
+		var attacker_piece  := _sq_pieces.get(mv.from_sq) as Node3D
+		_camera.kill_cam(from_world, to_world, attacker_piece)
 
 	await _animate_move(mv)
 

@@ -24,7 +24,8 @@ var _tiles: Array = []         # [col][row] -> MeshInstance3D
 var _overlays: Array = []      # [col][row] -> MeshInstance3D (highlight quad)
 var _overlay_state: Array = [] # [col][row] -> { active, color, blink }
 var _time: float = 0.0
-
+# Shared highlight shader (loaded once, reused for all overlay materials)
+var _hl_shader: Shader = null
 # ── Initialisation ────────────────────────────────────────────────────────
 func _ready() -> void:
 	_build_board()
@@ -35,6 +36,8 @@ func _build_board() -> void:
 
 	var quad_mesh := PlaneMesh.new()
 	quad_mesh.size = Vector2(TILE_SIZE, TILE_SIZE)
+
+	_hl_shader = load("res://shaders/tile_highlight.gdshader") as Shader
 
 	for c in range(8):
 		_tiles.append([])
@@ -52,13 +55,10 @@ func _build_board() -> void:
 			add_child(tile)
 			_tiles[c].append(tile)
 
-			# --- highlight overlay ---
-			var ov_mat := StandardMaterial3D.new()
-			ov_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-			ov_mat.albedo_color  = Color(0, 0, 0, 0)
-			ov_mat.shading_mode  = BaseMaterial3D.SHADING_MODE_UNSHADED
-			ov_mat.no_depth_test = false
-			ov_mat.render_priority = 1
+			# --- highlight overlay (ShaderMaterial) ---
+			var ov_mat := ShaderMaterial.new()
+			ov_mat.shader = _hl_shader
+			ov_mat.set_shader_parameter("tile_color", Color(0, 0, 0, 0))
 
 			var ov := MeshInstance3D.new()
 			ov.mesh = quad_mesh.duplicate()
@@ -117,7 +117,7 @@ func _set_overlay(sq: Vector2i, color: Color, active: bool, blink: bool) -> void
 	var ov: MeshInstance3D = _overlays[sq.x][sq.y]
 	ov.visible = active
 	if active:
-		(ov.material_override as StandardMaterial3D).albedo_color = color
+		(ov.material_override as ShaderMaterial).set_shader_parameter("tile_color", color)
 
 func _process(delta: float) -> void:
 	_time += delta
@@ -130,4 +130,4 @@ func _process(delta: float) -> void:
 			var base_color: Color = state["color"]
 			var blinked := Color(base_color.r, base_color.g, base_color.b,
 								 base_color.a * (0.4 + 0.6 * alpha_mod))
-			(_overlays[c][r].material_override as StandardMaterial3D).albedo_color = blinked
+			(_overlays[c][r].material_override as ShaderMaterial).set_shader_parameter("tile_color", blinked)
