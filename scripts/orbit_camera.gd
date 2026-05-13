@@ -1,6 +1,6 @@
 ## orbit_camera.gd
 ## Orbit camera with a pivot at the board centre.
-## RMB or MMB drag = rotate azimuth + change elevation; scroll = zoom.
+## RMB drag = rotate azimuth + change elevation; MMB drag = pan pivot left/right; scroll = zoom.
 ## After each move the camera smoothly faces the active player's side,
 ## resets the pivot to board centre, and ensures a comfortable zoom level.
 
@@ -21,6 +21,8 @@ extends Node3D
 @export var zoom_speed:     float = 1.2
 @export var smooth_speed:   float = 4.0   # for auto-rotate after move
 
+@export var pan_speed:      float = 0.003  # world-units per pixel per distance-unit
+
 # Side azimuths: WHITE looks from -Z side (azimuth=180), BLACK from +Z (azimuth=0)
 const AZIMUTH_WHITE := 180.0
 const AZIMUTH_BLACK := 0.0
@@ -36,6 +38,11 @@ var _drag_start: Vector2 = Vector2.ZERO
 var _drag_azimuth_start:   float = 0.0
 var _drag_elevation_start: float = 0.0
 
+# MMB pan state
+var _panning: bool = false
+var _pan_start: Vector2 = Vector2.ZERO
+var _pan_pivot_start: Vector3 = Vector3.ZERO
+
 @onready var _cam: Camera3D = $Camera3D
 
 # ── Ready ──────────────────────────────────────────────────────────────────
@@ -46,14 +53,19 @@ func _ready() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
-		# Both RMB and MMB activate the same orbit+elevation drag
-		if mb.button_index == MOUSE_BUTTON_RIGHT \
-		or mb.button_index == MOUSE_BUTTON_MIDDLE:
+		if mb.button_index == MOUSE_BUTTON_RIGHT:
+			# RMB: orbit (azimuth) + elevation
 			_dragging = mb.pressed
 			if _dragging:
 				_drag_start           = mb.position
 				_drag_azimuth_start   = _azimuth
 				_drag_elevation_start = elevation
+		elif mb.button_index == MOUSE_BUTTON_MIDDLE:
+			# MMB: pan pivot left/right
+			_panning = mb.pressed
+			if _panning:
+				_pan_start       = mb.position
+				_pan_pivot_start = position
 		elif mb.button_index == MOUSE_BUTTON_WHEEL_UP and mb.pressed:
 			_target_distance = clamp(_target_distance - zoom_speed, distance_min, distance_max)
 		elif mb.button_index == MOUSE_BUTTON_WHEEL_DOWN and mb.pressed:
@@ -69,6 +81,18 @@ func _unhandled_input(event: InputEvent) -> void:
 			elevation = clamp(_drag_elevation_start + delta.y * rotate_speed,
 							elevation_min, elevation_max)
 			_target_elevation = elevation
+		elif _panning:
+			var d := mm.position - _pan_start
+			var az_rad := deg_to_rad(_azimuth)
+			var right   := Vector3(cos(az_rad),  0.0, -sin(az_rad))
+			var forward := Vector3(sin(az_rad),  0.0,  cos(az_rad))
+			var scale := distance * pan_speed
+			var new_pos := _pan_pivot_start \
+				+ right   * (-d.x * scale) \
+				+ forward * (-d.y * scale)
+			new_pos.x = clamp(new_pos.x, -4.0, 4.0)
+			new_pos.z = clamp(new_pos.z, -4.0, 4.0)
+			position = new_pos
 
 # ── Process ────────────────────────────────────────────────────────────────
 func _process(delta: float) -> void:
