@@ -11,11 +11,12 @@ extends Control
 @onready var _settings_panel: Control = $SettingsPanel
 
 # Name panel
-@onready var _p1_edit:   LineEdit  = $NamePanel/VBox/P1Row/LineEdit
-@onready var _p1_list:   ItemList  = $NamePanel/VBox/P1Row/ItemList
-@onready var _p2_edit:   LineEdit  = $NamePanel/VBox/P2Row/LineEdit
-@onready var _p2_list:   ItemList  = $NamePanel/VBox/P2Row/ItemList
-@onready var _p2_label:  Label     = $NamePanel/VBox/P2Row/Label
+@onready var _p1_edit:   LineEdit    = $NamePanel/VBox/P1Row/LineEdit
+@onready var _p1_list:   ItemList    = $NamePanel/VBox/P1Row/ItemList
+@onready var _p2_edit:   LineEdit    = $NamePanel/VBox/P2Row/LineEdit
+@onready var _p2_list:   ItemList    = $NamePanel/VBox/P2Row/ItemList
+@onready var _p2_label:  Label       = $NamePanel/VBox/P2Row/Label
+@onready var _time_opt:  OptionButton = $NamePanel/VBox/TimeControlRow/TimeOption
 
 # Settings
 @onready var _ai_strength_slider: HSlider = $SettingsPanel/VBox/AIStrengthRow/HSlider
@@ -29,6 +30,13 @@ func _ready() -> void:
 	_save = get_node("/root/SaveManager")
 	_show_panel(_main_panel)
 	_setup_signals()
+	# Populate time control options
+	_time_opt.add_item("No limit",  0)
+	_time_opt.add_item("3 min",     3 * 60 * 1000)
+	_time_opt.add_item("5 min",     5 * 60 * 1000)
+	_time_opt.add_item("10 min",   10 * 60 * 1000)
+	_time_opt.add_item("15 min",   15 * 60 * 1000)
+	_time_opt.select(3)   # default: 10 min
 
 func _setup_signals() -> void:
 	$MainPanel/VBox/PvPBtn.pressed.connect(   func(): _start_name_entry("pvp"))
@@ -70,6 +78,22 @@ func _populate_name_lists() -> void:
 	for n in _save.get_all_player_names():
 		_p1_list.add_item(_save.get_player(n)["name"])
 		_p2_list.add_item(_save.get_player(n)["name"])
+	# Auto-select random players (different ones for P1 and P2)
+	var count: int = _p1_list.get_item_count()
+	if count == 0:
+		return
+	var idx1: int = randi() % count
+	_p1_list.select(idx1)
+	_p1_edit.text = _p1_list.get_item_text(idx1)
+	if _mode == "pvp" and count > 1:
+		var idx2: int = idx1
+		while idx2 == idx1:
+			idx2 = randi() % count
+		_p2_list.select(idx2)
+		_p2_edit.text = _p2_list.get_item_text(idx2)
+	elif _mode == "pvp":
+		_p2_list.select(0)
+		_p2_edit.text = _p2_list.get_item_text(0)
 
 func _on_start_pressed() -> void:
 	var p1 := _p1_edit.text.strip_edges()
@@ -87,9 +111,10 @@ func _on_start_pressed() -> void:
 			_save.create_player(p2)
 
 	var strength := int(_ai_strength_slider.value)
+	var time_ms: int = _time_opt.get_item_id(_time_opt.selected)
 	var game_scene := load("res://scenes/game.tscn").instantiate() as GameController
 	get_tree().root.add_child(game_scene)
-	game_scene.setup(p1, p2, false, _mode == "pvai", strength)
+	game_scene.setup(p1, p2, false, _mode == "pvai", strength, time_ms)
 	game_scene.start_game()
 	queue_free()
 

@@ -280,8 +280,9 @@ func _square_attacked(sq: Vector2i, defender_color: int) -> bool:
 		and board[t.x][t.y]["color"] == attacker \
 		and board[t.x][t.y]["type"] == ChessEnums.PieceType.KNIGHT:
 			return true
-	# Pawn
-	var pawn_dir: int = -1 if defender_color == ChessEnums.PieceColor.WHITE else 1
+	# Pawn — attacker pawn is one row BEHIND the attacked square
+	# (black attacks from above → pawn_dir=+1; white attacks from below → pawn_dir=-1)
+	var pawn_dir: int = 1 if defender_color == ChessEnums.PieceColor.WHITE else -1
 	for dc: int in [-1, 1]:
 		var t: Vector2i = sq + Vector2i(dc, pawn_dir)
 		if _in_bounds(t) and not is_empty(t) \
@@ -314,6 +315,10 @@ func is_in_check(color: int) -> bool:
 	return _square_attacked(king_sq, color)
 
 func _move_leaves_king_in_check(mv: ChessMove, color: int) -> bool:
+	# Must save state here — _apply_move_internal does NOT save it into mv.prev_*
+	mv.prev_en_passant_sq   = en_passant_sq
+	mv.prev_castling_rights = castling_rights
+	mv.prev_halfmove_clock  = halfmove_clock
 	_apply_move_internal(mv)
 	var in_check := is_in_check(color)
 	_undo_move_internal(mv)

@@ -77,11 +77,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif _panning:
 			var d := mm.position - _pan_start
 			var az_rad := deg_to_rad(_azimuth)
-			# Camera right and forward vectors projected to horizontal plane
+			# Only left/right (no forward/back)
 			var right := Vector3(cos(az_rad), 0.0, -sin(az_rad))
-			var fwd   := Vector3(-sin(az_rad), 0.0, -cos(az_rad))
 			var scale := distance * pan_speed
-			position = _pan_pivot_start + right * (-d.x * scale) + fwd * (-d.y * scale)
+			var new_pos := _pan_pivot_start + right * (-d.x * scale)
+			# Clamp to board extents (±4 in X and Z)
+			new_pos.x = clamp(new_pos.x, -4.0, 4.0)
+			new_pos.z = clamp(new_pos.z, -4.0, 4.0)
+			position = new_pos
 
 # ── Process ────────────────────────────────────────────────────────────────
 func _process(delta: float) -> void:

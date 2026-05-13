@@ -87,6 +87,15 @@ placeholder_text = "New name..."
 [node name="ItemList" type="ItemList" parent="NamePanel/VBox/P2Row"]
 custom_minimum_size = Vector2(160, 80)
 
+[node name="TimeControlRow" type="HBoxContainer" parent="NamePanel/VBox"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="NamePanel/VBox/TimeControlRow"]
+text = "Time:"
+
+[node name="TimeOption" type="OptionButton" parent="NamePanel/VBox/TimeControlRow"]
+size_flags_horizontal = 3
+
 [node name="StartBtn" type="Button" parent="NamePanel/VBox"]
 text = "Start Game"
 

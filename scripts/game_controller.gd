@@ -45,15 +45,31 @@ var _captured_by: Array = [[], []]
 var _player_names: Array = ["Player1", "Player2"]
 var _player_elos:  Array = [1200, 1200]
 
+# Chess clock (ms). 0 = no limit.
+var _time_control_ms:   int = 0
+var _time_remaining_ms: Array = [0, 0]  # [white, black]
+var _game_over_shown:   bool = false
+
 # Signals
 signal game_over(winner_color: int, reason: int)   # reason = ChessEnums.GameState
 signal promotion_needed(sq: Vector2i, color: int)
 
 # ──────────────────────────────────────────────────────────────────────────
 func _process(_delta: float) -> void:
-	if _hud == null or _chess == null or _busy or _move_start_time_ms == 0:
+	if _chess == null or _busy or _move_start_time_ms == 0 or _game_over_shown:
 		return
-	_hud.update_timer(Time.get_ticks_msec() - _move_start_time_ms)
+	var elapsed: int = Time.get_ticks_msec() - _move_start_time_ms
+	if _hud == null:
+		return
+	if _time_control_ms > 0:
+		var color := _chess.active_color
+		var remaining: int = _time_remaining_ms[color] - elapsed
+		if remaining <= 0:
+			_on_time_out(color)
+			return
+		_hud.update_timer(remaining)
+	else:
+		_hud.update_timer(elapsed)
 
 # ──────────────────────────────────────────────────────────────────────────
 func _ready() -> void:
@@ -62,9 +78,11 @@ func _ready() -> void:
 
 ## Called from MainMenu before adding this node to the scene tree.
 func setup(p1_name: String, p2_name: String,
-		   white_is_ai: bool, black_is_ai: bool, ai_strength: int) -> void:
+		   white_is_ai: bool, black_is_ai: bool, ai_strength: int,
+		   time_control_ms: int = 0) -> void:
 	_player_names[ChessEnums.PieceColor.WHITE] = p1_name
 	_player_names[ChessEnums.PieceColor.BLACK] = p2_name
+	_time_control_ms = time_control_ms
 
 	# Read ELOs from SaveManager
 	var save_node := get_node_or_null("/root/SaveManager")
@@ -98,17 +116,20 @@ func start_game() -> void:
 	_chess = ChessBoardState.new()
 	_chess.pawn_promotion_required.connect(_on_promotion_required)
 	_busy = false
+	_game_over_shown = false
 	_selected_sq = Vector2i(-1, -1)
 	_move_counts = [0, 0]
 	_move_times_ms = [0, 0]
 	_captured_by = [[], []]
+	_time_remaining_ms = [_time_control_ms, _time_control_ms]
 	_clear_pieces()
 	_spawn_all_pieces()
 	_camera.snap_to_player(ChessEnums.PieceColor.WHITE)
 	if _hud != null:
 		_hud.setup(
 			_player_names[ChessEnums.PieceColor.WHITE], _player_elos[ChessEnums.PieceColor.WHITE],
-			_player_names[ChessEnums.PieceColor.BLACK], _player_elos[ChessEnums.PieceColor.BLACK]
+			_player_names[ChessEnums.PieceColor.BLACK], _player_elos[ChessEnums.PieceColor.BLACK],
+			_time_control_ms > 0
 		)
 	_start_turn()
 
@@ -174,7 +195,8 @@ func _start_turn() -> void:
 	# Check / checkmate / stalemate
 	if state == ChessEnums.GameState.CHECKMATE:
 		emit_signal("game_over", 1 - color, ChessEnums.GameState.CHECKMATE)
-		_show_game_over(1 - color, "Checkmate")
+		_board.highlight_check(_chess._find_king(color))   # red highlight on losing king
+		_animate_checkmate_end(color)                        # async: king dies → 2s → panel
 		return
 	if state == ChessEnums.GameState.STALEMATE:
 		emit_signal("game_over", -1, ChessEnums.GameState.STALEMATE)
@@ -192,6 +214,26 @@ func _start_turn() -> void:
 	var ctrl: PlayerController = _controllers[color] as PlayerController
 	_update_ai_ui(ctrl.is_ai)
 	ctrl.request_move(_chess, legal)
+
+# ── Checkmate animation ────────────────────────────────────────────────────
+func _animate_checkmate_end(loser_color: int) -> void:
+	_busy = true   # block further input
+	var king_sq := _chess._find_king(loser_color)
+	var king_piece: BasePiece = _sq_pieces.get(king_sq)
+	if king_piece:
+		king_piece.die()
+	await get_tree().create_timer(2.2).timeout
+	_show_game_over(1 - loser_color, "Checkmate")
+
+# ── Time-out ───────────────────────────────────────────────────────────────
+func _on_time_out(loser_color: int) -> void:
+	if _game_over_shown:
+		return
+	_game_over_shown = true
+	_busy = true
+	var winner := 1 - loser_color
+	emit_signal("game_over", winner, ChessEnums.GameState.DRAW)  # reuse signal
+	_show_game_over(winner, "Time out")
 
 func _update_ai_ui(is_ai: bool) -> void:
 	var lbl := _ui.get_node_or_null("AIThinkingLabel") as Label
@@ -266,10 +308,13 @@ func _raycast_board(screen_pos: Vector2) -> Vector2i:
 # ── Move execution ─────────────────────────────────────────────────────────
 func _on_move_chosen(mv: ChessMove) -> void:
 	_busy = true
-	# Track timing
-	var elapsed := Time.get_ticks_msec() - _move_start_time_ms
+	# Track timing + deduct from clock
+	var elapsed: int = Time.get_ticks_msec() - _move_start_time_ms
 	_move_times_ms[mv.piece_color] += elapsed
 	_move_counts[mv.piece_color]   += 1
+	if _time_control_ms > 0:
+		_time_remaining_ms[mv.piece_color] = maxi(
+			_time_remaining_ms[mv.piece_color] - elapsed, 0)
 
 	# Track captured pieces for HUD
 	if mv.captured_type != ChessEnums.PieceType.NONE:

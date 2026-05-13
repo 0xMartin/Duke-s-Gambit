@@ -47,11 +47,11 @@ layout_mode = 1
 anchors_preset = 5
 anchor_left = 0.5
 anchor_right = 0.5
-offset_left = -120.0
-offset_right = 120.0
+grow_horizontal = 2
 offset_top = 16.0
 offset_bottom = 48.0
 text = "AI is thinking..."
+horizontal_alignment = 1
 visible = false
 
 [node name="GameOverPanel" type="PanelContainer" parent="UI"]
@@ -61,10 +61,9 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -180.0
-offset_top = -100.0
-offset_right = 180.0
-offset_bottom = 100.0
+grow_horizontal = 2
+grow_vertical = 2
+custom_minimum_size = Vector2(320, 180)
 visible = false
 
 [node name="VBox" type="VBoxContainer" parent="UI/GameOverPanel"]
@@ -84,10 +83,9 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -220.0
-offset_top = -60.0
-offset_right = 220.0
-offset_bottom = 60.0
+grow_horizontal = 2
+grow_vertical = 2
+custom_minimum_size = Vector2(400, 100)
 visible = false
 
 [node name="HBox" type="HBoxContainer" parent="UI/PromotionPanel"]
