@@ -22,7 +22,7 @@ extends Control
 @onready var _ai_strength_label:  Label   = $SettingsPanel/VBox/AIStrengthRow/Label
 
 var _mode: String = "pvp"   # "pvp" or "pvai"
-var _save: SaveManager = null
+var _save: Node = null
 
 # ──────────────────────────────────────────────────────────────────────────
 func _ready() -> void:

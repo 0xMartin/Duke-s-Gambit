@@ -109,10 +109,10 @@ func get_legal_moves(color: int) -> Array:
 
 ## Legal moves for a single square
 func get_legal_moves_from(sq: Vector2i) -> Array:
-	var piece := get_piece(sq)
+	var piece: Dictionary = get_piece(sq)
 	if piece.is_empty():
 		return []
-	var all := get_legal_moves(piece["color"])
+	var all: Array = get_legal_moves(piece["color"])
 	var result: Array = []
 	for mv in all:
 		if mv.from_sq == sq:
@@ -126,7 +126,7 @@ func _get_pseudo_legal_moves(color: int) -> Array:
 			var sq := Vector2i(c, r)
 			if is_empty(sq):
 				continue
-			var p := board[c][r]
+			var p: Dictionary = board[c][r]
 			if p["color"] != color:
 				continue
 			match p["type"]:
@@ -146,34 +146,34 @@ func _get_pseudo_legal_moves(color: int) -> Array:
 
 func _pawn_moves(sq: Vector2i, color: int) -> Array:
 	var moves: Array = []
-	var dir := 1 if color == ChessEnums.PieceColor.WHITE else -1
-	var start_row := 1 if color == ChessEnums.PieceColor.WHITE else 6
-	var promo_row := 7 if color == ChessEnums.PieceColor.WHITE else 0
+	var dir: int = 1 if color == ChessEnums.PieceColor.WHITE else -1
+	var start_row: int = 1 if color == ChessEnums.PieceColor.WHITE else 6
+	var promo_row: int = 7 if color == ChessEnums.PieceColor.WHITE else 0
 
 	# Single push
-	var fwd := sq + Vector2i(0, dir)
+	var fwd: Vector2i = sq + Vector2i(0, dir)
 	if _in_bounds(fwd) and is_empty(fwd):
 		if fwd.y == promo_row:
-			for pt in [ChessEnums.PieceType.QUEEN, ChessEnums.PieceType.ROOK,
+			for pt: int in [ChessEnums.PieceType.QUEEN, ChessEnums.PieceType.ROOK,
 						ChessEnums.PieceType.BISHOP, ChessEnums.PieceType.KNIGHT]:
 				moves.append(ChessMove.new(sq, fwd, ChessEnums.MoveType.PROMOTION, ChessEnums.PieceType.PAWN, color, ChessEnums.PieceType.NONE, pt))
 		else:
 			moves.append(ChessMove.new(sq, fwd, ChessEnums.MoveType.NORMAL, ChessEnums.PieceType.PAWN, color))
 		# Double push from start
 		if sq.y == start_row:
-			var fwd2 := sq + Vector2i(0, dir * 2)
+			var fwd2: Vector2i = sq + Vector2i(0, dir * 2)
 			if is_empty(fwd2):
 				moves.append(ChessMove.new(sq, fwd2, ChessEnums.MoveType.NORMAL, ChessEnums.PieceType.PAWN, color))
 
 	# Captures
-	for dc in [-1, 1]:
-		var cap_sq := sq + Vector2i(dc, dir)
+	for dc: int in [-1, 1]:
+		var cap_sq: Vector2i = sq + Vector2i(dc, dir)
 		if not _in_bounds(cap_sq):
 			continue
 		if is_enemy(cap_sq, color):
 			var cap_type: int = board[cap_sq.x][cap_sq.y]["type"]
 			if cap_sq.y == promo_row:
-				for pt in [ChessEnums.PieceType.QUEEN, ChessEnums.PieceType.ROOK,
+				for pt: int in [ChessEnums.PieceType.QUEEN, ChessEnums.PieceType.ROOK,
 							ChessEnums.PieceType.BISHOP, ChessEnums.PieceType.KNIGHT]:
 					moves.append(ChessMove.new(sq, cap_sq, ChessEnums.MoveType.PROMOTION_CAPTURE, ChessEnums.PieceType.PAWN, color, cap_type, pt))
 			else:
@@ -186,8 +186,8 @@ func _pawn_moves(sq: Vector2i, color: int) -> Array:
 
 func _slider_moves(sq: Vector2i, color: int, dirs: Array) -> Array:
 	var moves: Array = []
-	for d in dirs:
-		var cur := sq + Vector2i(d[0], d[1])
+	for d: Array in dirs:
+		var cur: Vector2i = sq + Vector2i(int(d[0]), int(d[1]))
 		while _in_bounds(cur):
 			if is_empty(cur):
 				moves.append(ChessMove.new(sq, cur, ChessEnums.MoveType.NORMAL,
@@ -198,14 +198,14 @@ func _slider_moves(sq: Vector2i, color: int, dirs: Array) -> Array:
 				break
 			else:
 				break
-			cur += Vector2i(d[0], d[1])
+			cur += Vector2i(int(d[0]), int(d[1]))
 	return moves
 
 func _knight_moves(sq: Vector2i, color: int) -> Array:
 	var moves: Array = []
-	for offset in [Vector2i(2,1),Vector2i(2,-1),Vector2i(-2,1),Vector2i(-2,-1),
+	for offset: Vector2i in [Vector2i(2,1),Vector2i(2,-1),Vector2i(-2,1),Vector2i(-2,-1),
 					Vector2i(1,2),Vector2i(1,-2),Vector2i(-1,2),Vector2i(-1,-2)]:
-		var t := sq + offset
+		var t: Vector2i = sq + offset
 		if not _in_bounds(t):
 			continue
 		if is_empty(t):
@@ -216,9 +216,9 @@ func _knight_moves(sq: Vector2i, color: int) -> Array:
 
 func _king_moves(sq: Vector2i, color: int) -> Array:
 	var moves: Array = []
-	for offset in [Vector2i(1,0),Vector2i(-1,0),Vector2i(0,1),Vector2i(0,-1),
+	for offset: Vector2i in [Vector2i(1,0),Vector2i(-1,0),Vector2i(0,1),Vector2i(0,-1),
 					Vector2i(1,1),Vector2i(1,-1),Vector2i(-1,1),Vector2i(-1,-1)]:
-		var t := sq + offset
+		var t: Vector2i = sq + offset
 		if not _in_bounds(t):
 			continue
 		if is_empty(t):
@@ -227,9 +227,9 @@ func _king_moves(sq: Vector2i, color: int) -> Array:
 			moves.append(ChessMove.new(sq, t, ChessEnums.MoveType.CAPTURE, ChessEnums.PieceType.KING, color, board[t.x][t.y]["type"]))
 
 	# Castling
-	var row := 0 if color == ChessEnums.PieceColor.WHITE else 7
-	var ks_bit := 0 if color == ChessEnums.PieceColor.WHITE else 2  # kingside bit
-	var qs_bit := 1 if color == ChessEnums.PieceColor.WHITE else 3  # queenside bit
+	var row: int = 0 if color == ChessEnums.PieceColor.WHITE else 7
+	var ks_bit: int = 0 if color == ChessEnums.PieceColor.WHITE else 2  # kingside bit
+	var qs_bit: int = 1 if color == ChessEnums.PieceColor.WHITE else 3  # queenside bit
 
 	if (castling_rights >> ks_bit) & 1:
 		if is_empty(Vector2i(5, row)) and is_empty(Vector2i(6, row)):
@@ -251,47 +251,47 @@ func _king_moves(sq: Vector2i, color: int) -> Array:
 func _square_attacked(sq: Vector2i, defender_color: int) -> bool:
 	var attacker := 1 - defender_color
 	# Rook / Queen (straight lines)
-	for d in [[1,0],[-1,0],[0,1],[0,-1]]:
-		var cur := sq + Vector2i(d[0], d[1])
+	for d: Array in [[1,0],[-1,0],[0,1],[0,-1]]:
+		var cur: Vector2i = sq + Vector2i(int(d[0]), int(d[1]))
 		while _in_bounds(cur):
 			if not is_empty(cur):
 				if board[cur.x][cur.y]["color"] == attacker:
-					var t := board[cur.x][cur.y]["type"]
+					var t: int = board[cur.x][cur.y]["type"]
 					if t == ChessEnums.PieceType.ROOK or t == ChessEnums.PieceType.QUEEN:
 						return true
 				break
-			cur += Vector2i(d[0], d[1])
+			cur += Vector2i(int(d[0]), int(d[1]))
 	# Bishop / Queen (diagonals)
-	for d in [[1,1],[1,-1],[-1,1],[-1,-1]]:
-		var cur := sq + Vector2i(d[0], d[1])
+	for d: Array in [[1,1],[1,-1],[-1,1],[-1,-1]]:
+		var cur: Vector2i = sq + Vector2i(int(d[0]), int(d[1]))
 		while _in_bounds(cur):
 			if not is_empty(cur):
 				if board[cur.x][cur.y]["color"] == attacker:
-					var t := board[cur.x][cur.y]["type"]
+					var t: int = board[cur.x][cur.y]["type"]
 					if t == ChessEnums.PieceType.BISHOP or t == ChessEnums.PieceType.QUEEN:
 						return true
 				break
-			cur += Vector2i(d[0], d[1])
+			cur += Vector2i(int(d[0]), int(d[1]))
 	# Knight
-	for offset in [Vector2i(2,1),Vector2i(2,-1),Vector2i(-2,1),Vector2i(-2,-1),
+	for offset: Vector2i in [Vector2i(2,1),Vector2i(2,-1),Vector2i(-2,1),Vector2i(-2,-1),
 					Vector2i(1,2),Vector2i(1,-2),Vector2i(-1,2),Vector2i(-1,-2)]:
-		var t := sq + offset
+		var t: Vector2i = sq + offset
 		if _in_bounds(t) and not is_empty(t) \
 		and board[t.x][t.y]["color"] == attacker \
 		and board[t.x][t.y]["type"] == ChessEnums.PieceType.KNIGHT:
 			return true
 	# Pawn
-	var pawn_dir := -1 if defender_color == ChessEnums.PieceColor.WHITE else 1
-	for dc in [-1, 1]:
-		var t := sq + Vector2i(dc, pawn_dir)
+	var pawn_dir: int = -1 if defender_color == ChessEnums.PieceColor.WHITE else 1
+	for dc: int in [-1, 1]:
+		var t: Vector2i = sq + Vector2i(dc, pawn_dir)
 		if _in_bounds(t) and not is_empty(t) \
 		and board[t.x][t.y]["color"] == attacker \
 		and board[t.x][t.y]["type"] == ChessEnums.PieceType.PAWN:
 			return true
 	# King
-	for offset in [Vector2i(1,0),Vector2i(-1,0),Vector2i(0,1),Vector2i(0,-1),
+	for offset: Vector2i in [Vector2i(1,0),Vector2i(-1,0),Vector2i(0,1),Vector2i(0,-1),
 					Vector2i(1,1),Vector2i(1,-1),Vector2i(-1,1),Vector2i(-1,-1)]:
-		var t := sq + offset
+		var t: Vector2i = sq + offset
 		if _in_bounds(t) and not is_empty(t) \
 		and board[t.x][t.y]["color"] == attacker \
 		and board[t.x][t.y]["type"] == ChessEnums.PieceType.KING:
@@ -333,7 +333,7 @@ func make_move(mv: ChessMove) -> ChessMove:
 	return mv
 
 func _apply_move_internal(mv: ChessMove) -> void:
-	var piece := board[mv.from_sq.x][mv.from_sq.y]
+	var piece: Variant = board[mv.from_sq.x][mv.from_sq.y]
 
 	# Update en passant
 	en_passant_sq = Vector2i(-1, -1)
@@ -375,7 +375,7 @@ func _apply_move_internal(mv: ChessMove) -> void:
 		board[0][row] = null
 
 func _undo_move_internal(mv: ChessMove) -> void:
-	var piece := board[mv.to_sq.x][mv.to_sq.y]
+	var piece: Variant = board[mv.to_sq.x][mv.to_sq.y]
 
 	# Undo promotion
 	if mv.move_type == ChessEnums.MoveType.PROMOTION \
@@ -417,15 +417,15 @@ func _update_castling_rights(mv: ChessMove) -> void:
 		else:
 			castling_rights &= ~0b1100
 	# Rook moves or captures
-	var rook_squares := {
+	var rook_squares: Dictionary = {
 		Vector2i(0, 0): 1,  # W queenside
 		Vector2i(7, 0): 0,  # W kingside
 		Vector2i(0, 7): 3,  # B queenside
 		Vector2i(7, 7): 2,  # B kingside
 	}
-	for sq in rook_squares:
+	for sq: Vector2i in rook_squares:
 		if mv.from_sq == sq or mv.to_sq == sq:
-			castling_rights &= ~(1 << rook_squares[sq])
+			castling_rights &= ~(1 << (rook_squares[sq] as int))
 
 # ── Game State ─────────────────────────────────────────────────────────────
 func get_game_state() -> int:
@@ -451,8 +451,8 @@ func _is_insufficient_material() -> bool:
 		for r in range(8):
 			if board[c][r] != null:
 				pieces[board[c][r]["color"]].append(board[c][r]["type"])
-	for color in [ChessEnums.PieceColor.WHITE, ChessEnums.PieceColor.BLACK]:
-		var p := pieces[color]
+	for color: int in [ChessEnums.PieceColor.WHITE, ChessEnums.PieceColor.BLACK]:
+		var p: Array = pieces[color]
 		p.erase(ChessEnums.PieceType.KING)
 		if p.size() > 1:
 			return false

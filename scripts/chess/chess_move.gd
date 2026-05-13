@@ -36,5 +36,5 @@ func is_capture() -> bool:
 		or move_type == ChessEnums.MoveType.EN_PASSANT \
 		or move_type == ChessEnums.MoveType.PROMOTION_CAPTURE
 
-func to_string() -> String:
+func to_str() -> String:
 	return "%s→%s" % [from_sq, to_sq]

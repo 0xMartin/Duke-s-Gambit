@@ -160,7 +160,7 @@ func _process_death_fade(delta: float) -> void:
 	if not _dying:
 		return
 	_fade_timer += delta
-	var t := clamp(_fade_timer / DEATH_FADE_DURATION, 0.0, 1.0)
+	var t: float = clamp(_fade_timer / DEATH_FADE_DURATION, 0.0, 1.0)
 	_set_alpha_recursive(self, 1.0 - t)
 	if t >= 1.0:
 		queue_free()

@@ -31,18 +31,21 @@ func _ready() -> void:
 	pm.color_ramp = grad_tex
 	process_material = pm
 
-	# Draw material using fog.png
-	var fog_tex := load("res://assets/textures/fog.png") as Texture2D
+	# Build draw mesh + material using fog.png
+	var fog_tex: Texture2D = load("res://assets/textures/fog.png")
 	var draw_mat := StandardMaterial3D.new()
 	draw_mat.transparency         = BaseMaterial3D.TRANSPARENCY_ALPHA_DEPTH_PRE_PASS
-	draw_mat.albedo_texture        = fog_tex
-	draw_mat.albedo_color          = particle_color
-	draw_mat.billboard_mode        = BaseMaterial3D.BILLBOARD_ENABLED
-	draw_mat.shading_mode          = BaseMaterial3D.SHADING_MODE_UNSHADED
-	draw_mat.no_depth_test         = false
-	draw_mat.render_priority       = 2
-	draw_mat.texture_filter        = BaseMaterial3D.TEXTURE_FILTER_LINEAR
-	draw_material = draw_mat
+	draw_mat.albedo_texture       = fog_tex
+	draw_mat.albedo_color         = particle_color
+	draw_mat.billboard_mode       = BaseMaterial3D.BILLBOARD_ENABLED
+	draw_mat.shading_mode         = BaseMaterial3D.SHADING_MODE_UNSHADED
+	draw_mat.render_priority      = 2
+	draw_mat.texture_filter       = BaseMaterial3D.TEXTURE_FILTER_LINEAR
+	var quad := QuadMesh.new()
+	quad.size = Vector2(0.5, 0.5)
+	quad.surface_set_material(0, draw_mat)
+	draw_pass_1 = quad
+	draw_passes  = 1
 
 	amount   = 30
 	lifetime = 1.2

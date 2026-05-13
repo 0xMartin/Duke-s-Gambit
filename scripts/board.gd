@@ -110,7 +110,7 @@ func _sq_to_world(sq: Vector2i) -> Vector3:
 	return Vector3((sq.x - 3.5) * TILE_SIZE, 0.0, (sq.y - 3.5) * TILE_SIZE)
 
 func _set_overlay(sq: Vector2i, color: Color, active: bool, blink: bool) -> void:
-	var state := _overlay_state[sq.x][sq.y]
+	var state: Dictionary = _overlay_state[sq.x][sq.y]
 	state["active"] = active
 	state["color"]  = color
 	state["blink"]  = blink
@@ -124,7 +124,7 @@ func _process(delta: float) -> void:
 	var alpha_mod := (sin(_time * BLINK_SPEED) * 0.5 + 0.5)  # 0..1
 	for c in range(8):
 		for r in range(8):
-			var state := _overlay_state[c][r]
+			var state: Dictionary = _overlay_state[c][r]
 			if not state["active"] or not state["blink"]:
 				continue
 			var base_color: Color = state["color"]

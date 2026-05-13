@@ -61,12 +61,12 @@ func _process(delta: float) -> void:
 
 func _process_jump(delta: float) -> void:
 	_jump_elapsed += delta
-	var t := clamp(_jump_elapsed / _jump_duration, 0.0, 1.0)
+	var t: float = clamp(_jump_elapsed / _jump_duration, 0.0, 1.0)
 
 	# Horizontal lerp
-	var horiz := _jump_start.lerp(_jump_end, t)
+	var horiz: Vector3 = _jump_start.lerp(_jump_end, t)
 	# Vertical parabola: h * 4 * t * (1 - t)
-	var vert := ARC_HEIGHT * 4.0 * t * (1.0 - t)
+	var vert: float = ARC_HEIGHT * 4.0 * t * (1.0 - t)
 	global_position = Vector3(horiz.x, _jump_start.y + vert, horiz.z)
 
 	# Face direction of travel

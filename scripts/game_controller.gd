@@ -103,10 +103,11 @@ func _spawn_all_pieces() -> void:
 	_sq_pieces.clear()
 	for c in range(8):
 		for r in range(8):
-			var p := _chess.board[c][r]
+			var p: Variant = _chess.board[c][r]
 			if p == null:
 				continue
-			_spawn_piece(Vector2i(c, r), p["type"], p["color"])
+			var pd: Dictionary = p
+			_spawn_piece(Vector2i(c, r), pd["type"], pd["color"])
 
 func _spawn_piece(sq: Vector2i, type: int, color: int) -> BasePiece:
 	if not _piece_scenes.has(type):
@@ -153,7 +154,7 @@ func _start_turn() -> void:
 		_board.highlight_check(king_sq)
 
 	_move_start_time_ms = Time.get_ticks_msec()
-	var ctrl := _controllers[color] as PlayerController
+	var ctrl: PlayerController = _controllers[color] as PlayerController
 	_update_ai_ui(ctrl.is_ai)
 	ctrl.request_move(_chess, legal)
 
@@ -172,8 +173,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not mb.pressed or mb.button_index != MOUSE_BUTTON_LEFT:
 		return
 
-	var color := _chess.active_color
-	var ctrl  := _controllers[color]
+	var color: int = _chess.active_color
+	var ctrl: PlayerController = _controllers[color] as PlayerController
 	if ctrl.is_ai:
 		return   # ignore clicks during AI turn
 
@@ -344,20 +345,18 @@ func _show_game_over(winner_color: int, reason: String) -> void:
 		if winner_color == -1:
 			lbl.text = "%s!" % reason
 		else:
-			var name := _player_names[winner_color]
-			lbl.text = "%s wins!\n(%s)" % [name, reason]
+			var pname: String = _player_names[winner_color]
+			lbl.text = "%s wins!\n(%s)" % [pname, reason]
 
 	# Save stats
-	var w_name := _player_names[ChessEnums.PieceColor.WHITE]
-	var b_name := _player_names[ChessEnums.PieceColor.BLACK]
-	var save: SaveManager = Engine.get_singleton("SaveManager") \
-		if Engine.has_singleton("SaveManager") \
-		else get_node_or_null("/root/SaveManager")
-	if save:
-		var is_draw := (winner_color == -1)
-		var winner_n := "" if is_draw else _player_names[winner_color]
-		var loser_n  := "" if is_draw else _player_names[1 - winner_color]
-		save.record_game_result(
+	var w_name: String = _player_names[ChessEnums.PieceColor.WHITE]
+	var b_name: String = _player_names[ChessEnums.PieceColor.BLACK]
+	var save_node := get_node_or_null("/root/SaveManager")
+	if save_node:
+		var is_draw: bool = (winner_color == -1)
+		var winner_n: String = "" if is_draw else _player_names[winner_color]
+		var loser_n: String  = "" if is_draw else _player_names[1 - winner_color]
+		save_node.record_game_result(
 			w_name if is_draw else winner_n,
 			b_name if is_draw else loser_n,
 			is_draw,

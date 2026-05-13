@@ -1,7 +1,6 @@
 ## save_manager.gd
 ## Autoload singleton. Persists player profiles (name, stats) to user://saves/players.json
 
-class_name SaveManager
 extends Node
 
 const SAVE_PATH := "user://saves/players.json"
@@ -25,9 +24,9 @@ func load_data() -> void:
 		return
 	var txt := f.get_as_text()
 	f.close()
-	var parsed := JSON.parse_string(txt)
+	var parsed: Variant = JSON.parse_string(txt)
 	if parsed is Dictionary:
-		players = parsed
+		players = parsed as Dictionary
 	else:
 		push_error("SaveManager: corrupt save file")
 
