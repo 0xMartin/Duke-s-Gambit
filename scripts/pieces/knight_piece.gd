@@ -40,10 +40,11 @@ func _begin_jump(dest: Vector3, is_attack: bool, target: BasePiece) -> void:
 	_jump_attack_done = false
 	_attack_target   = target
 
-	# Match animation duration to jump duration
+	# Match animation duration to jump duration (speed_scale=2 → 50 % faster)
 	if _anim and _anim.has_animation(anim_jump):
 		var anim_res := _anim.get_animation(anim_jump)
-		_jump_duration = anim_res.length
+		_anim.speed_scale = 2.0
+		_jump_duration = anim_res.length / 2.0   # physical time = anim_length / speed_scale
 		_anim.play(anim_jump)
 	else:
 		_jump_duration = JUMP_DURATION
@@ -73,10 +74,11 @@ func _process_jump(delta: float) -> void:
 	var diff := (_jump_end - _jump_start)
 	diff.y = 0.0
 	if diff.length_squared() > 0.001:
-		look_at(global_position + diff.normalized(), Vector3.UP)
+		_face_direction(diff.normalized())
 
-	# Trigger enemy death just before landing
-	if _jump_is_attack and not _jump_attack_done and t >= DEATH_TRIGGER_T:
+	# Trigger enemy death 0.3 s before the natural trigger point so death anim isn't late
+	if _jump_is_attack and not _jump_attack_done \
+			and _jump_elapsed + 0.3 >= _jump_duration * DEATH_TRIGGER_T:
 		_jump_attack_done = true
 		if _attack_target != null and is_instance_valid(_attack_target):
 			_attack_target.die()
@@ -85,6 +87,8 @@ func _process_jump(delta: float) -> void:
 		_finish_jump()
 
 func _finish_jump() -> void:
+	if _anim:
+		_anim.speed_scale = 1.0   # reset after jump
 	_jumping = false
 	global_position = _jump_end
 	_attack_target  = null

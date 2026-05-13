@@ -11,7 +11,7 @@ func _ready() -> void:
 	# Build process material at runtime so we don't need a saved .tres
 	var pm := ParticleProcessMaterial.new()
 	pm.emission_shape          = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
-	pm.emission_sphere_radius  = 0.3
+	pm.emission_sphere_radius  = 0.6
 	pm.direction               = Vector3(0, 1, 0)
 	pm.spread                  = 60.0
 	pm.gravity                 = Vector3(0, -0.5, 0)
@@ -19,8 +19,8 @@ func _ready() -> void:
 	pm.initial_velocity_max    = 2.0
 	pm.angular_velocity_min    = -90.0
 	pm.angular_velocity_max    =  90.0
-	pm.scale_min               = 0.4
-	pm.scale_max               = 1.2
+	pm.scale_min               = 0.8
+	pm.scale_max               = 2.4
 	pm.color                   = particle_color
 	# Fade out over lifetime
 	var grad := Gradient.new()
@@ -42,12 +42,12 @@ func _ready() -> void:
 	draw_mat.render_priority      = 2
 	draw_mat.texture_filter       = BaseMaterial3D.TEXTURE_FILTER_LINEAR
 	var quad := QuadMesh.new()
-	quad.size = Vector2(0.5, 0.5)
+	quad.size = Vector2(1.0, 1.0)
 	quad.surface_set_material(0, draw_mat)
 	draw_pass_1 = quad
 	draw_passes  = 1
 
-	amount   = 30
+	amount   = 40
 	lifetime = 1.2
 	one_shot = true
 	emitting = true

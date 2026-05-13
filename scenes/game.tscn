@@ -1,9 +1,15 @@
-[gd_scene load_steps=7 format=3 uid="uid://game"]
+[gd_scene load_steps=9 format=3 uid="uid://game"]
 
 [ext_resource type="Script"      path="res://scripts/game_controller.gd"  id="1"]
 [ext_resource type="PackedScene" path="res://scenes/board.tscn"            id="2"]
 [ext_resource type="PackedScene" path="res://scenes/orbit_camera.tscn"     id="3"]
 [ext_resource type="Script"      path="res://scripts/ui/game_ui.gd"        id="4"]
+[ext_resource type="Script"      path="res://scripts/ui/hud.gd"            id="5"]
+
+[sub_resource type="Environment" id="Env1"]
+ambient_light_source = 2
+ambient_light_color = Color(0.95, 0.92, 0.88, 1)
+ambient_light_energy = 0.8
 
 [node name="GameScene" type="Node3D"]
 script = ExtResource("1")
@@ -19,6 +25,7 @@ ui_root     = NodePath("UI")
 [node name="Pieces" type="Node3D" parent="."]
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Env1")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.707, -0.5, 0.5, 0, 0.707, 0.707, -0.707, -0.5, 0.5, 0, 8, 0)
@@ -30,6 +37,10 @@ layout_mode = 3
 anchors_preset = 15
 mouse_filter = 2
 script = ExtResource("4")
+
+[node name="HUD" type="Control" parent="UI"]
+mouse_filter = 2
+script = ExtResource("5")
 
 [node name="AIThinkingLabel" type="Label" parent="UI"]
 layout_mode = 1

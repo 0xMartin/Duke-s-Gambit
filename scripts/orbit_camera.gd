@@ -18,10 +18,11 @@ extends Node3D
 @export var rotate_speed:  float = 0.4   # deg per pixel
 @export var zoom_speed:    float = 1.2
 @export var smooth_speed:  float = 4.0   # for auto-rotate after move
+@export var pan_speed:     float = 0.003  # world-units per pixel per distance-unit
 
 # Side azimuths: WHITE looks from -Z side (azimuth=0), BLACK from +Z (azimuth=180)
-const AZIMUTH_WHITE := 0.0
-const AZIMUTH_BLACK := 180.0
+const AZIMUTH_WHITE := 180.0
+const AZIMUTH_BLACK := 0.0
 
 var _azimuth: float = AZIMUTH_WHITE    # current horizontal angle, degrees
 var _target_azimuth:   float = AZIMUTH_WHITE
@@ -32,6 +33,10 @@ var _dragging: bool = false
 var _drag_start: Vector2 = Vector2.ZERO
 var _drag_azimuth_start: float = 0.0
 var _drag_elevation_start: float = 0.0
+
+var _panning: bool = false
+var _pan_start: Vector2 = Vector2.ZERO
+var _pan_pivot_start: Vector3 = Vector3.ZERO
 
 @onready var _cam: Camera3D = $Camera3D
 
@@ -49,22 +54,34 @@ func _unhandled_input(event: InputEvent) -> void:
 				_drag_start            = mb.position
 				_drag_azimuth_start    = _azimuth
 				_drag_elevation_start  = elevation
+		elif mb.button_index == MOUSE_BUTTON_MIDDLE:
+			_panning = mb.pressed
+			if _panning:
+				_pan_start        = mb.position
+				_pan_pivot_start  = position
 		elif mb.button_index == MOUSE_BUTTON_WHEEL_UP and mb.pressed:
 			_target_distance = clamp(_target_distance - zoom_speed, distance_min, distance_max)
 		elif mb.button_index == MOUSE_BUTTON_WHEEL_DOWN and mb.pressed:
 			_target_distance = clamp(_target_distance + zoom_speed, distance_min, distance_max)
 
-	elif event is InputEventMouseMotion and _dragging:
+	elif event is InputEventMouseMotion:
 		var mm := event as InputEventMouseMotion
-		var delta := mm.position - _drag_start
-		if Input.is_key_pressed(KEY_SHIFT):
-			# Elevation
-			elevation = clamp(_drag_elevation_start - delta.y * rotate_speed,
-							  elevation_min, elevation_max)
-			_target_elevation = elevation
-		else:
+		if _dragging:
+			var delta := mm.position - _drag_start
+			# Horizontal drag → azimuth, vertical drag → elevation
 			_azimuth = _drag_azimuth_start - delta.x * rotate_speed
 			_target_azimuth = _azimuth
+			elevation = clamp(_drag_elevation_start + delta.y * rotate_speed,
+							elevation_min, elevation_max)
+			_target_elevation = elevation
+		elif _panning:
+			var d := mm.position - _pan_start
+			var az_rad := deg_to_rad(_azimuth)
+			# Camera right and forward vectors projected to horizontal plane
+			var right := Vector3(cos(az_rad), 0.0, -sin(az_rad))
+			var fwd   := Vector3(-sin(az_rad), 0.0, -cos(az_rad))
+			var scale := distance * pan_speed
+			position = _pan_pivot_start + right * (-d.x * scale) + fwd * (-d.y * scale)
 
 # ── Process ────────────────────────────────────────────────────────────────
 func _process(delta: float) -> void:
@@ -85,7 +102,7 @@ func _apply_transform() -> void:
 	) * distance
 	if _cam:
 		_cam.position = offset
-		_cam.look_at(Vector3.ZERO, Vector3.UP)
+		_cam.look_at(global_position, Vector3.UP)
 
 # ── Public API ─────────────────────────────────────────────────────────────
 ## Called by GameController after a move. Smoothly rotates to face active player.

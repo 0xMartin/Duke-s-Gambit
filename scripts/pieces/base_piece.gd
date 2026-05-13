@@ -21,8 +21,12 @@ const COLOR_BLACK := Color(0.12, 0.10, 0.08)
 @export var anim_attack: String = "attack"
 @export var anim_death:  String = "death"
 
+## Y-axis rotation offset (degrees) to align model's front with Godot's -Z axis.
+## Blender exports typically have front = +Z in Godot, so 180 is the default.
+@export var model_forward_deg: float = 180.0
+
 # ── Movement config ────────────────────────────────────────────────────────
-const MOVE_SPEED          := 4.0   # units/sec while walking
+const MOVE_SPEED          := 1.0   # units/sec while walking
 const ATTACK_STOP_DIST    := 1.1   # stop this many units before target square centre
 const DEATH_FADE_DURATION := 0.5   # seconds for opacity to drop to 0
 
@@ -48,15 +52,55 @@ signal attack_sequence_done   # emitted when full attack+death sequence is done
 # ──────────────────────────────────────────────────────────────────────────
 func _ready() -> void:
 	_find_children()
+	_setup_animation_loops()
 	_apply_color()
+	_set_initial_facing()
 	_play(anim_idle)
 
 func _find_children() -> void:
+	# Recursive search so AnimationPlayer inside armature hierarchy is found.
+	_anim = _find_anim_recursive(self)
 	for child in get_children():
-		if child is AnimationPlayer:
-			_anim = child
-		elif child is Node3D and _model == null:
+		if child is Node3D:
 			_model = child
+			break
+
+func _find_anim_recursive(node: Node) -> AnimationPlayer:
+	for child in node.get_children():
+		if child is AnimationPlayer:
+			return child as AnimationPlayer
+		var found: AnimationPlayer = _find_anim_recursive(child)
+		if found != null:
+			return found
+	return null
+
+## Idle loops with pingpong (smooth, no visible jump at loop point).
+## Walk loops linearly. Both are set on the shared animation resource — that is fine
+## because all instances of the same piece type share the same desired loop behaviour.
+func _setup_animation_loops() -> void:
+	if _anim == null:
+		return
+	if _anim.has_animation(anim_idle):
+		_anim.get_animation(anim_idle).loop_mode = Animation.LOOP_PINGPONG
+	if _anim.has_animation(anim_walk):
+		_anim.get_animation(anim_walk).loop_mode = Animation.LOOP_LINEAR
+
+## Set starting orientation so piece faces the opponent's half of the board.
+func _set_initial_facing() -> void:
+	# Board: row 0 = white back rank, row 7 = black back rank.
+	# White faces +Z (toward higher rows), black faces -Z (toward lower rows).
+	var fwd := Vector3(0, 0, 1) if piece_color == ChessEnums.PieceColor.WHITE \
+							   else Vector3(0, 0, -1)
+	_face_direction(fwd)
+
+## Rotate piece to face a horizontal world direction.
+func _face_direction(dir: Vector3) -> void:
+	if dir.length_squared() < 0.001:
+		return
+	var flat := Vector3(dir.x, 0.0, dir.z).normalized()
+	look_at(global_position + flat, Vector3.UP)
+	if model_forward_deg != 0.0:
+		rotation_degrees.y += model_forward_deg
 
 func _apply_color() -> void:
 	var col := COLOR_WHITE if piece_color == ChessEnums.PieceColor.WHITE else COLOR_BLACK
@@ -121,7 +165,7 @@ func _process_walk(delta: float) -> void:
 		global_position += diff.normalized() * min(step, dist)
 		# Face movement direction
 		if diff.length_squared() > 0.001:
-			look_at(global_position + diff.normalized(), Vector3.UP)
+			_face_direction(diff.normalized())
 
 func _start_attack() -> void:
 	_state = _State.ATTACKING
@@ -129,7 +173,7 @@ func _start_attack() -> void:
 	# Wait for attack animation to finish one cycle
 	if _anim and _anim.has_animation(anim_attack):
 		var dur := _anim.get_animation(anim_attack).length
-		await get_tree().create_timer(dur * 0.85).timeout
+		await get_tree().create_timer(max(dur * 0.85 - 0.3, 0.0)).timeout
 	# Slight delay then trigger enemy death
 	if _attack_target != null and is_instance_valid(_attack_target):
 		_attack_target.die()
@@ -145,7 +189,6 @@ func die() -> void:
 	if _dying:
 		return
 	_dying = true
-	_state = _State.DYING
 	_play(anim_death)
 	if _anim and _anim.has_animation(anim_death):
 		var dur := _anim.get_animation(anim_death).length
@@ -153,6 +196,7 @@ func die() -> void:
 	_start_fade()
 
 func _start_fade() -> void:
+	_state = _State.DYING   # Begin fade processing only after death animation finishes
 	_fade_timer = 0.0
 	_spawn_death_particles()
 
@@ -168,10 +212,16 @@ func _process_death_fade(delta: float) -> void:
 func _set_alpha_recursive(node: Node, alpha: float) -> void:
 	if node is MeshInstance3D:
 		var mi := node as MeshInstance3D
-		for i in range(mi.get_surface_override_material_count()):
+		var surface_count: int = mi.mesh.get_surface_count() if mi.mesh != null else 0
+		for i in range(surface_count):
 			var mat := mi.get_active_material(i)
 			if mat is StandardMaterial3D:
-				var m := mat as StandardMaterial3D
+				# Duplicate per-instance so fading one piece doesn't affect others sharing the mesh
+				var override := mi.get_surface_override_material(i)
+				if override == null:
+					override = mat.duplicate() as StandardMaterial3D
+					mi.set_surface_override_material(i, override)
+				var m := override as StandardMaterial3D
 				m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 				var c := m.albedo_color
 				c.a = alpha
@@ -199,6 +249,10 @@ func _play(anim_name: String) -> void:
 	if _anim.has_animation(anim_name):
 		if _anim.current_animation != anim_name:
 			_anim.play(anim_name)
+			# Randomise start position for idle so pieces don't animate in sync
+			if anim_name == anim_idle:
+				var anim_len: float = _anim.get_animation(anim_name).length
+				_anim.seek(randf_range(0.0, anim_len), true)
 	else:
 		push_warning("BasePiece: animation '%s' not found on %s" % [anim_name, name])
 

@@ -12,12 +12,14 @@ extends Node3D
 @export var ui_root:     NodePath = ^"UI"
 
 ## Scale applied to every piece on spawn. Adjust until pieces fit the board.
-@export var piece_scale: float = 0.1
+@export var piece_scale: float = 0.05
 
 @onready var _board:   Board       = get_node(board_node)
 @onready var _camera:  OrbitCamera = get_node(camera_node)
 @onready var _pieces:  Node3D      = get_node(pieces_root)
 @onready var _ui:      Control     = get_node(ui_root)
+
+var _hud: Node = null
 
 # ── Piece scenes (populated in _setup_piece_scenes) ────────────────────────
 var _piece_scenes: Dictionary = {}   # PieceType -> PackedScene
@@ -37,21 +39,41 @@ var _move_start_time_ms: int = 0  # timestamp for avg-move-time tracking
 var _move_counts:       Array = [0, 0]
 var _move_times_ms:     Array = [0, 0]
 
+# Captured pieces: [white_captures[], black_captures[]]  (lists of PieceType ints)
+var _captured_by: Array = [[], []]
+
 var _player_names: Array = ["Player1", "Player2"]
+var _player_elos:  Array = [1200, 1200]
 
 # Signals
 signal game_over(winner_color: int, reason: int)   # reason = ChessEnums.GameState
 signal promotion_needed(sq: Vector2i, color: int)
 
 # ──────────────────────────────────────────────────────────────────────────
+func _process(_delta: float) -> void:
+	if _hud == null or _chess == null or _busy or _move_start_time_ms == 0:
+		return
+	_hud.update_timer(Time.get_ticks_msec() - _move_start_time_ms)
+
+# ──────────────────────────────────────────────────────────────────────────
 func _ready() -> void:
 	_setup_piece_scenes()
+	_hud = _ui.get_node_or_null("HUD")
 
 ## Called from MainMenu before adding this node to the scene tree.
 func setup(p1_name: String, p2_name: String,
 		   white_is_ai: bool, black_is_ai: bool, ai_strength: int) -> void:
 	_player_names[ChessEnums.PieceColor.WHITE] = p1_name
 	_player_names[ChessEnums.PieceColor.BLACK] = p2_name
+
+	# Read ELOs from SaveManager
+	var save_node := get_node_or_null("/root/SaveManager")
+	if save_node:
+		for color in [ChessEnums.PieceColor.WHITE, ChessEnums.PieceColor.BLACK]:
+			var pname: String = _player_names[color]
+			if save_node.player_exists(pname):
+				var pdata: Dictionary = save_node.get_player(pname)
+				_player_elos[color] = pdata.get("elo", 1200)
 
 	# Build controllers
 	_controllers.clear()
@@ -79,9 +101,15 @@ func start_game() -> void:
 	_selected_sq = Vector2i(-1, -1)
 	_move_counts = [0, 0]
 	_move_times_ms = [0, 0]
+	_captured_by = [[], []]
 	_clear_pieces()
 	_spawn_all_pieces()
 	_camera.snap_to_player(ChessEnums.PieceColor.WHITE)
+	if _hud != null:
+		_hud.setup(
+			_player_names[ChessEnums.PieceColor.WHITE], _player_elos[ChessEnums.PieceColor.WHITE],
+			_player_names[ChessEnums.PieceColor.BLACK], _player_elos[ChessEnums.PieceColor.BLACK]
+		)
 	_start_turn()
 
 # ── Piece scene setup ──────────────────────────────────────────────────────
@@ -139,6 +167,9 @@ func _start_turn() -> void:
 	var color  := _chess.active_color
 	var state  := _chess.get_game_state()
 	var legal  := _chess.get_legal_moves(color)
+
+	if _hud != null:
+		_hud.set_active_player(color)
 
 	# Check / checkmate / stalemate
 	if state == ChessEnums.GameState.CHECKMATE:
@@ -239,6 +270,12 @@ func _on_move_chosen(mv: ChessMove) -> void:
 	var elapsed := Time.get_ticks_msec() - _move_start_time_ms
 	_move_times_ms[mv.piece_color] += elapsed
 	_move_counts[mv.piece_color]   += 1
+
+	# Track captured pieces for HUD
+	if mv.captured_type != ChessEnums.PieceType.NONE:
+		_captured_by[mv.piece_color].append(mv.captured_type)
+		if _hud != null:
+			_hud.refresh_captured(mv.piece_color, _captured_by[mv.piece_color])
 
 	# Apply to logic board BEFORE animation so board state is updated
 	_chess.make_move(mv)
