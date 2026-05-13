@@ -1,0 +1,94 @@
+[gd_scene load_steps=7 format=3 uid="uid://game"]
+
+[ext_resource type="Script"      path="res://scripts/game_controller.gd"  id="1"]
+[ext_resource type="PackedScene" path="res://scenes/board.tscn"            id="2"]
+[ext_resource type="PackedScene" path="res://scenes/orbit_camera.tscn"     id="3"]
+[ext_resource type="Script"      path="res://scripts/ui/game_ui.gd"        id="4"]
+
+[node name="GameScene" type="Node3D"]
+script = ExtResource("1")
+board_node  = NodePath("Board")
+camera_node = NodePath("OrbitCamera")
+pieces_root = NodePath("Pieces")
+ui_root     = NodePath("UI")
+
+[node name="Board" parent="." instance=ExtResource("2")]
+
+[node name="OrbitCamera" parent="." instance=ExtResource("3")]
+
+[node name="Pieces" type="Node3D" parent="."]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.707, -0.5, 0.5, 0, 0.707, 0.707, -0.707, -0.5, 0.5, 0, 8, 0)
+light_energy = 1.2
+shadow_enabled = true
+
+[node name="UI" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+script = ExtResource("4")
+
+[node name="AIThinkingLabel" type="Label" parent="UI"]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -120.0
+offset_right = 120.0
+offset_top = 16.0
+offset_bottom = 48.0
+text = "AI is thinking..."
+visible = false
+
+[node name="GameOverPanel" type="PanelContainer" parent="UI"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -180.0
+offset_top = -100.0
+offset_right = 180.0
+offset_bottom = 100.0
+visible = false
+
+[node name="VBox" type="VBoxContainer" parent="UI/GameOverPanel"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="UI/GameOverPanel/VBox"]
+text = "Game Over"
+horizontal_alignment = 1
+
+[node name="BackButton" type="Button" parent="UI/GameOverPanel/VBox"]
+text = "Back to Menu"
+
+[node name="PromotionPanel" type="PanelContainer" parent="UI"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -220.0
+offset_top = -60.0
+offset_right = 220.0
+offset_bottom = 60.0
+visible = false
+
+[node name="HBox" type="HBoxContainer" parent="UI/PromotionPanel"]
+layout_mode = 2
+
+[node name="QueenBtn" type="Button" parent="UI/PromotionPanel/HBox"]
+text = "Queen"
+
+[node name="RookBtn" type="Button" parent="UI/PromotionPanel/HBox"]
+text = "Rook"
+
+[node name="BishopBtn" type="Button" parent="UI/PromotionPanel/HBox"]
+text = "Bishop"
+
+[node name="KnightBtn" type="Button" parent="UI/PromotionPanel/HBox"]
+text = "Knight"

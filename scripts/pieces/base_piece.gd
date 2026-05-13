@@ -1,0 +1,209 @@
+## base_piece.gd
+## Base class for all chess pieces.
+## Handles: colour assignment (fig_color material), animation playback,
+## movement (walk → idle), attack sequence, death sequence, opacity fade.
+## The 3D model + AnimationPlayer live as children (set up in derived scenes).
+
+class_name BasePiece
+extends Node3D
+
+# ── Piece identity ─────────────────────────────────────────────────────────
+@export var piece_type:  int = ChessEnums.PieceType.PAWN   # ChessEnums.PieceType
+@export var piece_color: int = ChessEnums.PieceColor.WHITE  # ChessEnums.PieceColor
+
+# ── Piece colours (tweak here) ─────────────────────────────────────────────
+const COLOR_WHITE := Color(0.92, 0.88, 0.80)
+const COLOR_BLACK := Color(0.12, 0.10, 0.08)
+
+# ── Animation names (override in subclass if different) ─────────────────────
+@export var anim_idle:   String = "idle"
+@export var anim_walk:   String = "walk"
+@export var anim_attack: String = "attack"
+@export var anim_death:  String = "death"
+
+# ── Movement config ────────────────────────────────────────────────────────
+const MOVE_SPEED          := 4.0   # units/sec while walking
+const ATTACK_STOP_DIST    := 1.1   # stop this many units before target square centre
+const DEATH_FADE_DURATION := 0.5   # seconds for opacity to drop to 0
+
+# ── Node refs (assigned in _ready by searching children) ───────────────────
+var _anim: AnimationPlayer = null
+var _model: Node3D = null          # first Node3D child (the actual mesh root)
+
+# ── Runtime state ──────────────────────────────────────────────────────────
+enum _State { IDLE, WALKING, ATTACKING, DYING }
+var _state: _State = _State.IDLE
+
+var _target_pos:     Vector3 = Vector3.ZERO
+var _attack_target:  BasePiece = null   # piece being attacked
+var _after_attack_pos: Vector3 = Vector3.ZERO  # where to walk after attack
+
+var _dying:       bool  = false
+var _fade_timer:  float = 0.0
+var _base_alpha:  float = 1.0
+
+signal move_finished          # emitted when piece arrives at destination
+signal attack_sequence_done   # emitted when full attack+death sequence is done
+
+# ──────────────────────────────────────────────────────────────────────────
+func _ready() -> void:
+	_find_children()
+	_apply_color()
+	_play(anim_idle)
+
+func _find_children() -> void:
+	for child in get_children():
+		if child is AnimationPlayer:
+			_anim = child
+		elif child is Node3D and _model == null:
+			_model = child
+
+func _apply_color() -> void:
+	var col := COLOR_WHITE if piece_color == ChessEnums.PieceColor.WHITE else COLOR_BLACK
+	_set_material_color(self, col)
+
+func _set_material_color(node: Node, col: Color) -> void:
+	if node is MeshInstance3D:
+		var mi := node as MeshInstance3D
+		for i in range(mi.get_surface_override_material_count()):
+			var mat := mi.get_surface_override_material(i)
+			if mat == null:
+				mat = mi.mesh.surface_get_material(i)
+			if mat and mat.resource_name == "fig_color":
+				var new_mat := mat.duplicate() as StandardMaterial3D
+				new_mat.albedo_color = col
+				mi.set_surface_override_material(i, new_mat)
+	for child in node.get_children():
+		_set_material_color(child, col)
+
+# ── Public movement API ────────────────────────────────────────────────────
+
+## Simple move to world position (no combat)
+func move_to(world_pos: Vector3) -> void:
+	_target_pos = world_pos
+	_state = _State.WALKING
+	_play(anim_walk)
+
+## Full attack sequence: walk toward target, play attack, wait for death, walk to final pos
+func attack_and_move_to(target: BasePiece, final_pos: Vector3) -> void:
+	_attack_target = target
+	_after_attack_pos = final_pos
+	_state = _State.WALKING
+	_target_pos = _calc_attack_stop_pos(target.global_position)
+	_play(anim_walk)
+
+func _calc_attack_stop_pos(target_world: Vector3) -> Vector3:
+	var dir := (target_world - global_position).normalized()
+	return target_world - dir * ATTACK_STOP_DIST
+
+# ── Process ────────────────────────────────────────────────────────────────
+func _process(delta: float) -> void:
+	match _state:
+		_State.WALKING:
+			_process_walk(delta)
+		_State.DYING:
+			_process_death_fade(delta)
+
+func _process_walk(delta: float) -> void:
+	var diff := _target_pos - global_position
+	diff.y = 0.0
+	var dist := diff.length()
+	if dist < 0.02:
+		global_position = _target_pos
+		if _attack_target != null:
+			_start_attack()
+		else:
+			_state = _State.IDLE
+			_play(anim_idle)
+			emit_signal("move_finished")
+	else:
+		var step := MOVE_SPEED * delta
+		global_position += diff.normalized() * min(step, dist)
+		# Face movement direction
+		if diff.length_squared() > 0.001:
+			look_at(global_position + diff.normalized(), Vector3.UP)
+
+func _start_attack() -> void:
+	_state = _State.ATTACKING
+	_play(anim_attack)
+	# Wait for attack animation to finish one cycle
+	if _anim and _anim.has_animation(anim_attack):
+		var dur := _anim.get_animation(anim_attack).length
+		await get_tree().create_timer(dur * 0.85).timeout
+	# Slight delay then trigger enemy death
+	if _attack_target != null and is_instance_valid(_attack_target):
+		_attack_target.die()
+		await _attack_target.tree_exited          # wait until enemy removed from scene
+	_attack_target = null
+	# Walk to final square
+	_state = _State.WALKING
+	_target_pos = _after_attack_pos
+	_play(anim_walk)
+
+## Trigger death sequence on this piece
+func die() -> void:
+	if _dying:
+		return
+	_dying = true
+	_state = _State.DYING
+	_play(anim_death)
+	if _anim and _anim.has_animation(anim_death):
+		var dur := _anim.get_animation(anim_death).length
+		await get_tree().create_timer(dur).timeout
+	_start_fade()
+
+func _start_fade() -> void:
+	_fade_timer = 0.0
+	_spawn_death_particles()
+
+func _process_death_fade(delta: float) -> void:
+	if not _dying:
+		return
+	_fade_timer += delta
+	var t := clamp(_fade_timer / DEATH_FADE_DURATION, 0.0, 1.0)
+	_set_alpha_recursive(self, 1.0 - t)
+	if t >= 1.0:
+		queue_free()
+
+func _set_alpha_recursive(node: Node, alpha: float) -> void:
+	if node is MeshInstance3D:
+		var mi := node as MeshInstance3D
+		for i in range(mi.get_surface_override_material_count()):
+			var mat := mi.get_active_material(i)
+			if mat is StandardMaterial3D:
+				var m := mat as StandardMaterial3D
+				m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+				var c := m.albedo_color
+				c.a = alpha
+				m.albedo_color = c
+	for child in node.get_children():
+		_set_alpha_recursive(child, alpha)
+
+func _spawn_death_particles() -> void:
+	# Load and instance the shared death particle scene
+	var ps_scene := load("res://scenes/effects/death_particles.tscn") as PackedScene
+	if ps_scene == null:
+		return
+	var ps := ps_scene.instantiate() as GPUParticles3D
+	get_parent().add_child(ps)
+	ps.global_position = global_position + Vector3(0, 0.5, 0)
+	ps.emitting = true
+	# Auto-free after particles finish
+	var lifetime: float = ps.lifetime * (ps.amount + 1)
+	get_tree().create_timer(lifetime + 1.0).timeout.connect(ps.queue_free)
+
+# ── Animation helper ───────────────────────────────────────────────────────
+func _play(anim_name: String) -> void:
+	if _anim == null:
+		return
+	if _anim.has_animation(anim_name):
+		if _anim.current_animation != anim_name:
+			_anim.play(anim_name)
+	else:
+		push_warning("BasePiece: animation '%s' not found on %s" % [anim_name, name])
+
+func current_anim() -> String:
+	return _anim.current_animation if _anim else ""
+
+func board_square() -> Vector2i:
+	return Vector2i.ZERO  # set by GameController after instantiation

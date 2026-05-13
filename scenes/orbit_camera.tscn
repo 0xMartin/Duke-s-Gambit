@@ -1,0 +1,13 @@
+[gd_scene load_steps=3 format=3 uid="uid://orbitcamera"]
+
+[ext_resource type="Script" path="res://scripts/orbit_camera.gd" id="1"]
+
+[node name="OrbitCamera" type="Node3D"]
+script = ExtResource("1")
+distance = 14.0
+elevation = 40.0
+
+[node name="Camera3D" type="Camera3D" parent="."]
+fov = 50.0
+near = 0.1
+far = 200.0
