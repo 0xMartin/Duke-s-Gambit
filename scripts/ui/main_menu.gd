@@ -21,6 +21,10 @@ extends Control
 # Settings
 @onready var _ai_strength_slider: HSlider = $SettingsPanel/VBox/AIStrengthRow/HSlider
 @onready var _ai_strength_label:  Label   = $SettingsPanel/VBox/AIStrengthRow/Label
+@onready var _pan_sens_slider:    HSlider = $SettingsPanel/VBox/PanSensRow/PanSensSlider
+@onready var _pan_sens_label:     Label   = $SettingsPanel/VBox/PanSensRow/PanSensLabel
+@onready var _tilt_sens_slider:   HSlider = $SettingsPanel/VBox/TiltSensRow/TiltSensSlider
+@onready var _tilt_sens_label:    Label   = $SettingsPanel/VBox/TiltSensRow/TiltSensLabel
 
 var _mode: String = "pvp"   # "pvp" or "pvai"
 var _save: Node = null
@@ -52,6 +56,8 @@ func _setup_signals() -> void:
 	$SettingsPanel/VBox/BackBtn.pressed.connect(func(): _show_panel(_main_panel))
 
 	_ai_strength_slider.value_changed.connect(_on_ai_strength_changed)
+	_pan_sens_slider.value_changed.connect(_on_pan_sens_changed)
+	_tilt_sens_slider.value_changed.connect(_on_tilt_sens_changed)
 
 	_p1_list.item_selected.connect(func(idx): _p1_edit.text = _p1_list.get_item_text(idx))
 	_p2_list.item_selected.connect(func(idx): _p2_edit.text = _p2_list.get_item_text(idx))
@@ -143,7 +149,27 @@ func _populate_stats() -> void:
 
 # ── Settings ───────────────────────────────────────────────────────────────
 func _show_settings() -> void:
+	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
+	if cam_cfg:
+		_pan_sens_slider.value  = cam_cfg.pan_sensitivity
+		_pan_sens_label.text    = "Pan Sensitivity: %d" % cam_cfg.pan_sensitivity
+		_tilt_sens_slider.value = cam_cfg.tilt_sensitivity
+		_tilt_sens_label.text   = "Tilt Sensitivity: %d" % cam_cfg.tilt_sensitivity
 	_show_panel(_settings_panel)
 
 func _on_ai_strength_changed(value: float) -> void:
 	_ai_strength_label.text = "AI Strength: %d" % int(value)
+
+func _on_pan_sens_changed(value: float) -> void:
+	_pan_sens_label.text = "Pan Sensitivity: %d" % int(value)
+	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
+	if cam_cfg:
+		cam_cfg.pan_sensitivity = int(value)
+		cam_cfg.save_config()
+
+func _on_tilt_sens_changed(value: float) -> void:
+	_tilt_sens_label.text = "Tilt Sensitivity: %d" % int(value)
+	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
+	if cam_cfg:
+		cam_cfg.tilt_sensitivity = int(value)
+		cam_cfg.save_config()

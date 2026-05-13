@@ -19,6 +19,7 @@ config/icon="res://icon.svg"
 [autoload]
 
 SaveManager="*res://scripts/save_manager.gd"
+CameraConfig="*res://scripts/camera_config.gd"
 
 [display]
 

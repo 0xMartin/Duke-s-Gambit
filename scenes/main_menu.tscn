@@ -142,10 +142,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -220.0
-offset_top = -160.0
-offset_right = 220.0
-offset_bottom = 160.0
+offset_left = -250.0
+offset_top = -220.0
+offset_right = 250.0
+offset_bottom = 220.0
 visible = false
 
 [node name="VBox" type="VBoxContainer" parent="SettingsPanel"]
@@ -167,6 +167,36 @@ min_value = 1.0
 max_value = 5.0
 step = 1.0
 value = 1.0
+
+[node name="PanSensRow" type="HBoxContainer" parent="SettingsPanel/VBox"]
+layout_mode = 2
+
+[node name="PanSensLabel" type="Label" parent="SettingsPanel/VBox/PanSensRow"]
+text = "Pan Sensitivity: 5"
+custom_minimum_size = Vector2(160, 0)
+
+[node name="PanSensSlider" type="HSlider" parent="SettingsPanel/VBox/PanSensRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 1.0
+max_value = 10.0
+step = 1.0
+value = 5.0
+
+[node name="TiltSensRow" type="HBoxContainer" parent="SettingsPanel/VBox"]
+layout_mode = 2
+
+[node name="TiltSensLabel" type="Label" parent="SettingsPanel/VBox/TiltSensRow"]
+text = "Tilt Sensitivity: 5"
+custom_minimum_size = Vector2(160, 0)
+
+[node name="TiltSensSlider" type="HSlider" parent="SettingsPanel/VBox/TiltSensRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 1.0
+max_value = 10.0
+step = 1.0
+value = 5.0
 
 [node name="BackBtn" type="Button" parent="SettingsPanel/VBox"]
 text = "Back"

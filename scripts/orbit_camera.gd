@@ -17,11 +17,11 @@ extends Node3D
 @export var elevation_max:  float = 80.0  # degrees
 @export var elevation:      float = 40.0  # current, degrees
 
-@export var rotate_speed:   float = 0.4   # deg per pixel
+@export var rotate_speed:   float = 0.4   # deg per pixel (overridden by CameraConfig)
 @export var zoom_speed:     float = 1.2
 @export var smooth_speed:   float = 4.0   # for auto-rotate after move
 
-@export var pan_speed:      float = 0.003  # world-units per pixel per distance-unit
+@export var pan_speed:      float = 0.0015  # world-units per pixel per distance-unit (overridden by CameraConfig)
 
 # Side azimuths: WHITE looks from -Z side (azimuth=180), BLACK from +Z (azimuth=0)
 const AZIMUTH_WHITE := 180.0
@@ -47,6 +47,10 @@ var _pan_pivot_start: Vector3 = Vector3.ZERO
 
 # ── Ready ──────────────────────────────────────────────────────────────────
 func _ready() -> void:
+	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
+	if cam_cfg:
+		pan_speed    = cam_cfg.pan_speed()
+		rotate_speed = cam_cfg.tilt_speed()
 	_apply_transform()
 
 # ── Input ──────────────────────────────────────────────────────────────────
