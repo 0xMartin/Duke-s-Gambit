@@ -1,42 +1,40 @@
 ## orbit_camera.gd
 ## Orbit camera with a pivot at the board centre.
-## Right-drag = rotate azimuth, scroll = zoom, Shift+drag = elevation change.
-## After each move the camera smoothly faces the active player's side.
+## RMB or MMB drag = rotate azimuth + change elevation; scroll = zoom.
+## After each move the camera smoothly faces the active player's side,
+## resets the pivot to board centre, and ensures a comfortable zoom level.
 
 class_name OrbitCamera
 extends Node3D
 
 # ── Config ─────────────────────────────────────────────────────────────────
-@export var distance_min:  float = 5.0
-@export var distance_max:  float = 25.0
-@export var distance:      float = 14.0
+@export var distance_min:   float = 3.0
+@export var distance_max:   float = 25.0
+@export var distance:       float = 11.2
+@export var distance_after_move: float = 11.2  # max distance snapped to after each move
 
-@export var elevation_min: float = 10.0  # degrees
-@export var elevation_max: float = 80.0  # degrees
-@export var elevation:     float = 40.0  # current, degrees
+@export var elevation_min:  float = 10.0  # degrees
+@export var elevation_max:  float = 80.0  # degrees
+@export var elevation:      float = 40.0  # current, degrees
 
-@export var rotate_speed:  float = 0.4   # deg per pixel
-@export var zoom_speed:    float = 1.2
-@export var smooth_speed:  float = 4.0   # for auto-rotate after move
-@export var pan_speed:     float = 0.003  # world-units per pixel per distance-unit
+@export var rotate_speed:   float = 0.4   # deg per pixel
+@export var zoom_speed:     float = 1.2
+@export var smooth_speed:   float = 4.0   # for auto-rotate after move
 
-# Side azimuths: WHITE looks from -Z side (azimuth=0), BLACK from +Z (azimuth=180)
+# Side azimuths: WHITE looks from -Z side (azimuth=180), BLACK from +Z (azimuth=0)
 const AZIMUTH_WHITE := 180.0
 const AZIMUTH_BLACK := 0.0
 
-var _azimuth: float = AZIMUTH_WHITE    # current horizontal angle, degrees
+var _azimuth: float = AZIMUTH_WHITE
 var _target_azimuth:   float = AZIMUTH_WHITE
 var _target_elevation: float = 40.0
-var _target_distance:  float = 14.0
+var _target_distance:  float = 11.2
 
+# Unified drag state (RMB or MMB)
 var _dragging: bool = false
 var _drag_start: Vector2 = Vector2.ZERO
-var _drag_azimuth_start: float = 0.0
+var _drag_azimuth_start:   float = 0.0
 var _drag_elevation_start: float = 0.0
-
-var _panning: bool = false
-var _pan_start: Vector2 = Vector2.ZERO
-var _pan_pivot_start: Vector3 = Vector3.ZERO
 
 @onready var _cam: Camera3D = $Camera3D
 
@@ -48,17 +46,14 @@ func _ready() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
-		if mb.button_index == MOUSE_BUTTON_RIGHT:
+		# Both RMB and MMB activate the same orbit+elevation drag
+		if mb.button_index == MOUSE_BUTTON_RIGHT \
+		or mb.button_index == MOUSE_BUTTON_MIDDLE:
 			_dragging = mb.pressed
 			if _dragging:
-				_drag_start            = mb.position
-				_drag_azimuth_start    = _azimuth
-				_drag_elevation_start  = elevation
-		elif mb.button_index == MOUSE_BUTTON_MIDDLE:
-			_panning = mb.pressed
-			if _panning:
-				_pan_start        = mb.position
-				_pan_pivot_start  = position
+				_drag_start           = mb.position
+				_drag_azimuth_start   = _azimuth
+				_drag_elevation_start = elevation
 		elif mb.button_index == MOUSE_BUTTON_WHEEL_UP and mb.pressed:
 			_target_distance = clamp(_target_distance - zoom_speed, distance_min, distance_max)
 		elif mb.button_index == MOUSE_BUTTON_WHEEL_DOWN and mb.pressed:
@@ -68,23 +63,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		var mm := event as InputEventMouseMotion
 		if _dragging:
 			var delta := mm.position - _drag_start
-			# Horizontal drag → azimuth, vertical drag → elevation
+			# Horizontal → azimuth (orbit), vertical → elevation
 			_azimuth = _drag_azimuth_start - delta.x * rotate_speed
 			_target_azimuth = _azimuth
 			elevation = clamp(_drag_elevation_start + delta.y * rotate_speed,
 							elevation_min, elevation_max)
 			_target_elevation = elevation
-		elif _panning:
-			var d := mm.position - _pan_start
-			var az_rad := deg_to_rad(_azimuth)
-			# Only left/right (no forward/back)
-			var right := Vector3(cos(az_rad), 0.0, -sin(az_rad))
-			var scale := distance * pan_speed
-			var new_pos := _pan_pivot_start + right * (-d.x * scale)
-			# Clamp to board extents (±4 in X and Z)
-			new_pos.x = clamp(new_pos.x, -4.0, 4.0)
-			new_pos.z = clamp(new_pos.z, -4.0, 4.0)
-			position = new_pos
 
 # ── Process ────────────────────────────────────────────────────────────────
 func _process(delta: float) -> void:
@@ -108,10 +92,13 @@ func _apply_transform() -> void:
 		_cam.look_at(global_position, Vector3.UP)
 
 # ── Public API ─────────────────────────────────────────────────────────────
-## Called by GameController after a move. Smoothly rotates to face active player.
+## Called by GameController after a move. Smoothly rotates to face active player,
+## resets pivot to board centre, and ensures a comfortable viewing distance.
 func face_player(color: int) -> void:
 	_target_azimuth   = AZIMUTH_WHITE if color == ChessEnums.PieceColor.WHITE else AZIMUTH_BLACK
-	_target_elevation = 40.0   # reset to comfortable default elevation
+	_target_elevation = 40.0
+	position          = Vector3.ZERO                              # reset pivot to board centre
+	_target_distance  = minf(_target_distance, distance_after_move)  # pull in if too far out
 
 ## Teleport instantly (used on game start)
 func snap_to_player(color: int) -> void:

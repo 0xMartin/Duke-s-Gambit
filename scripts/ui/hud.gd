@@ -35,19 +35,28 @@ func _build_ui() -> void:
 	set_anchor_and_offset(SIDE_BOTTOM, 0, HUD_HEIGHT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-	# Full-width HBox — two panels expand to fill (no gap → no dark stripe in middle)
+	# Left panel | transparent centre | right panel
 	var hbox := HBoxContainer.new()
 	hbox.set_anchors_preset(Control.PRESET_FULL_RECT)
 	hbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hbox.add_theme_constant_override("separation", 2)
+	hbox.add_theme_constant_override("separation", 0)
 	add_child(hbox)
 
-	_build_player_panel(hbox, ChessEnums.PieceColor.WHITE)
-	_build_player_panel(hbox, ChessEnums.PieceColor.BLACK)
+	_build_player_panel(hbox, ChessEnums.PieceColor.WHITE)   # left edge
+
+	var spacer := Control.new()   # transparent centre
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hbox.add_child(spacer)
+
+	_build_player_panel(hbox, ChessEnums.PieceColor.BLACK)   # right edge
 
 func _build_player_panel(parent: HBoxContainer, color: int) -> void:
+	var is_right := (color == ChessEnums.PieceColor.BLACK)
+
 	var panel := PanelContainer.new()
-	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL  # fills half the bar each
+	panel.size_flags_horizontal = Control.SIZE_SHRINK_END if is_right \
+								  else Control.SIZE_SHRINK_BEGIN
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	parent.add_child(panel)
 
@@ -84,14 +93,11 @@ func _build_player_panel(parent: HBoxContainer, color: int) -> void:
 		pawn_tex.expand_mode  = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
 		pawn_tex.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		circle.add_child(pawn_tex)
-	hbox.add_child(circle)
 
 	# ── Text info column ──────────────────────────────────────────────────
 	var vbox := VBoxContainer.new()
-	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vbox.add_theme_constant_override("separation", 3)
 	vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hbox.add_child(vbox)
 
 	# Row 1: active-indicator | name | elo | timer
 	var row1 := HBoxContainer.new()
@@ -106,7 +112,6 @@ func _build_player_panel(parent: HBoxContainer, color: int) -> void:
 
 	var name_lbl := Label.new()
 	name_lbl.text = "Player"
-	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_lbl.add_theme_font_size_override("font_size", 16)
 	_name_lbl[color] = name_lbl
 	row1.add_child(name_lbl)
@@ -132,6 +137,14 @@ func _build_player_panel(parent: HBoxContainer, color: int) -> void:
 	hflow.custom_minimum_size = Vector2(0, ICON_SIZE + 2)
 	_captured_hf[color] = hflow
 	vbox.add_child(hflow)
+
+	# Compose hbox: white = [circle | vbox], black = [vbox | circle]
+	if is_right:
+		hbox.add_child(vbox)
+		hbox.add_child(circle)
+	else:
+		hbox.add_child(circle)
+		hbox.add_child(vbox)
 
 # ── Public API ─────────────────────────────────────────────────────────────
 
