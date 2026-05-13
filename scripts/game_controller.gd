@@ -11,6 +11,9 @@ extends Node3D
 @export var pieces_root: NodePath = ^"Pieces"
 @export var ui_root:     NodePath = ^"UI"
 
+## Scale applied to every piece on spawn. Adjust until pieces fit the board.
+@export var piece_scale: float = 0.1
+
 @onready var _board:   Board       = get_node(board_node)
 @onready var _camera:  OrbitCamera = get_node(camera_node)
 @onready var _pieces:  Node3D      = get_node(pieces_root)
@@ -116,6 +119,7 @@ func _spawn_piece(sq: Vector2i, type: int, color: int) -> BasePiece:
 	var piece: BasePiece = _piece_scenes[type].instantiate()
 	piece.piece_type  = type
 	piece.piece_color = color
+	piece.scale = Vector3.ONE * piece_scale
 	_pieces.add_child(piece)
 	piece.global_position = _board.sq_to_world(sq)
 	_sq_pieces[sq] = piece

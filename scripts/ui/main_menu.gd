@@ -104,10 +104,10 @@ func _populate_stats() -> void:
 		child.queue_free()
 	if _save == null:
 		return
-	for key in _save.get_all_player_names():
-		var p := _save.get_player(key)
-		var avg_ms := _save.average_move_time_ms(key)
-		var avg_s  := "%.1fs" % (avg_ms / 1000.0) if avg_ms > 0 else "-"
+	for key: String in _save.get_all_player_names():
+		var p: Dictionary = _save.get_player(key)
+		var avg_ms: float = _save.average_move_time_ms(key)
+		var avg_s: String = "%.1fs" % (avg_ms / 1000.0) if avg_ms > 0 else "-"
 		var lbl := Label.new()
 		lbl.text = "%s  |  ELO: %d  |  W:%d L:%d D:%d  |  Avg move: %s  |  Games: %d" % [
 			p["name"], p["elo"],
