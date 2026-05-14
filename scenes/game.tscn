@@ -7,6 +7,8 @@
 [ext_resource type="Script" uid="uid://bfgfin44nf1d2" path="res://scripts/ui/hud.gd" id="5"]
 [ext_resource type="Texture2D" uid="uid://bomo6t88iri6d" path="res://assets/textures/skybox.png" id="6"]
 [ext_resource type="PackedScene" uid="uid://ddoai7gywl243" path="res://assets/word/terrain.blend" id="7"]
+[ext_resource type="Texture2D" uid="uid://ih0bn2if7eyb" path="res://assets/textures/pieces/white_pawn.svg" id="8"]
+[ext_resource type="Texture2D" uid="uid://bj1851l6k55lq" path="res://assets/textures/pieces/black_pawn.svg" id="9"]
 
 [sub_resource type="PanoramaSkyMaterial" id="SkyMat1"]
 panorama = ExtResource("6")
@@ -20,6 +22,66 @@ sky = SubResource("Sky1")
 ambient_light_source = 2
 ambient_light_color = Color(0.95, 0.92, 0.88, 1)
 ambient_light_energy = 0.8
+
+[sub_resource type="StyleBoxFlat" id="HudPanelWhite"]
+bg_color = Color(0.04, 0.05, 0.1, 0.82)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.38, 0.3, 0.06, 0.55)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="HudAvatarWhite"]
+bg_color = Color(0.85, 0.85, 0.85, 1)
+corner_radius_top_left = 42
+corner_radius_top_right = 42
+corner_radius_bottom_right = 42
+corner_radius_bottom_left = 42
+
+[sub_resource type="StyleBoxFlat" id="HudCaptureWhite"]
+content_margin_left = 4.0
+content_margin_top = 2.0
+content_margin_right = 4.0
+content_margin_bottom = 2.0
+bg_color = Color(0.82, 0.82, 0.82, 0.38)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="HudPanelBlack"]
+bg_color = Color(0.04, 0.05, 0.1, 0.82)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.38, 0.3, 0.06, 0.55)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="HudCaptureBlack"]
+content_margin_left = 4.0
+content_margin_top = 2.0
+content_margin_right = 4.0
+content_margin_bottom = 2.0
+bg_color = Color(0.06, 0.06, 0.1, 0.65)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="HudAvatarBlack"]
+bg_color = Color(0.18, 0.18, 0.22, 1)
+corner_radius_top_left = 42
+corner_radius_top_right = 42
+corner_radius_bottom_right = 42
+corner_radius_bottom_left = 42
 
 [node name="GameScene" type="Node3D" unique_id=345240271]
 script = ExtResource("1")
@@ -52,9 +114,184 @@ mouse_filter = 2
 script = ExtResource("4")
 
 [node name="HUD" type="Control" parent="UI" unique_id=345053778]
-anchors_preset = 0
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 180.0
+grow_horizontal = 2
 mouse_filter = 2
 script = ExtResource("5")
+
+[node name="TopBar" type="HBoxContainer" parent="UI/HUD" unique_id=488746810]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="WhitePanel" type="PanelContainer" parent="UI/HUD/TopBar" unique_id=1639280010]
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("HudPanelWhite")
+
+[node name="Margin" type="MarginContainer" parent="UI/HUD/TopBar/WhitePanel" unique_id=821965180]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="MainHBox" type="HBoxContainer" parent="UI/HUD/TopBar/WhitePanel/Margin" unique_id=568236136]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 16
+
+[node name="AvatarBG" type="PanelContainer" parent="UI/HUD/TopBar/WhitePanel/Margin/MainHBox" unique_id=1971534063]
+custom_minimum_size = Vector2(84, 84)
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("HudAvatarWhite")
+
+[node name="AvatarTex" type="TextureRect" parent="UI/HUD/TopBar/WhitePanel/Margin/MainHBox/AvatarBG" unique_id=1067594281]
+custom_minimum_size = Vector2(84, 84)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("8")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="InfoVBox" type="VBoxContainer" parent="UI/HUD/TopBar/WhitePanel/Margin/MainHBox" unique_id=1330188565]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 3
+
+[node name="Row" type="HBoxContainer" parent="UI/HUD/TopBar/WhitePanel/Margin/MainHBox/InfoVBox" unique_id=586098515]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="TurnIndicator" type="ColorRect" parent="UI/HUD/TopBar/WhitePanel/Margin/MainHBox/InfoVBox/Row" unique_id=1090950465]
+custom_minimum_size = Vector2(6, 32)
+layout_mode = 2
+color = Color(0, 0, 0, 0)
+
+[node name="Name" type="Label" parent="UI/HUD/TopBar/WhitePanel/Margin/MainHBox/InfoVBox/Row" unique_id=1243572640]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.88, 0.88, 0.88, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 28
+text = "White"
+
+[node name="Elo" type="Label" parent="UI/HUD/TopBar/WhitePanel/Margin/MainHBox/InfoVBox/Row" unique_id=1388764898]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 22
+text = "ELO 1200"
+
+[node name="Timer" type="Label" parent="UI/HUD/TopBar/WhitePanel/Margin/MainHBox/InfoVBox/Row" unique_id=1758136311]
+custom_minimum_size = Vector2(130, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.85, 0.5, 1)
+theme_override_font_sizes/font_size = 22
+horizontal_alignment = 2
+
+[node name="CapturedPanel" type="PanelContainer" parent="UI/HUD/TopBar/WhitePanel/Margin/MainHBox/InfoVBox" unique_id=1365764537]
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("HudCaptureWhite")
+
+[node name="CapturedFlow" type="HFlowContainer" parent="UI/HUD/TopBar/WhitePanel/Margin/MainHBox/InfoVBox/CapturedPanel" unique_id=1387663260]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/h_separation = 2
+theme_override_constants/v_separation = 2
+
+[node name="Spacer" type="Control" parent="UI/HUD/TopBar" unique_id=501456985]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="BlackPanel" type="PanelContainer" parent="UI/HUD/TopBar" unique_id=2134970181]
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("HudPanelBlack")
+
+[node name="Margin" type="MarginContainer" parent="UI/HUD/TopBar/BlackPanel" unique_id=1235819400]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="MainHBox" type="HBoxContainer" parent="UI/HUD/TopBar/BlackPanel/Margin" unique_id=1050871494]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 16
+
+[node name="InfoVBox" type="VBoxContainer" parent="UI/HUD/TopBar/BlackPanel/Margin/MainHBox" unique_id=105680244]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 3
+
+[node name="Row" type="HBoxContainer" parent="UI/HUD/TopBar/BlackPanel/Margin/MainHBox/InfoVBox" unique_id=1831603310]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="TurnIndicator" type="ColorRect" parent="UI/HUD/TopBar/BlackPanel/Margin/MainHBox/InfoVBox/Row" unique_id=14193882]
+custom_minimum_size = Vector2(6, 32)
+layout_mode = 2
+color = Color(0, 0, 0, 0)
+
+[node name="Name" type="Label" parent="UI/HUD/TopBar/BlackPanel/Margin/MainHBox/InfoVBox/Row" unique_id=2069091762]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.88, 0.88, 0.88, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 28
+text = "Black"
+
+[node name="Elo" type="Label" parent="UI/HUD/TopBar/BlackPanel/Margin/MainHBox/InfoVBox/Row" unique_id=1129891114]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 22
+text = "ELO 1200"
+
+[node name="Timer" type="Label" parent="UI/HUD/TopBar/BlackPanel/Margin/MainHBox/InfoVBox/Row" unique_id=1123195889]
+custom_minimum_size = Vector2(130, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.85, 0.5, 1)
+theme_override_font_sizes/font_size = 22
+horizontal_alignment = 2
+
+[node name="CapturedPanel" type="PanelContainer" parent="UI/HUD/TopBar/BlackPanel/Margin/MainHBox/InfoVBox" unique_id=82171555]
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("HudCaptureBlack")
+
+[node name="CapturedFlow" type="HFlowContainer" parent="UI/HUD/TopBar/BlackPanel/Margin/MainHBox/InfoVBox/CapturedPanel" unique_id=1117646782]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/h_separation = 2
+theme_override_constants/v_separation = 2
+
+[node name="AvatarBG" type="PanelContainer" parent="UI/HUD/TopBar/BlackPanel/Margin/MainHBox" unique_id=95408901]
+custom_minimum_size = Vector2(84, 84)
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("HudAvatarBlack")
+
+[node name="AvatarTex" type="TextureRect" parent="UI/HUD/TopBar/BlackPanel/Margin/MainHBox/AvatarBG" unique_id=911899612]
+custom_minimum_size = Vector2(84, 84)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("9")
+expand_mode = 1
+stretch_mode = 6
 
 [node name="AIThinkingLabel" type="Label" parent="UI" unique_id=337434124]
 visible = false

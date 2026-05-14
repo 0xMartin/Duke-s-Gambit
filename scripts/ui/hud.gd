@@ -1,178 +1,46 @@
 ## hud.gd
 ## Top-bar HUD: both player panels with name, ELO, chess-clock timer, captured pieces.
-## Builds all child nodes at runtime.
+## UI nodes are defined in the scene; this script only updates values/highlights.
 
 extends Control
 
 # ── Constants ──────────────────────────────────────────────────────────────
 const ICON_SIZE  := 36
-const HUD_HEIGHT := 180
-const AVATAR_SIZE := 84
 
 ## Maps PieceType int → piece name used in the SVG filename.
 const PIECE_NAMES: Dictionary = {
 	1: "pawn", 2: "rook", 3: "knight", 4: "bishop", 5: "queen", 6: "king"
 }
 
-# ── Internal node refs (built in _build_ui) ────────────────────────────────
+# ── Internal node refs (wired from scene) ──────────────────────────────────
 var _name_lbl:    Array = [null, null]   # [white, black] Label
 var _elo_lbl:     Array = [null, null]
 var _timer_lbl:   Array = [null, null]
 var _captured_hf: Array = [null, null]  # HFlowContainer
 var _turn_ind:    Array = [null, null]  # ColorRect active stripe
-var _panel_style: Array = [null, null]  # StyleBoxFlat per player (for live border updates)
+var _panel_style: Array = [null, null]  # StyleBoxFlat per player panel
 
 var _active_color: int = ChessEnums.PieceColor.WHITE
 var _has_time_limit: bool = false  # true = countdown mode
 
 # ── Setup ──────────────────────────────────────────────────────────────────
 func _ready() -> void:
-	_build_ui()
-
-func _build_ui() -> void:
-	set_anchor_and_offset(SIDE_LEFT,   0, 0)
-	set_anchor_and_offset(SIDE_RIGHT,  1, 0)
-	set_anchor_and_offset(SIDE_TOP,    0, 0)
-	set_anchor_and_offset(SIDE_BOTTOM, 0, HUD_HEIGHT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_name_lbl[ChessEnums.PieceColor.WHITE]  = get_node("TopBar/WhitePanel/Margin/MainHBox/InfoVBox/Row/Name") as Label
+	_name_lbl[ChessEnums.PieceColor.BLACK]  = get_node("TopBar/BlackPanel/Margin/MainHBox/InfoVBox/Row/Name") as Label
+	_elo_lbl[ChessEnums.PieceColor.WHITE]   = get_node("TopBar/WhitePanel/Margin/MainHBox/InfoVBox/Row/Elo") as Label
+	_elo_lbl[ChessEnums.PieceColor.BLACK]   = get_node("TopBar/BlackPanel/Margin/MainHBox/InfoVBox/Row/Elo") as Label
+	_timer_lbl[ChessEnums.PieceColor.WHITE] = get_node("TopBar/WhitePanel/Margin/MainHBox/InfoVBox/Row/Timer") as Label
+	_timer_lbl[ChessEnums.PieceColor.BLACK] = get_node("TopBar/BlackPanel/Margin/MainHBox/InfoVBox/Row/Timer") as Label
+	_captured_hf[ChessEnums.PieceColor.WHITE] = get_node("TopBar/WhitePanel/Margin/MainHBox/InfoVBox/CapturedPanel/CapturedFlow") as HFlowContainer
+	_captured_hf[ChessEnums.PieceColor.BLACK] = get_node("TopBar/BlackPanel/Margin/MainHBox/InfoVBox/CapturedPanel/CapturedFlow") as HFlowContainer
+	_turn_ind[ChessEnums.PieceColor.WHITE] = get_node("TopBar/WhitePanel/Margin/MainHBox/InfoVBox/Row/TurnIndicator") as ColorRect
+	_turn_ind[ChessEnums.PieceColor.BLACK] = get_node("TopBar/BlackPanel/Margin/MainHBox/InfoVBox/Row/TurnIndicator") as ColorRect
 
-	# Left panel | transparent centre | right panel
-	var hbox := HBoxContainer.new()
-	hbox.set_anchors_preset(Control.PRESET_FULL_RECT)
-	hbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hbox.add_theme_constant_override("separation", 0)
-	add_child(hbox)
-
-	_build_player_panel(hbox, ChessEnums.PieceColor.WHITE)   # left edge
-
-	var spacer := Control.new()   # transparent centre
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hbox.add_child(spacer)
-
-	_build_player_panel(hbox, ChessEnums.PieceColor.BLACK)   # right edge
-
-func _build_player_panel(parent: HBoxContainer, color: int) -> void:
-	var is_right := (color == ChessEnums.PieceColor.BLACK)
-
-	var panel := PanelContainer.new()
-	panel.size_flags_horizontal = Control.SIZE_SHRINK_END if is_right \
-								  else Control.SIZE_SHRINK_BEGIN
-	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	parent.add_child(panel)
-	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.05, 0.06, 0.12, 0.91)
-	panel_style.border_color = Color(0.82, 0.62, 0.10, 1.0)
-	panel_style.set_border_width_all(3)
-	panel_style.set_corner_radius_all(12)
-	panel.add_theme_stylebox_override("panel", panel_style)
-	_panel_style[color] = panel_style
-
-	var margin := MarginContainer.new()
-	for side in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
-		margin.add_theme_constant_override(side, 8)
-	panel.add_child(margin)
-
-	var hbox := HBoxContainer.new()
-	hbox.add_theme_constant_override("separation", 16)
-	hbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	margin.add_child(hbox)
-
-	# ── Circular pawn avatar ──────────────────────────────────────────────
-	var circle := PanelContainer.new()
-	circle.custom_minimum_size = Vector2(AVATAR_SIZE, AVATAR_SIZE)
-	circle.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var style := StyleBoxFlat.new()
-	var radius: int = AVATAR_SIZE / 2
-	style.corner_radius_top_left     = radius
-	style.corner_radius_top_right    = radius
-	style.corner_radius_bottom_left  = radius
-	style.corner_radius_bottom_right = radius
-	style.bg_color = Color(0.85, 0.85, 0.85) if color == ChessEnums.PieceColor.WHITE \
-					else Color(0.18, 0.18, 0.22)
-	circle.add_theme_stylebox_override("panel", style)
-	var color_str: String = "white" if color == ChessEnums.PieceColor.WHITE else "black"
-	var pawn_path := "res://assets/textures/pieces/%s_pawn.svg" % color_str
-	if ResourceLoader.exists(pawn_path):
-		var pawn_tex := TextureRect.new()
-		pawn_tex.texture = load(pawn_path) as Texture2D
-		pawn_tex.custom_minimum_size = Vector2(AVATAR_SIZE, AVATAR_SIZE)
-		pawn_tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		pawn_tex.expand_mode  = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
-		pawn_tex.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		circle.add_child(pawn_tex)
-
-	# ── Text info column ──────────────────────────────────────────────────
-	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 3)
-	vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
-
-	# Row 1: active-indicator | name | elo | timer
-	var row1 := HBoxContainer.new()
-	row1.add_theme_constant_override("separation", 6)
-	vbox.add_child(row1)
-
-	var ind := ColorRect.new()
-	ind.custom_minimum_size = Vector2(6, 32)
-	ind.color = Color.TRANSPARENT
-	_turn_ind[color] = ind
-	row1.add_child(ind)
-
-	var name_lbl := Label.new()
-	name_lbl.text = "Player"
-	name_lbl.add_theme_font_size_override("font_size", 28)
-	name_lbl.add_theme_constant_override("outline_size", 3)
-	name_lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
-	_name_lbl[color] = name_lbl
-	row1.add_child(name_lbl)
-
-	var elo_lbl := Label.new()
-	elo_lbl.text = "ELO –"
-	elo_lbl.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
-	elo_lbl.add_theme_font_size_override("font_size", 22)
-	_elo_lbl[color] = elo_lbl
-	row1.add_child(elo_lbl)
-
-	var timer_lbl := Label.new()
-	timer_lbl.text = ""
-	timer_lbl.custom_minimum_size = Vector2(130, 0)
-	timer_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	timer_lbl.add_theme_color_override("font_color", Color(0.9, 0.85, 0.5))
-	timer_lbl.add_theme_font_size_override("font_size", 22)
-	_timer_lbl[color] = timer_lbl
-	row1.add_child(timer_lbl)
-
-	# Row 2: captured piece icons wrapped in a contrasting-bg strip
-	var cap_panel := PanelContainer.new()
-	cap_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var cap_style := StyleBoxFlat.new()
-	# White captures black pieces → light strip so dark icons are visible
-	# Black captures white pieces → dark strip so light icons are visible
-	cap_style.bg_color = Color(0.82, 0.82, 0.82, 0.38) \
-			if color == ChessEnums.PieceColor.WHITE else Color(0.06, 0.06, 0.10, 0.65)
-	cap_style.set_corner_radius_all(6)
-	cap_style.content_margin_left   = 4
-	cap_style.content_margin_right  = 4
-	cap_style.content_margin_top    = 2
-	cap_style.content_margin_bottom = 2
-	cap_panel.add_theme_stylebox_override("panel", cap_style)
-
-	var hflow := HFlowContainer.new()
-	hflow.add_theme_constant_override("h_separation", 2)
-	hflow.add_theme_constant_override("v_separation", 2)
-	hflow.custom_minimum_size = Vector2(0, ICON_SIZE + 4)
-	hflow.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_captured_hf[color] = hflow
-	cap_panel.add_child(hflow)
-	vbox.add_child(cap_panel)
-
-	# Compose hbox: white = [circle | vbox], black = [vbox | circle]
-	if is_right:
-		hbox.add_child(vbox)
-		hbox.add_child(circle)
-	else:
-		hbox.add_child(circle)
-		hbox.add_child(vbox)
+	var white_panel := get_node("TopBar/WhitePanel") as PanelContainer
+	var black_panel := get_node("TopBar/BlackPanel") as PanelContainer
+	_panel_style[ChessEnums.PieceColor.WHITE] = white_panel.get_theme_stylebox("panel") as StyleBoxFlat
+	_panel_style[ChessEnums.PieceColor.BLACK] = black_panel.get_theme_stylebox("panel") as StyleBoxFlat
 
 # ── Public API ─────────────────────────────────────────────────────────────
 
