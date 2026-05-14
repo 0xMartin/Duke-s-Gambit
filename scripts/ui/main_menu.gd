@@ -120,9 +120,9 @@ func _on_start_pressed() -> void:
 	var p2 := _p2_edit.text.strip_edges() if _mode == "pvp" else "AI"
 
 	if p1.is_empty():
-		p1 = "Player 1"
+		p1 = "White Player"
 	if p2.is_empty() and _mode == "pvp":
-		p2 = "Player 2"
+		p2 = "Black Player"
 
 	if _save:
 		if not _save.player_exists(p1):

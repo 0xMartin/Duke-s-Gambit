@@ -86,8 +86,8 @@ corner_radius_bottom_left = 42
 [node name="GameScene" type="Node3D" unique_id=345240271]
 script = ExtResource("1")
 
-[node name="Terrain" parent="." unique_id=582522773 instance=ExtResource("7")]
-transform = Transform3D(0.4, 0, 0, 0, 0.4, 0, 0, 0, 0.4, 0, -0.4, 0)
+[node name="Terrain" parent="." unique_id=1935459976 instance=ExtResource("7")]
+transform = Transform3D(0.45, 0, 0, 0, 0.45, 0, 0, 0, 0.45, 0, -0.5, 0)
 
 [node name="Board" parent="." unique_id=1969348578 instance=ExtResource("2")]
 
@@ -318,12 +318,58 @@ grow_vertical = 2
 
 [node name="VBox" type="VBoxContainer" parent="UI/GameOverPanel" unique_id=1923570882]
 layout_mode = 2
+theme_override_constants/separation = 10
 
-[node name="Label" type="Label" parent="UI/GameOverPanel/VBox" unique_id=653513695]
+[node name="TitleLabel" type="Label" parent="UI/GameOverPanel/VBox" unique_id=653513695]
 layout_mode = 2
-size_flags_vertical = 3
+size_flags_vertical = 1
+theme_override_colors/font_color = Color(1, 0.88, 0.25, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
 theme_override_font_sizes/font_size = 52
-text = "Game Over"
+text = "VICTORY"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="WinnerLabel" type="Label" parent="UI/GameOverPanel/VBox" unique_id=2135930926]
+layout_mode = 2
+size_flags_vertical = 1
+theme_override_font_sizes/font_size = 40
+text = "Player 1 WON"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="LoserLabel" type="Label" parent="UI/GameOverPanel/VBox" unique_id=161364805]
+layout_mode = 2
+size_flags_vertical = 1
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 36
+text = "Player 2 LOST"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="ReasonLabel" type="Label" parent="UI/GameOverPanel/VBox" unique_id=823044705]
+layout_mode = 2
+size_flags_vertical = 1
+theme_override_colors/font_color = Color(0.85, 0.75, 0.4, 1)
+theme_override_font_sizes/font_size = 24
+text = "Checkmate"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="Spacer" type="Control" parent="UI/GameOverPanel/VBox" unique_id=643031126]
+layout_mode = 2
+
+[node name="StatsLabel" type="Label" parent="UI/GameOverPanel/VBox" unique_id=363688089]
+layout_mode = 2
+size_flags_vertical = 2
+theme_override_font_sizes/font_size = 18
+text = "Player 1: 5:30 | Avg: 2.3 s
+Player 2: 4:15 | Avg: 1.9 s"
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
@@ -334,6 +380,47 @@ layout_mode = 2
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 36
 text = "Back to Menu"
+
+[node name="SurrenderConfirmPanel" type="PanelContainer" parent="UI" unique_id=448641579]
+visible = false
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.35
+anchor_top = 0.4
+anchor_right = 0.65
+anchor_bottom = 0.6
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="UI/SurrenderConfirmPanel" unique_id=730165915]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="QuestionLabel" type="Label" parent="UI/SurrenderConfirmPanel/VBox" unique_id=1353471840]
+layout_mode = 2
+size_flags_vertical = 2
+theme_override_font_sizes/font_size = 28
+text = "Are you sure you want to surrender?"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="ButtonHBox" type="HBoxContainer" parent="UI/SurrenderConfirmPanel/VBox" unique_id=99322785]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="YesButton" type="Button" parent="UI/SurrenderConfirmPanel/VBox/ButtonHBox" unique_id=59706857]
+custom_minimum_size = Vector2(120, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Yes"
+
+[node name="NoButton" type="Button" parent="UI/SurrenderConfirmPanel/VBox/ButtonHBox" unique_id=1619507832]
+custom_minimum_size = Vector2(120, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "No"
 
 [node name="PromotionPanel" type="PanelContainer" parent="UI" unique_id=1877138672]
 visible = false

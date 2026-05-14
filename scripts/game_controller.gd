@@ -242,7 +242,7 @@ func _animate_checkmate_end(loser_color: int) -> void:
 	if king_piece:
 		king_piece.die()
 	await get_tree().create_timer(2.2).timeout
-	_show_game_over(1 - loser_color, "Šachmat")
+	_show_game_over(1 - loser_color, "Checkmate")
 
 # ── Time-out ───────────────────────────────────────────────────────────────
 func _on_time_out(loser_color: int) -> void:
@@ -252,7 +252,7 @@ func _on_time_out(loser_color: int) -> void:
 	_busy = true
 	var winner := 1 - loser_color
 	emit_signal("game_over", winner, ChessEnums.GameState.DRAW)  # reuse signal
-	_show_game_over(winner, "Čas vypršel")
+	_show_game_over(winner, "Time Expired")
 
 ## Forfeit: the current active player loses.
 func surrender() -> void:
@@ -263,7 +263,15 @@ func surrender() -> void:
 	var surrendering := _chess.active_color
 	var winner := 1 - surrendering
 	emit_signal("game_over", winner, ChessEnums.GameState.CHECKMATE)
-	_show_game_over(winner, "Vzdání se")
+	_show_game_over(winner, "Surrender")
+
+func _format_time(ms: int) -> String:
+	var secs: int = ms / 1000
+	var mins: int = secs / 60
+	var sec_rem: int = secs % 60
+	if mins > 0:
+		return "%d:%02d" % [mins, sec_rem]
+	return "%d s" % secs
 
 func _update_ai_ui(is_ai: bool) -> void:
 	var lbl := _ui.get_node_or_null("AIThinkingLabel") as Label
@@ -488,14 +496,59 @@ func _show_game_over(winner_color: int, reason: String) -> void:
 	if panel == null:
 		return
 	panel.visible = true
-	var lbl := panel.get_node_or_null("Label") as Label
-	if lbl:
-		if winner_color == -1:
-			lbl.text = "Remíza\n— %s —" % reason
+
+	var title_lbl := panel.get_node_or_null("VBox/TitleLabel") as Label
+	var winner_lbl := panel.get_node_or_null("VBox/WinnerLabel") as Label
+	var loser_lbl := panel.get_node_or_null("VBox/LoserLabel") as Label
+	var reason_lbl := panel.get_node_or_null("VBox/ReasonLabel") as Label
+	var stats_lbl := panel.get_node_or_null("VBox/StatsLabel") as Label
+
+	if winner_color == -1:
+		if title_lbl:
+			title_lbl.text = "DRAW"
+		if winner_lbl:
+			winner_lbl.text = "%s vs %s" % [_player_names[0], _player_names[1]]
+		if loser_lbl:
+			loser_lbl.text = ""
+	else:
+		var winner_name: String = _player_names[winner_color]
+		var loser_name: String  = _player_names[1 - winner_color]
+		if title_lbl:
+			title_lbl.text = "VICTORY"
+		if winner_lbl:
+			winner_lbl.text = winner_name + " WON"
+		if loser_lbl:
+			loser_lbl.text = loser_name + " LOST"
+
+	if reason_lbl:
+		reason_lbl.text = reason
+
+	if stats_lbl:
+		# Compute time remaining/elapsed for both players
+		var white_time: String = ""
+		var black_time: String = ""
+		if _time_control_ms > 0:
+			white_time = _format_time(_time_remaining_ms[ChessEnums.PieceColor.WHITE])
+			black_time = _format_time(_time_remaining_ms[ChessEnums.PieceColor.BLACK])
 		else:
-			var winner_name: String = _player_names[winner_color]
-			var loser_name: String  = _player_names[1 - winner_color]
-			lbl.text = "%s vyhrává!\n%s prohrává\n— %s —" % [winner_name, loser_name, reason]
+			white_time = _format_time(_move_times_ms[ChessEnums.PieceColor.WHITE])
+			black_time = _format_time(_move_times_ms[ChessEnums.PieceColor.BLACK])
+
+		var white_avg_ms: float = 0.0
+		var black_avg_ms: float = 0.0
+		if _move_counts[ChessEnums.PieceColor.WHITE] > 0:
+			white_avg_ms = float(_move_times_ms[ChessEnums.PieceColor.WHITE]) / float(_move_counts[ChessEnums.PieceColor.WHITE])
+		if _move_counts[ChessEnums.PieceColor.BLACK] > 0:
+			black_avg_ms = float(_move_times_ms[ChessEnums.PieceColor.BLACK]) / float(_move_counts[ChessEnums.PieceColor.BLACK])
+
+		var white_avg_s: String = "%.1f s" % (white_avg_ms / 1000.0)
+		var black_avg_s: String = "%.1f s" % (black_avg_ms / 1000.0)
+
+		stats_lbl.text = "%s: %s | Avg: %s\n%s: %s | Avg: %s" % [
+			_player_names[ChessEnums.PieceColor.WHITE], white_time, white_avg_s,
+			_player_names[ChessEnums.PieceColor.BLACK], black_time, black_avg_s
+		]
+
 
 	# Save stats
 	var w_name: String = _player_names[ChessEnums.PieceColor.WHITE]

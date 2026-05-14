@@ -7,6 +7,7 @@ extends Control
 @onready var _game: GameController = get_parent()
 @onready var _promo_panel: Control = $PromotionPanel
 @onready var _over_panel:  Control = $GameOverPanel
+@onready var _surrender_panel: PanelContainer = $SurrenderConfirmPanel
 
 var _pending_promo_sq: Vector2i = Vector2i(-1, -1)
 var _pending_promo_color: int = 0
@@ -19,9 +20,15 @@ func _ready() -> void:
 	$PromotionPanel/HBox/BishopBtn.pressed.connect(func(): _choose(ChessEnums.PieceType.BISHOP))
 	$PromotionPanel/HBox/KnightBtn.pressed.connect(func(): _choose(ChessEnums.PieceType.KNIGHT))
 
+	$SurrenderConfirmPanel/VBox/ButtonHBox/YesButton.pressed.connect(_on_surrender_confirmed)
+	$SurrenderConfirmPanel/VBox/ButtonHBox/NoButton.pressed.connect(func(): _surrender_panel.visible = false)
+
 	_game.promotion_needed.connect(_on_promotion_needed)
 	_setup_surrender_btn()
-	_game.game_over.connect(func(_w: int, _r: int) -> void: _surrender_btn.visible = false)
+	_game.game_over.connect(func(_w: int, _r: int) -> void:
+		_surrender_btn.visible = false
+		_surrender_panel.visible = false
+	)
 	_apply_roblox_theme()
 
 func _setup_surrender_btn() -> void:
@@ -38,7 +45,14 @@ func _setup_surrender_btn() -> void:
 	_surrender_btn.offset_bottom  = -12.0
 	_surrender_btn.add_theme_font_size_override("font_size", 32)
 	add_child(_surrender_btn)
-	_surrender_btn.pressed.connect(_game.surrender)
+	_surrender_btn.pressed.connect(_on_surrender_pressed)
+
+func _on_surrender_pressed() -> void:
+	_surrender_panel.visible = true
+
+func _on_surrender_confirmed() -> void:
+	_surrender_panel.visible = false
+	_game.surrender()
 
 func _on_promotion_needed(sq: Vector2i, color: int) -> void:
 	_pending_promo_sq    = sq
