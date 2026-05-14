@@ -57,6 +57,7 @@ const _SFX_STEP2: AudioStream = preload("res://assets/sounds/footstep/footstep_2
 const _SFX_STEP3: AudioStream = preload("res://assets/sounds/footstep/footstep_3.mp3")
 const _SFX_SWORD: AudioStream = preload("res://assets/sounds/sword.mp3")
 const _SFX_HIT:   AudioStream = preload("res://assets/sounds/hit.mp3")
+const _SFX_DEATH: AudioStream = preload("res://assets/sounds/death.mp3")
 const _SFX_SPELL: AudioStream = preload("res://assets/sounds/spell.mp3")
 const FOOTSTEP_FIRST_DELAY := 0.4   # seconds before first step (non-knight)
 const FOOTSTEP_INTERVAL    := 0.6   # seconds between subsequent steps
@@ -209,6 +210,14 @@ func _on_attack_start() -> void:
 	_trail_active = true
 
 func _on_attack_hit() -> void:
+	# hit.mp3 plays at the exact moment of impact — root-level so it's independent of pieces
+	var hit_tmp := AudioStreamPlayer.new()
+	hit_tmp.bus = "SFX"
+	get_tree().root.add_child(hit_tmp)
+	hit_tmp.stream    = _SFX_HIT
+	hit_tmp.volume_db = 6.0
+	hit_tmp.finished.connect(hit_tmp.queue_free)
+	hit_tmp.play()
 	# Spawn hit flash VFX at the target's position
 	if _attack_target != null and is_instance_valid(_attack_target):
 		_spawn_vfx(_VFX_HIT_SCENE, _attack_target.global_position + Vector3(0, 0.5, 0))
@@ -289,6 +298,7 @@ func _update_weapon_transform() -> void:
 # ──────────────────────────────────────────────────────────────────────────
 func _ready() -> void:
 	_sfx = AudioStreamPlayer.new()
+	_sfx.bus = "SFX"
 	add_child(_sfx)
 	if not _vfx_warmed_up:
 		_vfx_warmed_up = true
@@ -448,13 +458,35 @@ func _start_attack() -> void:
 	_play(anim_walk)
 	_start_footsteps()
 
+## Returns how many seconds into the death animation the death sound should fire.
+func _get_death_sound_delay() -> float:
+	match piece_type:
+		ChessEnums.PieceType.ROOK:   return 2.13
+		ChessEnums.PieceType.QUEEN:  return 1.08
+		ChessEnums.PieceType.BISHOP: return 1.50
+		ChessEnums.PieceType.KING:   return 2.10
+		ChessEnums.PieceType.KNIGHT: return 1.50
+		_:                           return 1.50   # PAWN + fallback
+
 ## Trigger death sequence on this piece
 func die() -> void:
 	if _dying:
 		return
 	_dying = true
 	_play(anim_death)
-	_schedule_hit_sound()
+	# Schedule death sound at the correct moment inside the animation
+	var _sound_delay := _get_death_sound_delay()
+	get_tree().create_timer(_sound_delay).timeout.connect(func() -> void:
+		if not is_inside_tree():
+			return
+		var dtmp := AudioStreamPlayer.new()
+		dtmp.bus = "SFX"
+		get_tree().root.add_child(dtmp)
+		dtmp.stream = _SFX_DEATH
+		dtmp.volume_db = 6.0
+		dtmp.finished.connect(dtmp.queue_free)
+		dtmp.play()
+	)
 	if _anim and _anim.has_animation(anim_death):
 		var dur := _anim.get_animation(anim_death).length
 		await get_tree().create_timer(dur).timeout
@@ -501,6 +533,7 @@ func _spawn_death_particles() -> void:
 	_spawn_vfx(_VFX_IMPACT_SCENE, pos)
 	# spell.mp3 via root-level player so it survives piece queue_free()
 	var tmp := AudioStreamPlayer.new()
+	tmp.bus = "SFX"
 	get_tree().root.add_child(tmp)
 	tmp.stream = _SFX_SPELL
 	tmp.finished.connect(tmp.queue_free)
@@ -592,29 +625,3 @@ func _run_footstep_loop(token: int) -> void:
 		if token != _footstep_token or not _footstep_active:
 			return
 		_play_footstep()
-
-func _get_death_sound_delay() -> float:
-	match piece_type:
-		ChessEnums.PieceType.ROOK:   return 2.13
-		ChessEnums.PieceType.QUEEN:  return 1.08
-		ChessEnums.PieceType.BISHOP: return 1.5
-		ChessEnums.PieceType.KING:   return 2.1
-		ChessEnums.PieceType.KNIGHT: return 1.5
-		_:                           return 1.5   # pawn + fallback
-
-## Schedules hit.mp3 at the piece-type-specific moment during death anim.
-## Uses a root-level temporary AudioStreamPlayer so it survives queue_free().
-func _schedule_hit_sound() -> void:
-	var delay: float = _get_death_sound_delay()
-	var root := get_tree().root
-	var hit_stream := _SFX_HIT
-	get_tree().create_timer(delay).timeout.connect(
-		func() -> void:
-			if not is_instance_valid(root):
-				return
-			var tmp := AudioStreamPlayer.new()
-			root.add_child(tmp)
-			tmp.stream = hit_stream
-			tmp.finished.connect(tmp.queue_free)
-			tmp.play()
-	)

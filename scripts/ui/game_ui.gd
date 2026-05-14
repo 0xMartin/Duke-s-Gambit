@@ -50,6 +50,7 @@ func _choose(piece_type: int) -> void:
 	_game.choose_promotion(_pending_promo_sq, piece_type)
 
 func _on_back_pressed() -> void:
+	MusicManager.play_menu_music()
 	# Add menu first, then free game scene so root is never empty for a frame
 	var menu: Node = load("res://scenes/main_menu.tscn").instantiate()
 	get_tree().root.add_child(menu)

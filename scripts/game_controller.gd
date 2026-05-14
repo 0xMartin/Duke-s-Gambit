@@ -78,8 +78,11 @@ func _ready() -> void:
 	_setup_piece_scenes()
 	_hud = _ui.get_node_or_null("HUD")
 	_sfx_select = AudioStreamPlayer.new()
+	_sfx_select.bus = "SFX"
 	_sfx_select.stream = preload("res://assets/sounds/piece_select.mp3")
+	_sfx_select.volume_db = -10.0
 	add_child(_sfx_select)
+	MusicManager.play_game_music()
 
 ## Called from MainMenu before adding this node to the scene tree.
 func setup(p1_name: String, p2_name: String,

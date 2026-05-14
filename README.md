@@ -18,3 +18,8 @@ https://freesound.org/people/Breviceps/sounds/447922/
 https://freesound.org/people/Vilkas_Sound/sounds/707041/
 - spell:
 https://freesound.org/people/LittleRobotSoundFactory/sounds/270409/ (zatim nepouzito)
+
+
+todo:
+- 3D dekorace ve hre kolem šachovnice (hrnek, 3x lowpoly strom, vez s budovou, vlajka, teren)
+- vylepšit zvukove efekty ve hre

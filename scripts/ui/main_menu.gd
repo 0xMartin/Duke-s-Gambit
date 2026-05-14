@@ -31,10 +31,15 @@ var _mode: String = "pvp"   # "pvp" or "pvai"
 var _save: Node = null
 var _stats_vbox:        VBoxContainer = null
 var _face_player_check: CheckBox      = null
+var _music_vol_slider:  HSlider       = null
+var _music_vol_label:   Label         = null
+var _sfx_vol_slider:    HSlider       = null
+var _sfx_vol_label:     Label         = null
 
 # ──────────────────────────────────────────────────────────────────────────
 func _ready() -> void:
 	_save = get_node("/root/SaveManager")
+	MusicManager.play_menu_music()
 	_show_panel(_main_panel)
 	_setup_signals()
 	# Populate time control options
@@ -167,6 +172,15 @@ func _show_settings() -> void:
 		_kill_cam_check.button_pressed = cam_cfg.kill_cam_enabled
 		if _face_player_check:
 			_face_player_check.button_pressed = cam_cfg.get("face_player_after_move") != false
+		# Populate volume sliders without triggering callbacks
+		var mv: int = int(cam_cfg.get("music_volume"))
+		var sv: int = int(cam_cfg.get("sfx_volume"))
+		if _music_vol_slider:
+			_music_vol_slider.set_value_no_signal(mv)
+			_music_vol_label.text = "Music Volume: %d%%" % mv
+		if _sfx_vol_slider:
+			_sfx_vol_slider.set_value_no_signal(sv)
+			_sfx_vol_label.text = "SFX Volume: %d%%" % sv
 	_show_panel(_settings_panel)
 
 func _on_ai_strength_changed(value: float) -> void:
@@ -209,10 +223,74 @@ func _setup_settings_extra() -> void:
 	vbox.add_child(row)
 	_face_player_check.toggled.connect(_on_face_player_toggled)
 
+	# ── Music Volume ─────────────────────────────────────────────────────
+	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
+	var init_mv: int = int(cam_cfg.get("music_volume")) if cam_cfg else 80
+	var init_sv: int = int(cam_cfg.get("sfx_volume"))   if cam_cfg else 100
+
+	_music_vol_label = Label.new()
+	_music_vol_label.text = "Music Volume: %d%%" % init_mv
+	_music_vol_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_music_vol_label.add_theme_font_size_override("font_size", 28)
+	_music_vol_slider = HSlider.new()
+	_music_vol_slider.min_value = 0.0
+	_music_vol_slider.max_value = 100.0
+	_music_vol_slider.step      = 1.0
+	_music_vol_slider.value     = init_mv
+	_music_vol_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_music_vol_slider.custom_minimum_size = Vector2(200, 0)
+	var mv_row := HBoxContainer.new()
+	mv_row.name = "MusicVolRow"
+	mv_row.add_child(_music_vol_label)
+	mv_row.add_child(_music_vol_slider)
+	vbox.add_child(mv_row)
+
+	# ── SFX Volume ───────────────────────────────────────────────────────
+	_sfx_vol_label = Label.new()
+	_sfx_vol_label.text = "SFX Volume: %d%%" % init_sv
+	_sfx_vol_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_sfx_vol_label.add_theme_font_size_override("font_size", 28)
+	_sfx_vol_slider = HSlider.new()
+	_sfx_vol_slider.min_value = 0.0
+	_sfx_vol_slider.max_value = 100.0
+	_sfx_vol_slider.step      = 1.0
+	_sfx_vol_slider.value     = init_sv
+	_sfx_vol_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_sfx_vol_slider.custom_minimum_size = Vector2(200, 0)
+	var sv_row := HBoxContainer.new()
+	sv_row.name = "SFXVolRow"
+	sv_row.add_child(_sfx_vol_label)
+	sv_row.add_child(_sfx_vol_slider)
+	vbox.add_child(sv_row)
+
+	# Connect after setting initial values to avoid triggering callbacks during setup
+	_music_vol_slider.value_changed.connect(_on_music_vol_changed)
+	_sfx_vol_slider.value_changed.connect(_on_sfx_vol_changed)
+
 func _on_face_player_toggled(pressed: bool) -> void:
 	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
 	if cam_cfg:
 		cam_cfg.set("face_player_after_move", pressed)
+		cam_cfg.save_config()
+
+func _on_music_vol_changed(value: float) -> void:
+	var pct := int(value)
+	if _music_vol_label:
+		_music_vol_label.text = "Music Volume: %d%%" % pct
+	MusicManager.set_music_volume(pct)
+	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
+	if cam_cfg:
+		cam_cfg.set("music_volume", pct)
+		cam_cfg.save_config()
+
+func _on_sfx_vol_changed(value: float) -> void:
+	var pct := int(value)
+	if _sfx_vol_label:
+		_sfx_vol_label.text = "SFX Volume: %d%%" % pct
+	MusicManager.set_sfx_volume(pct)
+	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
+	if cam_cfg:
+		cam_cfg.set("sfx_volume", pct)
 		cam_cfg.save_config()
 
 func _setup_font_sizes() -> void:
@@ -335,6 +413,7 @@ func _play_menu_click() -> void:
 	if not is_inside_tree():
 		return
 	var tmp := AudioStreamPlayer.new()
+	tmp.bus = "SFX"
 	get_tree().root.add_child(tmp)
 	tmp.stream = preload("res://assets/sounds/ui_button.mp3")
 	tmp.finished.connect(tmp.queue_free)
