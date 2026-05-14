@@ -299,11 +299,8 @@ func _select_piece(sq: Vector2i) -> void:
 	var bp: BasePiece = _sq_pieces.get(sq) as BasePiece
 	if bp:
 		_selected_piece = bp
-		bp.set_selected(true)
 
 func _deselect_piece() -> void:
-	if _selected_piece != null and is_instance_valid(_selected_piece):
-		_selected_piece.set_selected(false)
 	_selected_piece = null
 
 func _raycast_board(screen_pos: Vector2) -> Vector2i:

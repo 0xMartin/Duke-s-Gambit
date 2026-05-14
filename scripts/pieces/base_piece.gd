@@ -28,14 +28,15 @@ const COLOR_BLACK := Color(0.12, 0.10, 0.08)
 ## Whether this piece draws a weapon during attack (disable for Knight).
 @export var use_weapon: bool = true
 ## Local transform of the weapon relative to the hand bone (tweak position/rotation in inspector).
-@export var weapon_transform: Transform3D = Transform3D()
+## Default scale 0.01 compensates for a ~28-unit (Blender-meter) sword mesh → ~0.28 world units.
+@export var weapon_transform: Transform3D = Transform3D(Basis().scaled(Vector3(0.05, 0.05, 0.05)), Vector3.ZERO)
 
 # ── Movement config ────────────────────────────────────────────────────────
 const MOVE_SPEED          := 1.0   # units/sec while walking
 const ATTACK_STOP_DIST    := 1.1   # stop this many units before target square centre
 const DEATH_FADE_DURATION := 0.5   # seconds for opacity to drop to 0
 # ── Weapon config ──────────────────────────────────────────────────────────
-const WEAPON_BONE         := "mixamorig:RightHand"
+const WEAPON_BONE         := "mixamorig_RightHand"
 const WEAPON_SCENE_PATH   := "res://assets/models/weapons/sword.blend"
 const WEAPON_FADE_IN_DUR  := 0.2
 const WEAPON_FADE_OUT_DUR := 0.5
@@ -56,26 +57,12 @@ var _fade_timer:  float = 0.0
 var _base_alpha:  float = 1.0
 
 # Weapon runtime state
-var _weapon_attach:   BoneAttachment3D = null
-var _weapon_instance: Node3D           = null
+var _sword_skel:     Skeleton3D = null   # cached skeleton that owns the hand bone
+var _sword_bone_idx: int        = -1    # index of WEAPON_BONE inside _sword_skel
+var _weapon_instance: Node3D    = null
 
 signal move_finished          # emitted when piece arrives at destination
 signal attack_sequence_done   # emitted when full attack+death sequence is done
-
-# ── Selection outline ──────────────────────────────────────────────────────
-static var _outline_mat: ShaderMaterial = null
-
-func set_selected(v: bool) -> void:
-	_apply_outline_recursive(self, v)
-
-func _apply_outline_recursive(node: Node, active: bool) -> void:
-	if node is MeshInstance3D:
-		if _outline_mat == null:
-			_outline_mat = ShaderMaterial.new()
-			_outline_mat.shader = load("res://shaders/outline.gdshader") as Shader
-		(node as MeshInstance3D).material_overlay = _outline_mat if active else null
-	for child in node.get_children():
-		_apply_outline_recursive(child, active)
 
 # ── Weapon ──────────────────────────────────────────────────────────────────────
 func _find_skeleton_recursive(node: Node) -> Skeleton3D:
@@ -90,7 +77,6 @@ func _find_skeleton_recursive(node: Node) -> Skeleton3D:
 func _show_weapon() -> void:
 	if not use_weapon:
 		return
-	# Clean up any leftover weapon from a previous (edge-case) attack.
 	_destroy_weapon()
 
 	var skel := _find_skeleton_recursive(self)
@@ -102,7 +88,7 @@ func _show_weapon() -> void:
 		var bone_names: Array[String] = []
 		for i in skel.get_bone_count():
 			bone_names.append(skel.get_bone_name(i))
-		push_warning("[BasePiece] _show_weapon: bone '%s' not found in '%s'.\n  Available bones: [%s]" \
+		push_warning("[BasePiece] _show_weapon: bone '%s' not found in '%s'.\n  Available: [%s]" \
 			% [WEAPON_BONE, name, ", ".join(bone_names)])
 		return
 
@@ -111,38 +97,37 @@ func _show_weapon() -> void:
 		push_warning("[BasePiece] _show_weapon: cannot load '%s'" % WEAPON_SCENE_PATH)
 		return
 
-	# In Godot 4, BoneAttachment3D.bone_name must be set AFTER add_child so its
-	# _ready() can resolve the bone index against the live skeleton.
-	_weapon_attach = BoneAttachment3D.new()
-	skel.add_child(_weapon_attach)
-	_weapon_attach.bone_name = WEAPON_BONE
+	_sword_skel     = skel
+	_sword_bone_idx = bone_idx
 
-	# Wait one frame so BoneAttachment fully settles its transform before we
-	# parent the sword to it (avoids a one-frame wrong-position flash).
-	await get_tree().process_frame
-
-	if not is_instance_valid(_weapon_attach):
-		return  # safety: destroyed before frame ended
-
-	_weapon_instance = sword_scene.instantiate() as Node3D
-	_weapon_instance.transform = weapon_transform
-	_weapon_attach.add_child(_weapon_instance)
-	print("[BasePiece] Sword shown on '%s' at bone '%s', attach_pos=%s" \
-		% [name, WEAPON_BONE, _weapon_attach.global_position])
+	_weapon_instance            = sword_scene.instantiate() as Node3D
+	_weapon_instance.top_level  = true   # world-space node: ignores parent transform chain
+	add_child(_weapon_instance)
+	_update_weapon_transform()           # set correct world position immediately
 
 func _hide_weapon() -> void:
 	_destroy_weapon()
 
 func _destroy_weapon() -> void:
-	if _weapon_attach != null and is_instance_valid(_weapon_attach):
-		_weapon_attach.queue_free()
-	_weapon_attach   = null
+	if _weapon_instance != null and is_instance_valid(_weapon_instance):
+		_weapon_instance.queue_free()
 	_weapon_instance = null
+	_sword_skel      = null
+	_sword_bone_idx  = -1
 
-func _set_weapon_alpha(alpha: float) -> void:
+## Called every frame to keep the sword aligned with the hand bone in world space.
+func _update_weapon_transform() -> void:
 	if _weapon_instance == null or not is_instance_valid(_weapon_instance):
 		return
-	_set_alpha_recursive(_weapon_instance, alpha)
+	if _sword_skel == null or not is_instance_valid(_sword_skel) or _sword_bone_idx < 0:
+		return
+	# get_bone_global_pose returns transform in skeleton-local space;
+	# multiplying by the skeleton's global_transform converts to world space.
+	var bone_world := _sword_skel.global_transform * _sword_skel.get_bone_global_pose(_sword_bone_idx)
+	# Strip the skeleton's inherited import-scale (e.g. 0.01 from Blender cm units) so that
+	# weapon_transform controls the sword's world-space size directly.
+	var bone_rot_pos := Transform3D(bone_world.basis.orthonormalized(), bone_world.origin)
+	_weapon_instance.global_transform = bone_rot_pos * weapon_transform
 
 # ──────────────────────────────────────────────────────────────────────────
 func _ready() -> void:
@@ -246,6 +231,7 @@ func _process(delta: float) -> void:
 			_process_walk(delta)
 		_State.DYING:
 			_process_death_fade(delta)
+	_update_weapon_transform()
 
 func _process_walk(delta: float) -> void:
 	var diff := _target_pos - global_position
