@@ -1,6 +1,6 @@
 - Duke Chess 3D peaces: https://github.com/openjdk/duke (edited in blender and animated using mixamo.com)
 - chess icons from: https://commons.wikimedia.org/wiki/Category:SVG_chess_pieces
-
+- hit vfx: https://binbun3d.itch.io/hit-fx
 
 sounds
 - zvuk kroku

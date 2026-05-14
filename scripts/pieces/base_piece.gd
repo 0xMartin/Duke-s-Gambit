@@ -436,9 +436,10 @@ func die() -> void:
 	_start_fade()
 
 func _start_fade() -> void:
-	_state = _State.DYING   # Begin fade processing only after death animation finishes
-	_fade_timer = 0.0
-	_spawn_death_particles()
+	_state = _State.DYING
+	_spawn_death_particles()  # impact VFX spawns at this world position and lives on its own
+	visible = false           # instantly hide the piece mesh
+	queue_free()              # remove piece from scene; VFX node is independent in root
 
 func _process_death_fade(delta: float) -> void:
 	if not _dying:
@@ -479,6 +480,7 @@ func _spawn_vfx(vfx_scene: PackedScene, world_pos: Vector3) -> void:
 	get_tree().root.add_child(vfx)
 	vfx.global_position = world_pos
 	# VFXControllerBB.autoplay is false by default — must call play() manually
+	vfx.set("one_shot", true)   # play once, no loop
 	if vfx.has_method("play"):
 		vfx.call("play")
 	get_tree().create_timer(4.0).timeout.connect(func() -> void:
@@ -495,6 +497,7 @@ func _prewarm_one(scene: PackedScene) -> void:
 	var vfx: Node3D = scene.instantiate() as Node3D
 	get_tree().root.add_child(vfx)
 	vfx.global_position = Vector3(0.0, -999.0, 0.0)   # below the board, never visible
+	vfx.set("one_shot", true)
 	if vfx.has_method("play"):
 		vfx.call("play")
 	await get_tree().process_frame
