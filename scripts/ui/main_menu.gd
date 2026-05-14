@@ -48,6 +48,7 @@ func _ready() -> void:
 	_setup_settings_extra()
 	_setup_font_sizes()
 	_apply_roblox_theme()
+	_connect_button_sounds()
 
 func _setup_signals() -> void:
 	$MainPanel/VBox/PvPBtn.pressed.connect(   func(): _start_name_entry("pvp"))
@@ -317,3 +318,24 @@ func _apply_roblox_theme() -> void:
 		lbl.add_theme_color_override("font_color",         Color(1.0, 0.85, 0.20, 1.0))
 		lbl.add_theme_constant_override("outline_size", 4)
 		lbl.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 1.0))
+
+func _connect_button_sounds() -> void:
+	for btn_path: String in [
+		"MainPanel/VBox/PvPBtn", "MainPanel/VBox/PvAIBtn",
+		"MainPanel/VBox/StatsBtn", "MainPanel/VBox/SettingsBtn", "MainPanel/VBox/QuitBtn",
+		"NamePanel/VBox/StartBtn", "NamePanel/VBox/BackBtn",
+		"SettingsPanel/VBox/BackBtn", "StatsPanel/VBox/BackBtn",
+	]:
+		var btn := get_node_or_null(btn_path) as Button
+		if btn:
+			btn.pressed.connect(_play_menu_click)
+
+## Spawns a root-level AudioStreamPlayer per click so the sound survives queue_free().
+func _play_menu_click() -> void:
+	if not is_inside_tree():
+		return
+	var tmp := AudioStreamPlayer.new()
+	get_tree().root.add_child(tmp)
+	tmp.stream = preload("res://assets/sounds/ui_button.mp3")
+	tmp.finished.connect(tmp.queue_free)
+	tmp.play()

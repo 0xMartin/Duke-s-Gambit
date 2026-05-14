@@ -51,6 +51,15 @@ const _VFX_HIT_SCENE:    PackedScene = preload("res://assets/BinbunVFX_Vol2/Styl
 const _VFX_IMPACT_SCENE: PackedScene = preload("res://assets/BinbunVFX_Vol2/StylizedHitFX/effects/big_impact/vfx_big_impact_02.tscn")
 # One-time flag: first BasePiece spawns both VFX off-screen so shaders compile before combat
 static var _vfx_warmed_up: bool = false
+# ── Audio preloads ─────────────────────────────────────────────────────────
+const _SFX_STEP1: AudioStream = preload("res://assets/sounds/footstep/footstep_1.mp3")
+const _SFX_STEP2: AudioStream = preload("res://assets/sounds/footstep/footstep_2.mp3")
+const _SFX_STEP3: AudioStream = preload("res://assets/sounds/footstep/footstep_3.mp3")
+const _SFX_SWORD: AudioStream = preload("res://assets/sounds/sword.mp3")
+const _SFX_HIT:   AudioStream = preload("res://assets/sounds/hit.mp3")
+const _SFX_SPELL: AudioStream = preload("res://assets/sounds/spell.mp3")
+const FOOTSTEP_FIRST_DELAY := 0.4   # seconds before first step (non-knight)
+const FOOTSTEP_INTERVAL    := 0.6   # seconds between subsequent steps
 # ── Node refs (assigned in _ready by searching children) ───────────────────
 var _anim: AnimationPlayer = null
 var _model: Node3D = null          # first Node3D child (the actual mesh root)
@@ -66,6 +75,11 @@ var _after_attack_pos: Vector3 = Vector3.ZERO  # where to walk after attack
 var _dying:       bool  = false
 var _fade_timer:  float = 0.0
 var _base_alpha:  float = 1.0
+
+# Audio runtime state
+var _sfx:             AudioStreamPlayer = null
+var _footstep_active: bool              = false
+var _footstep_token:  int               = 0
 
 # Weapon runtime state
 var _sword_skel:       Skeleton3D         = null
@@ -274,6 +288,8 @@ func _update_weapon_transform() -> void:
 
 # ──────────────────────────────────────────────────────────────────────────
 func _ready() -> void:
+	_sfx = AudioStreamPlayer.new()
+	add_child(_sfx)
 	if not _vfx_warmed_up:
 		_vfx_warmed_up = true
 		_prewarm_vfx()   # fire-and-forget coroutine — compiles shaders before first combat
@@ -353,6 +369,7 @@ func move_to(world_pos: Vector3) -> void:
 	_target_pos = world_pos
 	_state = _State.WALKING
 	_play(anim_walk)
+	_start_footsteps()
 
 ## Full attack sequence: walk toward target, play attack, wait for death, walk to final pos
 func attack_and_move_to(target: BasePiece, final_pos: Vector3) -> void:
@@ -361,6 +378,7 @@ func attack_and_move_to(target: BasePiece, final_pos: Vector3) -> void:
 	_state = _State.WALKING
 	_target_pos = _calc_attack_stop_pos(target.global_position)
 	_play(anim_walk)
+	_start_footsteps()
 
 func _calc_attack_stop_pos(target_world: Vector3) -> Vector3:
 	var diff := target_world - global_position
@@ -389,6 +407,7 @@ func _process_walk(delta: float) -> void:
 		if _attack_target != null:
 			_start_attack()
 		else:
+			_stop_footsteps()
 			_state = _State.IDLE
 			_play(anim_idle)
 			emit_signal("move_finished")
@@ -400,11 +419,15 @@ func _process_walk(delta: float) -> void:
 			_face_direction(diff.normalized())
 
 func _start_attack() -> void:
+	_stop_footsteps()
 	_state = _State.ATTACKING
 	if _attack_target != null and is_instance_valid(_attack_target):
 		_face_direction(_attack_target.global_position - global_position)
 	_show_weapon()
 	_play(anim_attack)
+	if piece_type != ChessEnums.PieceType.KNIGHT and _sfx != null:
+		_sfx.stream = _SFX_SWORD
+		_sfx.play()
 	# Trail start
 	await get_tree().create_timer(attack_trail_start).timeout
 	_on_attack_start()
@@ -423,6 +446,7 @@ func _start_attack() -> void:
 	_state = _State.WALKING
 	_target_pos = _after_attack_pos
 	_play(anim_walk)
+	_start_footsteps()
 
 ## Trigger death sequence on this piece
 func die() -> void:
@@ -430,12 +454,14 @@ func die() -> void:
 		return
 	_dying = true
 	_play(anim_death)
+	_schedule_hit_sound()
 	if _anim and _anim.has_animation(anim_death):
 		var dur := _anim.get_animation(anim_death).length
 		await get_tree().create_timer(dur).timeout
 	_start_fade()
 
 func _start_fade() -> void:
+	_stop_footsteps()
 	_state = _State.DYING
 	_spawn_death_particles()  # impact VFX spawns at this world position and lives on its own
 	visible = false           # instantly hide the piece mesh
@@ -471,7 +497,14 @@ func _set_alpha_recursive(node: Node, alpha: float) -> void:
 		_set_alpha_recursive(child, alpha)
 
 func _spawn_death_particles() -> void:
-	_spawn_vfx(_VFX_IMPACT_SCENE, global_position + Vector3(0, 0.5, 0))
+	var pos := global_position + Vector3(0, 0.5, 0)
+	_spawn_vfx(_VFX_IMPACT_SCENE, pos)
+	# spell.mp3 via root-level player so it survives piece queue_free()
+	var tmp := AudioStreamPlayer.new()
+	get_tree().root.add_child(tmp)
+	tmp.stream = _SFX_SPELL
+	tmp.finished.connect(tmp.queue_free)
+	tmp.play()
 
 ## Instantiate a VFX scene into the root scene so its global_transform is unaffected
 ## by any parent node, then auto-free it after 4 seconds.
@@ -524,3 +557,64 @@ func current_anim() -> String:
 
 func board_square() -> Vector2i:
 	return Vector2i.ZERO  # set by GameController after instantiation
+
+# ── Audio ──────────────────────────────────────────────────────────────────
+func _play_footstep() -> void:
+	if _sfx == null or not is_instance_valid(_sfx):
+		return
+	_sfx.stop()
+	match randi() % 3:
+		0: _sfx.stream = _SFX_STEP1
+		1: _sfx.stream = _SFX_STEP2
+		_: _sfx.stream = _SFX_STEP3
+	_sfx.play()
+
+func _start_footsteps() -> void:
+	_footstep_token += 1
+	var token := _footstep_token
+	_footstep_active = true
+	_run_footstep_loop(token)
+
+func _stop_footsteps() -> void:
+	_footstep_active = false
+
+func _run_footstep_loop(token: int) -> void:
+	if piece_type == ChessEnums.PieceType.KNIGHT:
+		_play_footstep()
+		return
+	# Non-knight: first step after 0.4 s, then every 0.6 s while still walking
+	await get_tree().create_timer(FOOTSTEP_FIRST_DELAY).timeout
+	if token != _footstep_token or not _footstep_active:
+		return
+	_play_footstep()
+	while token == _footstep_token and _footstep_active:
+		await get_tree().create_timer(FOOTSTEP_INTERVAL).timeout
+		if token != _footstep_token or not _footstep_active:
+			return
+		_play_footstep()
+
+func _get_death_sound_delay() -> float:
+	match piece_type:
+		ChessEnums.PieceType.ROOK:   return 2.13
+		ChessEnums.PieceType.QUEEN:  return 1.08
+		ChessEnums.PieceType.BISHOP: return 1.5
+		ChessEnums.PieceType.KING:   return 2.1
+		ChessEnums.PieceType.KNIGHT: return 1.5
+		_:                           return 1.5   # pawn + fallback
+
+## Schedules hit.mp3 at the piece-type-specific moment during death anim.
+## Uses a root-level temporary AudioStreamPlayer so it survives queue_free().
+func _schedule_hit_sound() -> void:
+	var delay: float = _get_death_sound_delay()
+	var root := get_tree().root
+	var hit_stream := _SFX_HIT
+	get_tree().create_timer(delay).timeout.connect(
+		func() -> void:
+			if not is_instance_valid(root):
+				return
+			var tmp := AudioStreamPlayer.new()
+			root.add_child(tmp)
+			tmp.stream = hit_stream
+			tmp.finished.connect(tmp.queue_free)
+			tmp.play()
+	)

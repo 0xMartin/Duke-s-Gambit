@@ -1,12 +1,21 @@
-[gd_scene load_steps=9 format=3 uid="uid://game"]
+[gd_scene load_steps=12 format=3 uid="uid://game"]
 
 [ext_resource type="Script"      path="res://scripts/game_controller.gd"  id="1"]
 [ext_resource type="PackedScene" path="res://scenes/board.tscn"            id="2"]
 [ext_resource type="PackedScene" path="res://scenes/orbit_camera.tscn"     id="3"]
 [ext_resource type="Script"      path="res://scripts/ui/game_ui.gd"        id="4"]
 [ext_resource type="Script"      path="res://scripts/ui/hud.gd"            id="5"]
+[ext_resource type="Texture2D"   path="res://assets/textures/skybox.png"   id="6"]
+
+[sub_resource type="PanoramaSkyMaterial" id="SkyMat1"]
+panorama = ExtResource("6")
+
+[sub_resource type="Sky" id="Sky1"]
+sky_material = SubResource("SkyMat1")
 
 [sub_resource type="Environment" id="Env1"]
+background_mode = 2
+sky = SubResource("Sky1")
 ambient_light_source = 2
 ambient_light_color = Color(0.95, 0.92, 0.88, 1)
 ambient_light_energy = 0.8

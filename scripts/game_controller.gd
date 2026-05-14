@@ -50,6 +50,7 @@ var _player_elos:  Array = [1200, 1200]
 var _time_control_ms:   int = 0
 var _time_remaining_ms: Array = [0, 0]  # [white, black]
 var _game_over_shown:   bool = false
+var _sfx_select: AudioStreamPlayer = null
 
 # Signals
 signal game_over(winner_color: int, reason: int)   # reason = ChessEnums.GameState
@@ -76,6 +77,9 @@ func _process(_delta: float) -> void:
 func _ready() -> void:
 	_setup_piece_scenes()
 	_hud = _ui.get_node_or_null("HUD")
+	_sfx_select = AudioStreamPlayer.new()
+	_sfx_select.stream = preload("res://assets/sounds/piece_select.mp3")
+	add_child(_sfx_select)
 
 ## Called from MainMenu before adding this node to the scene tree.
 func setup(p1_name: String, p2_name: String,
@@ -296,6 +300,8 @@ func _handle_human_click(sq: Vector2i, ctrl: HumanController) -> void:
 		_board.clear_highlights()
 		_board.highlight_selected(sq)
 		_board.highlight_moves(_legal_from_selected)
+		if _sfx_select != null:
+			_sfx_select.play()
 		# Re-draw check highlight if still in check
 		if _chess.get_game_state() == ChessEnums.GameState.CHECK:
 			_board.highlight_check(_chess._find_king(color))
