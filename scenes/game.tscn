@@ -1,12 +1,12 @@
-[gd_scene load_steps=13 format=3 uid="uid://game"]
+[gd_scene format=3 uid="uid://game"]
 
-[ext_resource type="Script"      path="res://scripts/game_controller.gd"  id="1"]
-[ext_resource type="PackedScene" path="res://scenes/board.tscn"            id="2"]
-[ext_resource type="PackedScene" path="res://scenes/orbit_camera.tscn"     id="3"]
-[ext_resource type="Script"      path="res://scripts/ui/game_ui.gd"        id="4"]
-[ext_resource type="Script"      path="res://scripts/ui/hud.gd"            id="5"]
-[ext_resource type="Texture2D"   path="res://assets/textures/skybox.png"   id="6"]
-[ext_resource type="PackedScene" path="res://assets/word/terrain.blend"    id="7"]
+[ext_resource type="Script" uid="uid://cmjhqvwxae7oq" path="res://scripts/game_controller.gd" id="1"]
+[ext_resource type="PackedScene" uid="uid://board" path="res://scenes/board.tscn" id="2"]
+[ext_resource type="PackedScene" uid="uid://orbitcamera" path="res://scenes/orbit_camera.tscn" id="3"]
+[ext_resource type="Script" uid="uid://c0ovcwq6s7tyi" path="res://scripts/ui/game_ui.gd" id="4"]
+[ext_resource type="Script" uid="uid://bfgfin44nf1d2" path="res://scripts/ui/hud.gd" id="5"]
+[ext_resource type="Texture2D" uid="uid://bomo6t88iri6d" path="res://assets/textures/skybox.png" id="6"]
+[ext_resource type="PackedScene" uid="uid://ddoai7gywl243" path="res://assets/word/terrain.blend" id="7"]
 
 [sub_resource type="PanoramaSkyMaterial" id="SkyMat1"]
 panorama = ExtResource("6")
@@ -21,114 +21,121 @@ ambient_light_source = 2
 ambient_light_color = Color(0.95, 0.92, 0.88, 1)
 ambient_light_energy = 0.8
 
-[node name="GameScene" type="Node3D"]
+[node name="GameScene" type="Node3D" unique_id=345240271]
 script = ExtResource("1")
-board_node  = NodePath("Board")
-camera_node = NodePath("OrbitCamera")
-pieces_root = NodePath("Pieces")
-ui_root     = NodePath("UI")
 
-[node name="Terrain" parent="." instance=ExtResource("7")]
+[node name="Terrain" parent="." unique_id=582522773 instance=ExtResource("7")]
 transform = Transform3D(0.4, 0, 0, 0, 0.4, 0, 0, 0, 0.4, 0, -0.4, 0)
 
-[node name="Board" parent="." instance=ExtResource("2")]
+[node name="Board" parent="." unique_id=1969348578 instance=ExtResource("2")]
 
-[node name="OrbitCamera" parent="." instance=ExtResource("3")]
+[node name="OrbitCamera" parent="." unique_id=1004584700 instance=ExtResource("3")]
 
-[node name="Pieces" type="Node3D" parent="."]
+[node name="Pieces" type="Node3D" parent="." unique_id=1526320121]
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=269389637]
 environment = SubResource("Env1")
 
-[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=218313874]
 transform = Transform3D(0.707, -0.5, 0.5, 0, 0.707, 0.707, -0.707, -0.5, 0.5, 0, 8, 0)
 light_energy = 1.2
 shadow_enabled = true
 
-[node name="UI" type="Control" parent="."]
+[node name="UI" type="Control" parent="." unique_id=1898942881]
 layout_mode = 3
 anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("4")
 
-[node name="HUD" type="Control" parent="UI"]
+[node name="HUD" type="Control" parent="UI" unique_id=345053778]
+anchors_preset = 0
 mouse_filter = 2
 script = ExtResource("5")
 
-[node name="AIThinkingLabel" type="Label" parent="UI"]
+[node name="AIThinkingLabel" type="Label" parent="UI" unique_id=337434124]
+visible = false
 layout_mode = 1
 anchors_preset = 5
 anchor_left = 0.5
 anchor_right = 0.5
-grow_horizontal = 2
 offset_top = 16.0
 offset_bottom = 48.0
+grow_horizontal = 2
 text = "AI is thinking..."
 horizontal_alignment = 1
-visible = false
 
-[node name="GameOverPanel" type="PanelContainer" parent="UI"]
+[node name="GameOverPanel" type="PanelContainer" parent="UI" unique_id=2010256283]
+visible = false
 layout_mode = 1
+anchors_preset = -1
 anchor_left = 0.25
 anchor_top = 0.25
 anchor_right = 0.75
 anchor_bottom = 0.75
 grow_horizontal = 2
 grow_vertical = 2
-visible = false
 
-[node name="VBox" type="VBoxContainer" parent="UI/GameOverPanel"]
+[node name="VBox" type="VBoxContainer" parent="UI/GameOverPanel" unique_id=1923570882]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="UI/GameOverPanel/VBox"]
+[node name="Label" type="Label" parent="UI/GameOverPanel/VBox" unique_id=653513695]
 layout_mode = 2
 size_flags_vertical = 3
+theme_override_font_sizes/font_size = 52
 text = "Game Over"
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
-theme_override_font_sizes/font_size = 52
 
-[node name="BackButton" type="Button" parent="UI/GameOverPanel/VBox"]
-layout_mode = 2
+[node name="BackButton" type="Button" parent="UI/GameOverPanel/VBox" unique_id=998528934]
 custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 36
 text = "Back to Menu"
 
-[node name="PromotionPanel" type="PanelContainer" parent="UI"]
+[node name="PromotionPanel" type="PanelContainer" parent="UI" unique_id=1877138672]
+visible = false
 layout_mode = 1
+anchors_preset = -1
 anchor_left = 0.15
-anchor_top = 0.40
+anchor_top = 0.4
 anchor_right = 0.85
 anchor_bottom = 0.62
 grow_horizontal = 2
 grow_vertical = 2
-visible = false
 
-[node name="HBox" type="HBoxContainer" parent="UI/PromotionPanel"]
+[node name="HBox" type="HBoxContainer" parent="UI/PromotionPanel" unique_id=165090484]
 layout_mode = 2
 
-[node name="QueenBtn" type="Button" parent="UI/PromotionPanel/HBox"]
-size_flags_horizontal = 3
+[node name="QueenBtn" type="Button" parent="UI/PromotionPanel/HBox" unique_id=1520320148]
 custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 36
 text = "Queen"
 
-[node name="RookBtn" type="Button" parent="UI/PromotionPanel/HBox"]
-size_flags_horizontal = 3
+[node name="RookBtn" type="Button" parent="UI/PromotionPanel/HBox" unique_id=47212626]
 custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 36
 text = "Rook"
 
-[node name="BishopBtn" type="Button" parent="UI/PromotionPanel/HBox"]
-size_flags_horizontal = 3
+[node name="BishopBtn" type="Button" parent="UI/PromotionPanel/HBox" unique_id=1068299863]
 custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 36
 text = "Bishop"
 
-[node name="KnightBtn" type="Button" parent="UI/PromotionPanel/HBox"]
-size_flags_horizontal = 3
+[node name="KnightBtn" type="Button" parent="UI/PromotionPanel/HBox" unique_id=1714199918]
 custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 36
 text = "Knight"
