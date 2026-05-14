@@ -65,13 +65,17 @@ func _process(_delta: float) -> void:
 		return
 	if _time_control_ms > 0:
 		var color := _chess.active_color
+		var inactive := 1 - color
 		var remaining: int = _time_remaining_ms[color] - elapsed
 		if remaining <= 0:
 			_on_time_out(color)
 			return
-		_hud.update_timer(remaining)
+		# Update both timers: active player counts down, inactive shows their frozen remaining
+		_hud.update_timer(color, remaining)
+		_hud.update_timer(inactive, _time_remaining_ms[inactive])
 	else:
-		_hud.update_timer(elapsed)
+		# No time limit: active player shows elapsed time for current move
+		_hud.update_timer(_chess.active_color, elapsed)
 
 # ──────────────────────────────────────────────────────────────────────────
 func _ready() -> void:

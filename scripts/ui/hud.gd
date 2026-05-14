@@ -20,6 +20,7 @@ var _elo_lbl:     Array = [null, null]
 var _timer_lbl:   Array = [null, null]
 var _captured_hf: Array = [null, null]  # HFlowContainer
 var _turn_ind:    Array = [null, null]  # ColorRect active stripe
+var _panel_style: Array = [null, null]  # StyleBoxFlat per player (for live border updates)
 
 var _active_color: int = ChessEnums.PieceColor.WHITE
 var _has_time_limit: bool = false  # true = countdown mode
@@ -65,6 +66,7 @@ func _build_player_panel(parent: HBoxContainer, color: int) -> void:
 	panel_style.set_border_width_all(3)
 	panel_style.set_corner_radius_all(12)
 	panel.add_theme_stylebox_override("panel", panel_style)
+	_panel_style[color] = panel_style
 
 	var margin := MarginContainer.new()
 	for side in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
@@ -193,15 +195,28 @@ func set_active_player(color: int) -> void:
 	_active_color = color
 	for c in [ChessEnums.PieceColor.WHITE, ChessEnums.PieceColor.BLACK]:
 		var active: bool = (c == color)
+		# Side stripe indicator
 		(_turn_ind[c] as ColorRect).color = \
 			Color(1.0, 0.85, 0.1, 1.0) if active else Color.TRANSPARENT
+		# Name colour
 		(_name_lbl[c] as Label).add_theme_color_override("font_color",
 			Color(1.0, 0.92, 0.4) if active else Color(0.88, 0.88, 0.88))
-		(_timer_lbl[c] as Label).text = ""
+		# Panel border: thick bright gold when active, thin dim when inactive
+		var ps := _panel_style[c] as StyleBoxFlat
+		if ps != null:
+			if active:
+				ps.border_color = Color(1.0, 0.85, 0.1, 1.0)
+				ps.set_border_width_all(5)
+				ps.bg_color = Color(0.10, 0.12, 0.24, 0.97)
+			else:
+				ps.border_color = Color(0.38, 0.30, 0.06, 0.55)
+				ps.set_border_width_all(2)
+				ps.bg_color = Color(0.04, 0.05, 0.10, 0.82)
 
-## ms = remaining time (countdown) or elapsed (count-up), depending on _has_time_limit.
-func update_timer(ms: int) -> void:
-	var lbl := _timer_lbl[_active_color] as Label
+## color = which player's label to update.
+## ms  = remaining time (countdown) or elapsed (count-up), depending on _has_time_limit.
+func update_timer(color: int, ms: int) -> void:
+	var lbl := _timer_lbl[color] as Label
 	if _has_time_limit:
 		# Countdown: show MM:SS, red when < 30 s
 		var total_secs: int = ms / 1000
