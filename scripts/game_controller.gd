@@ -18,6 +18,7 @@ extends Node3D
 @onready var _camera:  OrbitCamera = get_node(camera_node)
 @onready var _pieces:  Node3D      = get_node(pieces_root)
 @onready var _ui:      Control     = get_node(ui_root)
+@onready var _terrain: Node3D      = get_node_or_null("Terrain")
 
 var _hud: Node = null
 
@@ -79,6 +80,11 @@ func _process(_delta: float) -> void:
 
 # ──────────────────────────────────────────────────────────────────────────
 func _ready() -> void:
+	if _terrain != null and _board != null:
+		# Keep authored Y/Z so terrain can be fine-tuned manually in game.tscn.
+		var bc := _board.board_center()
+		var p := _terrain.global_position
+		_terrain.global_position = Vector3(bc.x, p.y, p.z)
 	_setup_piece_scenes()
 	_hud = _ui.get_node_or_null("HUD")
 	_sfx_select = AudioStreamPlayer.new()

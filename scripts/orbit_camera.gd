@@ -9,7 +9,7 @@ extends Node3D
 
 # ── Config ─────────────────────────────────────────────────────────────────
 @export var distance_min:   float = 3.0
-@export var distance_max:   float = 25.0
+@export var distance_max:   float = 14.0
 @export var distance:       float = 11.2
 @export var distance_after_move: float = 11.2  # max distance snapped to after each move
 

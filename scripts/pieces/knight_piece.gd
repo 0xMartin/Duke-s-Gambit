@@ -9,8 +9,9 @@ extends BasePiece
 @export var anim_jump: String = "jump"
 
 # Arc parameters
-const ARC_HEIGHT       := 2.5   # peak height above board (world units)
+const ARC_HEIGHT       := 2.0   # peak height above board (world units)
 const JUMP_DURATION    := 1.0   # seconds for the full arc (matched to anim)
+const JUMP_TIME_SCALE  := 0.75  # 25% shorter jump duration
 # When attacking: trigger enemy death this fraction before landing
 const DEATH_TRIGGER_T  := 0.85
 
@@ -44,10 +45,10 @@ func _begin_jump(dest: Vector3, is_attack: bool, target: BasePiece) -> void:
 	if _anim and _anim.has_animation(anim_jump):
 		var anim_res := _anim.get_animation(anim_jump)
 		_anim.speed_scale = 2.0
-		_jump_duration = anim_res.length / 2.0   # physical time = anim_length / speed_scale
+		_jump_duration = (anim_res.length / 2.0) * JUMP_TIME_SCALE
 		_anim.play(anim_jump)
 	else:
-		_jump_duration = JUMP_DURATION
+		_jump_duration = JUMP_DURATION * JUMP_TIME_SCALE
 		push_warning("KnightPiece: jump animation '%s' not found" % anim_jump)
 
 	_state = _State.WALKING  # prevent base _process_walk from running

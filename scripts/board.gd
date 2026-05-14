@@ -17,7 +17,7 @@ const HL_LAST_MOVE   := Color(0.90, 0.75, 0.10, 0.55)  # last move        – su
 
 const TILE_SIZE      := 1.0   # world-units per square
 const BLINK_SPEED    := 3.0   # radians/sec for sin() blink
-const TILE_HEIGHT    := 0.05  # thickness of board tiles
+const TILE_HEIGHT    := 0.10  # thickness of board tiles (2x); top stays at Y=0, extends downward
 const OVERLAY_OFFSET := 0.001 # tiny Y above tile surface
 
 # ── Internal state ────────────────────────────────────────────────────────

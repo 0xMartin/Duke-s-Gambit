@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3 uid="uid://game"]
+[gd_scene load_steps=13 format=3 uid="uid://game"]
 
 [ext_resource type="Script"      path="res://scripts/game_controller.gd"  id="1"]
 [ext_resource type="PackedScene" path="res://scenes/board.tscn"            id="2"]
@@ -6,6 +6,7 @@
 [ext_resource type="Script"      path="res://scripts/ui/game_ui.gd"        id="4"]
 [ext_resource type="Script"      path="res://scripts/ui/hud.gd"            id="5"]
 [ext_resource type="Texture2D"   path="res://assets/textures/skybox.png"   id="6"]
+[ext_resource type="PackedScene" path="res://assets/word/terrain.blend"    id="7"]
 
 [sub_resource type="PanoramaSkyMaterial" id="SkyMat1"]
 panorama = ExtResource("6")
@@ -26,6 +27,9 @@ board_node  = NodePath("Board")
 camera_node = NodePath("OrbitCamera")
 pieces_root = NodePath("Pieces")
 ui_root     = NodePath("UI")
+
+[node name="Terrain" parent="." instance=ExtResource("7")]
+transform = Transform3D(0.4, 0, 0, 0, 0.4, 0, 0, 0, 0.4, 0, -0.4, 0)
 
 [node name="Board" parent="." instance=ExtResource("2")]
 
