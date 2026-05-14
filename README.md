@@ -21,5 +21,5 @@ https://freesound.org/people/LittleRobotSoundFactory/sounds/270409/ (zatim nepou
 
 
 todo:
-- 3D dekorace ve hre kolem šachovnice (hrnek, 3x lowpoly strom, vez s budovou, vlajka, teren)
-- vylepšit zvukove efekty ve hre
+- zvuky pro kone
+- dokoncit teren, hrad na každe strane, vlajici vlajky
