@@ -13,7 +13,7 @@ extends Node3D
 
 # ── Piece colours (tweak here) ─────────────────────────────────────────────
 const COLOR_WHITE := Color(0.92, 0.88, 0.80)
-const COLOR_BLACK := Color(0.12, 0.10, 0.08)
+const COLOR_BLACK := Color(0.20, 0.18, 0.15)
 
 # ── Animation names (override in subclass if different) ─────────────────────
 @export var anim_idle:   String = "idle"

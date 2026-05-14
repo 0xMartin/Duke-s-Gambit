@@ -21,7 +21,7 @@ background_mode = 2
 sky = SubResource("Sky1")
 ambient_light_source = 2
 ambient_light_color = Color(0.95, 0.92, 0.88, 1)
-ambient_light_energy = 0.6
+ambient_light_energy = 0.5
 
 [sub_resource type="StyleBoxFlat" id="HudPanelWhite"]
 bg_color = Color(0.04, 0.05, 0.1, 0.82)
@@ -100,7 +100,7 @@ environment = SubResource("Env1")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=218313874]
 transform = Transform3D(0.707, -0.5, 0.5, 0, 0.707, 0.707, -0.707, -0.5, 0.5, 0, 8, 0)
-light_energy = 0.3
+light_energy = 0.6
 shadow_enabled = true
 
 [node name="UI" type="Control" parent="." unique_id=1898942881]
