@@ -12,7 +12,7 @@ const TILE_BLACK     := Color(0.30, 0.20, 0.12)
 const HL_SELECT      := Color(0.00, 1.00, 0.15, 0.95)  # selected piece  – vivid green
 const HL_MOVE        := Color(0.10, 0.90, 0.15, 0.80)  # valid move       – green
 const HL_CAPTURE     := Color(1.00, 0.05, 0.00, 0.95)  # capture target   – vivid red
-const HL_CHECK       := Color(1.00, 0.90, 0.00, 0.95)  # king in check    – vivid yellow
+const HL_CHECK       := Color(1.00, 0.10, 0.05, 0.95)  # king in check    – vivid red
 const HL_LAST_MOVE   := Color(0.90, 0.75, 0.10, 0.55)  # last move        – subtle gold
 
 const TILE_SIZE      := 1.0   # world-units per square

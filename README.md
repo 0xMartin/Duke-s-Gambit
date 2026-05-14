@@ -1,6 +1,7 @@
 - Duke Chess 3D peaces: https://github.com/openjdk/duke (edited in blender and animated using mixamo.com)
 - chess icons from: https://commons.wikimedia.org/wiki/Category:SVG_chess_pieces
 - hit vfx: https://binbun3d.itch.io/hit-fx
+- skybox: https://godotengine.org/asset-library/asset/579
 
 sounds:
 - footsteps:
