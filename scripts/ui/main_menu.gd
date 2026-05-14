@@ -59,7 +59,7 @@ func _setup_signals() -> void:
 	$NamePanel/VBox/StartBtn.pressed.connect(_on_start_pressed)
 	$NamePanel/VBox/BackBtn.pressed.connect(  func(): _show_panel(_main_panel))
 
-	$StatsPanel/BackBtn.pressed.connect(      func(): _show_panel(_main_panel))
+	$StatsPanel/VBox/BackBtn.pressed.connect(   func(): _show_panel(_main_panel))
 	$SettingsPanel/VBox/BackBtn.pressed.connect(func(): _show_panel(_main_panel))
 
 	_ai_strength_slider.value_changed.connect(_on_ai_strength_changed)
@@ -229,7 +229,7 @@ func _setup_font_sizes() -> void:
 		"MainPanel/VBox/PvPBtn", "MainPanel/VBox/PvAIBtn",
 		"MainPanel/VBox/StatsBtn", "MainPanel/VBox/SettingsBtn", "MainPanel/VBox/QuitBtn",
 		"NamePanel/VBox/StartBtn", "NamePanel/VBox/BackBtn",
-		"SettingsPanel/VBox/BackBtn", "StatsPanel/BackBtn",
+		"SettingsPanel/VBox/BackBtn", "StatsPanel/VBox/BackBtn",
 	]:
 		var btn := get_node_or_null(btn_path) as Button
 		if btn:
@@ -252,6 +252,10 @@ func _make_panel_style() -> StyleBoxFlat:
 	s.border_color = Color(0.82, 0.62, 0.10, 1.0)
 	s.set_border_width_all(4)
 	s.set_corner_radius_all(14)
+	s.content_margin_left   = 28
+	s.content_margin_right  = 28
+	s.content_margin_top    = 22
+	s.content_margin_bottom = 22
 	return s
 
 func _make_btn_style(bg: Color, border: Color) -> StyleBoxFlat:
@@ -271,6 +275,9 @@ func _apply_roblox_theme() -> void:
 	var ps := _make_panel_style()
 	for p: Control in [_main_panel, _name_panel, _stats_panel, _settings_panel]:
 		p.add_theme_stylebox_override("panel", ps)
+		var vbox := p.get_node_or_null("VBox") as VBoxContainer
+		if vbox:
+			vbox.add_theme_constant_override("separation", 14)
 
 	# — Buttons —
 	var bdr_n := Color(0.68, 0.50, 0.10, 1.0)
@@ -279,11 +286,12 @@ func _apply_roblox_theme() -> void:
 		"MainPanel/VBox/PvPBtn", "MainPanel/VBox/PvAIBtn",
 		"MainPanel/VBox/StatsBtn", "MainPanel/VBox/SettingsBtn", "MainPanel/VBox/QuitBtn",
 		"NamePanel/VBox/StartBtn", "NamePanel/VBox/BackBtn",
-		"SettingsPanel/VBox/BackBtn", "StatsPanel/BackBtn",
+		"SettingsPanel/VBox/BackBtn", "StatsPanel/VBox/BackBtn",
 	]:
 		var btn := get_node_or_null(btn_path) as Button
 		if btn == null:
 			continue
+		btn.custom_minimum_size = Vector2(0, 56)
 		btn.add_theme_stylebox_override("normal",
 				_make_btn_style(Color(0.13, 0.15, 0.25, 1.0), bdr_n))
 		btn.add_theme_stylebox_override("hover",

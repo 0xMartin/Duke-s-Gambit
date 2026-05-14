@@ -98,7 +98,12 @@ text = "Back"
 
 [node name="StatsPanel" type="PanelContainer" parent="."]
 layout_mode = 1
-anchors_preset = 15
+anchor_left = 0.15
+anchor_top = 0.08
+anchor_right = 0.85
+anchor_bottom = 0.92
+grow_horizontal = 2
+grow_vertical = 2
 visible = false
 
 [node name="VBox" type="VBoxContainer" parent="StatsPanel"]
@@ -116,17 +121,8 @@ custom_minimum_size = Vector2(0, 300)
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="BackBtn" type="Button" parent="StatsPanel"]
-layout_mode = 1
-anchors_preset = 7
-anchor_left = 0.5
-anchor_top = 1.0
-anchor_right = 0.5
-anchor_bottom = 1.0
-offset_left = -60.0
-offset_top = -48.0
-offset_right = 60.0
-offset_bottom = -16.0
+[node name="BackBtn" type="Button" parent="StatsPanel/VBox"]
+layout_mode = 2
 text = "Back"
 
 [node name="SettingsPanel" type="PanelContainer" parent="."]
