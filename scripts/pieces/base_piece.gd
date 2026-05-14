@@ -305,6 +305,7 @@ func _ready() -> void:
 		_prewarm_vfx()   # fire-and-forget coroutine — compiles shaders before first combat
 	_find_children()
 	_disable_shadow_cast(self)
+	_add_blob_shadow()
 	_setup_animation_loops()
 	_apply_color()
 	_set_initial_facing()
@@ -315,6 +316,25 @@ func _disable_shadow_cast(node: Node) -> void:
 		(node as GeometryInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	for child in node.get_children():
 		_disable_shadow_cast(child)
+
+func _add_blob_shadow() -> void:
+	var mesh_inst := MeshInstance3D.new()
+	mesh_inst.name = "BlobShadow"
+	# PlaneMesh faces +Y by default — no rotation needed, identical to board tile overlays.
+	var plane := PlaneMesh.new()
+	# scale.x is the piece's own scale (e.g. 0.05). We want the shadow to be
+	# ~1.1 world units across, so divide by scale to get local-space size.
+	var s := maxf(scale.x, 0.001)
+	var world_size := 1.1   # desired shadow diameter in world units
+	plane.size = Vector2(world_size / s, world_size / s)
+	mesh_inst.mesh = plane
+	# Y = 0.002 world units above board surface → divide by scale for local space.
+	mesh_inst.position = Vector3(0.0, 0.002 / s, 0.0)
+	mesh_inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var mat := ShaderMaterial.new()
+	mat.shader = load("res://shaders/blob_shadow.gdshader") as Shader
+	mesh_inst.material_override = mat
+	add_child(mesh_inst)
 
 func _find_children() -> void:
 	# Recursive search so AnimationPlayer inside armature hierarchy is found.
