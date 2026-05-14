@@ -47,6 +47,7 @@ func _ready() -> void:
 	_stats_vbox = get_node_or_null("StatsPanel/VBox/ScrollContainer/VBox") as VBoxContainer
 	_setup_settings_extra()
 	_setup_font_sizes()
+	_apply_roblox_theme()
 
 func _setup_signals() -> void:
 	$MainPanel/VBox/PvPBtn.pressed.connect(   func(): _start_name_entry("pvp"))
@@ -243,3 +244,68 @@ func _setup_font_sizes() -> void:
 		var lbl := get_node_or_null(lbl_path) as Label
 		if lbl:
 			lbl.add_theme_font_size_override("font_size", 28)
+
+# ── Roblox-like visual theme ──────────────────────────────────────────────────
+func _make_panel_style() -> StyleBoxFlat:
+	var s := StyleBoxFlat.new()
+	s.bg_color    = Color(0.05, 0.06, 0.12, 0.93)
+	s.border_color = Color(0.82, 0.62, 0.10, 1.0)
+	s.set_border_width_all(4)
+	s.set_corner_radius_all(14)
+	return s
+
+func _make_btn_style(bg: Color, border: Color) -> StyleBoxFlat:
+	var s := StyleBoxFlat.new()
+	s.bg_color    = bg
+	s.border_color = border
+	s.set_border_width_all(3)
+	s.set_corner_radius_all(10)
+	s.content_margin_left   = 20
+	s.content_margin_right  = 20
+	s.content_margin_top    = 10
+	s.content_margin_bottom = 10
+	return s
+
+func _apply_roblox_theme() -> void:
+	# — Panels —
+	var ps := _make_panel_style()
+	for p: Control in [_main_panel, _name_panel, _stats_panel, _settings_panel]:
+		p.add_theme_stylebox_override("panel", ps)
+
+	# — Buttons —
+	var bdr_n := Color(0.68, 0.50, 0.10, 1.0)
+	var bdr_h := Color(1.00, 0.82, 0.20, 1.0)
+	for btn_path: String in [
+		"MainPanel/VBox/PvPBtn", "MainPanel/VBox/PvAIBtn",
+		"MainPanel/VBox/StatsBtn", "MainPanel/VBox/SettingsBtn", "MainPanel/VBox/QuitBtn",
+		"NamePanel/VBox/StartBtn", "NamePanel/VBox/BackBtn",
+		"SettingsPanel/VBox/BackBtn", "StatsPanel/BackBtn",
+	]:
+		var btn := get_node_or_null(btn_path) as Button
+		if btn == null:
+			continue
+		btn.add_theme_stylebox_override("normal",
+				_make_btn_style(Color(0.13, 0.15, 0.25, 1.0), bdr_n))
+		btn.add_theme_stylebox_override("hover",
+				_make_btn_style(Color(0.22, 0.26, 0.42, 1.0), bdr_h))
+		btn.add_theme_stylebox_override("pressed",
+				_make_btn_style(Color(0.07, 0.08, 0.15, 1.0), bdr_n))
+		btn.add_theme_stylebox_override("focus",
+				_make_btn_style(Color(0.13, 0.15, 0.25, 1.0), bdr_h))
+		btn.add_theme_color_override("font_color",         Color(1.0,  0.95, 0.80, 1.0))
+		btn.add_theme_color_override("font_hover_color",   Color(1.0,  0.85, 0.20, 1.0))
+		btn.add_theme_color_override("font_pressed_color", Color(0.85, 0.72, 0.30, 1.0))
+		btn.add_theme_constant_override("outline_size", 2)
+		btn.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 1.0))
+
+	# — Title labels —
+	for title_path: String in [
+		"MainPanel/VBox/Title",
+		"NamePanel/VBox/TitleLabel", "StatsPanel/VBox/Title", "SettingsPanel/VBox/Title",
+	]:
+		var lbl := get_node_or_null(title_path) as Label
+		if lbl == null:
+			continue
+		lbl.add_theme_color_override("font_color",         Color(1.0, 0.85, 0.20, 1.0))
+		lbl.add_theme_constant_override("outline_size", 4)
+		lbl.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 1.0))

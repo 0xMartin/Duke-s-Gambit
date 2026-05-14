@@ -59,6 +59,12 @@ func _build_player_panel(parent: HBoxContainer, color: int) -> void:
 								  else Control.SIZE_SHRINK_BEGIN
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	parent.add_child(panel)
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color(0.05, 0.06, 0.12, 0.91)
+	panel_style.border_color = Color(0.82, 0.62, 0.10, 1.0)
+	panel_style.set_border_width_all(3)
+	panel_style.set_corner_radius_all(12)
+	panel.add_theme_stylebox_override("panel", panel_style)
 
 	var margin := MarginContainer.new()
 	for side in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
@@ -113,6 +119,8 @@ func _build_player_panel(parent: HBoxContainer, color: int) -> void:
 	var name_lbl := Label.new()
 	name_lbl.text = "Player"
 	name_lbl.add_theme_font_size_override("font_size", 28)
+	name_lbl.add_theme_constant_override("outline_size", 3)
+	name_lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
 	_name_lbl[color] = name_lbl
 	row1.add_child(name_lbl)
 
@@ -132,13 +140,29 @@ func _build_player_panel(parent: HBoxContainer, color: int) -> void:
 	_timer_lbl[color] = timer_lbl
 	row1.add_child(timer_lbl)
 
-	# Row 2: captured piece icons
+	# Row 2: captured piece icons wrapped in a contrasting-bg strip
+	var cap_panel := PanelContainer.new()
+	cap_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var cap_style := StyleBoxFlat.new()
+	# White captures black pieces → light strip so dark icons are visible
+	# Black captures white pieces → dark strip so light icons are visible
+	cap_style.bg_color = Color(0.82, 0.82, 0.82, 0.38) \
+			if color == ChessEnums.PieceColor.WHITE else Color(0.06, 0.06, 0.10, 0.65)
+	cap_style.set_corner_radius_all(6)
+	cap_style.content_margin_left   = 4
+	cap_style.content_margin_right  = 4
+	cap_style.content_margin_top    = 2
+	cap_style.content_margin_bottom = 2
+	cap_panel.add_theme_stylebox_override("panel", cap_style)
+
 	var hflow := HFlowContainer.new()
-	hflow.add_theme_constant_override("h_separation", 1)
-	hflow.add_theme_constant_override("v_separation", 1)
-	hflow.custom_minimum_size = Vector2(0, ICON_SIZE + 2)
+	hflow.add_theme_constant_override("h_separation", 2)
+	hflow.add_theme_constant_override("v_separation", 2)
+	hflow.custom_minimum_size = Vector2(0, ICON_SIZE + 4)
+	hflow.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_captured_hf[color] = hflow
-	vbox.add_child(hflow)
+	cap_panel.add_child(hflow)
+	vbox.add_child(cap_panel)
 
 	# Compose hbox: white = [circle | vbox], black = [vbox | circle]
 	if is_right:
