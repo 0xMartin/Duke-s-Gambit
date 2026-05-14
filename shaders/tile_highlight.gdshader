@@ -4,9 +4,9 @@
 shader_type spatial;
 render_mode unshaded, blend_mix, cull_disabled;
 
-uniform vec4  tile_color   : source_color        = vec4(0.2, 0.85, 0.3, 0.85);
-uniform float border_width : hint_range(0.0, 0.5) = 0.09;
-uniform float fill_alpha   : hint_range(0.0, 1.0) = 0.35;
+uniform vec4  tile_color   : source_color        = vec4(0.0, 1.0, 0.2, 0.95);
+uniform float border_width : hint_range(0.0, 0.5) = 0.15;
+uniform float fill_alpha   : hint_range(0.0, 1.0) = 0.30;
 
 void fragment() {
 	float bw = border_width;

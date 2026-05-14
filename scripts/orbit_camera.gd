@@ -48,6 +48,7 @@ const KILL_CAM_ORBIT_SPEED := 18.0   # deg/s slow cinematic orbit
 var _kill_cam_active:     bool    = false
 var _kill_cam_track:      Node3D  = null    # moving attacker piece
 var _kill_cam_target_pos: Vector3 = Vector3.ZERO  # capture destination (XZ)
+var _pre_kill_cam_distance: float = 11.2  # zoom saved before kill cam, restored after
 
 @onready var _cam: Camera3D = $Camera3D
 
@@ -144,13 +145,17 @@ func face_player(color: int) -> void:
 	# Cancel any active drag or kill cam so the camera returns cleanly.
 	_dragging        = false
 	_panning         = false
+	# Restore zoom to what it was before the kill cam (capped to distance_after_move).
+	if _kill_cam_active:
+		_target_distance = minf(_pre_kill_cam_distance, distance_after_move)
+	else:
+		_target_distance = minf(_target_distance, distance_after_move)
 	_kill_cam_active = false
 	_kill_cam_track  = null
 
 	_target_azimuth   = AZIMUTH_WHITE if color == ChessEnums.PieceColor.WHITE else AZIMUTH_BLACK
 	_target_elevation = 40.0
 	position          = Vector3.ZERO                              # reset pivot to board centre
-	_target_distance  = minf(_target_distance, distance_after_move)  # pull in if too far out
 
 ## Teleport instantly (used on game start)
 func snap_to_player(color: int) -> void:
@@ -198,6 +203,7 @@ func kill_cam(from_world: Vector3, to_world: Vector3, attacker: Node3D = null) -
 
 	# Distance: show both pieces clearly, scaled by their separation.
 	var separation: float = maxf(len, 1.0)
+	_pre_kill_cam_distance = _target_distance  # save zoom before overwriting
 	_target_distance = clamp(separation * 2.0 + 1.5, 3.5, 7.0)
 
 ## Lerp shortest path between two angles

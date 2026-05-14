@@ -6,6 +6,7 @@
 [node name="Knight" type="Node3D"]
 script = ExtResource("1")
 piece_type = 3
+use_weapon = false
 anim_idle = "idle"
 anim_jump = "jump"
 anim_death = "death"

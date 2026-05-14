@@ -25,11 +25,20 @@ const COLOR_BLACK := Color(0.12, 0.10, 0.08)
 ## Blender exports typically have front = +Z in Godot, so 180 is the default.
 @export var model_forward_deg: float = 180.0
 
+## Whether this piece draws a weapon during attack (disable for Knight).
+@export var use_weapon: bool = true
+## Local transform of the weapon relative to the hand bone (tweak position/rotation in inspector).
+@export var weapon_transform: Transform3D = Transform3D()
+
 # ── Movement config ────────────────────────────────────────────────────────
 const MOVE_SPEED          := 1.0   # units/sec while walking
 const ATTACK_STOP_DIST    := 1.1   # stop this many units before target square centre
 const DEATH_FADE_DURATION := 0.5   # seconds for opacity to drop to 0
-
+# ── Weapon config ──────────────────────────────────────────────────────────
+const WEAPON_BONE         := "mixamorig:RightHand"
+const WEAPON_SCENE_PATH   := "res://assets/models/weapons/sword.blend"
+const WEAPON_FADE_IN_DUR  := 0.2
+const WEAPON_FADE_OUT_DUR := 0.5
 # ── Node refs (assigned in _ready by searching children) ───────────────────
 var _anim: AnimationPlayer = null
 var _model: Node3D = null          # first Node3D child (the actual mesh root)
@@ -45,6 +54,10 @@ var _after_attack_pos: Vector3 = Vector3.ZERO  # where to walk after attack
 var _dying:       bool  = false
 var _fade_timer:  float = 0.0
 var _base_alpha:  float = 1.0
+
+# Weapon runtime state
+var _weapon_attach:   BoneAttachment3D = null
+var _weapon_instance: Node3D           = null
 
 signal move_finished          # emitted when piece arrives at destination
 signal attack_sequence_done   # emitted when full attack+death sequence is done
@@ -63,6 +76,67 @@ func _apply_outline_recursive(node: Node, active: bool) -> void:
 		(node as MeshInstance3D).material_overlay = _outline_mat if active else null
 	for child in node.get_children():
 		_apply_outline_recursive(child, active)
+
+# ── Weapon ──────────────────────────────────────────────────────────────────────
+func _find_skeleton_recursive(node: Node) -> Skeleton3D:
+	if node is Skeleton3D:
+		return node as Skeleton3D
+	for child in node.get_children():
+		var found := _find_skeleton_recursive(child)
+		if found != null:
+			return found
+	return null
+
+func _show_weapon() -> void:
+	if not use_weapon:
+		return
+	# Clean up any leftover weapon from a previous (edge-case) attack.
+	_destroy_weapon()
+
+	var skel := _find_skeleton_recursive(self)
+	if skel == null:
+		push_warning("BasePiece._show_weapon: no Skeleton3D found in piece '%s'" % name)
+		return
+	if skel.find_bone(WEAPON_BONE) < 0:
+		push_warning("BasePiece._show_weapon: bone '%s' not found in skeleton of '%s'" % [WEAPON_BONE, name])
+		return
+
+	var sword_scene := load(WEAPON_SCENE_PATH) as PackedScene
+	if sword_scene == null:
+		push_warning("BasePiece._show_weapon: cannot load '%s'" % WEAPON_SCENE_PATH)
+		return
+
+	# In Godot 4, bone_name must be set AFTER add_child so _ready() has run
+	# and the BoneAttachment3D can resolve the bone index against the live skeleton.
+	_weapon_attach = BoneAttachment3D.new()
+	skel.add_child(_weapon_attach)           # enter tree first
+	_weapon_attach.bone_name = WEAPON_BONE   # then assign bone (triggers internal _skeleton_changed)
+
+	_weapon_instance = sword_scene.instantiate() as Node3D
+	_weapon_instance.transform = weapon_transform
+	_weapon_attach.add_child(_weapon_instance)
+
+	_set_weapon_alpha(0.0)
+	var tw := create_tween()
+	tw.tween_method(_set_weapon_alpha, 0.0, 1.0, WEAPON_FADE_IN_DUR)
+
+func _hide_weapon() -> void:
+	if _weapon_instance == null or not is_instance_valid(_weapon_instance):
+		return
+	var tw := create_tween()
+	tw.tween_method(_set_weapon_alpha, 1.0, 0.0, WEAPON_FADE_OUT_DUR)
+	tw.tween_callback(_destroy_weapon)
+
+func _destroy_weapon() -> void:
+	if _weapon_attach != null and is_instance_valid(_weapon_attach):
+		_weapon_attach.queue_free()
+	_weapon_attach   = null
+	_weapon_instance = null
+
+func _set_weapon_alpha(alpha: float) -> void:
+	if _weapon_instance == null or not is_instance_valid(_weapon_instance):
+		return
+	_set_alpha_recursive(_weapon_instance, alpha)
 
 # ──────────────────────────────────────────────────────────────────────────
 func _ready() -> void:
@@ -192,15 +266,17 @@ func _start_attack() -> void:
 	# (adjacent squares) or approached from an odd angle.
 	if _attack_target != null and is_instance_valid(_attack_target):
 		_face_direction(_attack_target.global_position - global_position)
+	_show_weapon()
 	_play(anim_attack)
 	# Wait for attack animation to finish one cycle
 	if _anim and _anim.has_animation(anim_attack):
 		var dur := _anim.get_animation(anim_attack).length
 		await get_tree().create_timer(max(dur * 0.85 - 0.3, 0.0)).timeout
-	# Slight delay then trigger enemy death
+	# Trigger enemy death, then wait for full death+fade to complete
 	if _attack_target != null and is_instance_valid(_attack_target):
 		_attack_target.die()
 		await _attack_target.tree_exited          # wait until enemy removed from scene
+	_hide_weapon()
 	_attack_target = null
 	# Walk to final square
 	_state = _State.WALKING
