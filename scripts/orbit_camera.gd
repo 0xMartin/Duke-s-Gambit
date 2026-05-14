@@ -52,6 +52,11 @@ var _pre_kill_cam_distance: float = 11.2  # zoom saved before kill cam, restored
 
 @onready var _cam: Camera3D = $Camera3D
 
+# Shake state
+var _shake_strength: float = 0.0
+var _shake_timer:    float = 0.0
+var _shake_dur:      float = 0.0
+
 # ── Ready ──────────────────────────────────────────────────────────────────
 func _ready() -> void:
 	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
@@ -122,6 +127,8 @@ func _process(delta: float) -> void:
 	_azimuth  = _lerp_angle(_azimuth, _target_azimuth, smooth_speed * delta)
 	elevation = lerp(elevation, _target_elevation, smooth_speed * delta)
 	distance  = lerp(distance, _target_distance, smooth_speed * delta)
+	if _shake_dur > 0.0:
+		_shake_timer = minf(_shake_timer + delta, _shake_dur)
 	_apply_transform()
 
 func _apply_transform() -> void:
@@ -137,6 +144,12 @@ func _apply_transform() -> void:
 	if _cam:
 		_cam.position = offset
 		_cam.look_at(global_position, Vector3.UP)
+		# Apply camera shake as a small post-look rotation
+		if _shake_dur > 0.0:
+			var t: float = clamp(_shake_timer / _shake_dur, 0.0, 1.0)
+			var str: float = _shake_strength * (1.0 - t)
+			_cam.rotate_object_local(Vector3.RIGHT, randf_range(-str, str))
+			_cam.rotate_object_local(Vector3.UP,   randf_range(-str, str))
 
 # ── Public API ─────────────────────────────────────────────────────────────
 ## Called by GameController after a move. Smoothly rotates to face active player,
@@ -210,3 +223,9 @@ func kill_cam(from_world: Vector3, to_world: Vector3, attacker: Node3D = null) -
 func _lerp_angle(from: float, to: float, weight: float) -> float:
 	var diff := fmod(to - from + 540.0, 360.0) - 180.0
 	return from + diff * weight
+
+## Brief screen-space shake. strength is in radians (e.g. 0.04 ≈ light hit).
+func shake(strength: float, duration: float) -> void:
+	_shake_strength = strength
+	_shake_dur      = duration
+	_shake_timer    = 0.0

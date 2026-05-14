@@ -42,10 +42,15 @@ const DEATH_FADE_DURATION := 0.5   # seconds for opacity to drop to 0
 const WEAPON_BONE         := "mixamorig_RightHand"
 const WEAPON_SCENE_PATH   := "res://assets/models/weapons/sword.glb"
 const WEAPON_FADE_IN_DUR  := 0.2   # seconds: scale 0 → 1 on appear
-const WEAPON_FADE_OUT_DUR := 0.4   # seconds: scale 1 → 0 on disappear
+const WEAPON_FADE_OUT_DUR := 0.8   # seconds: scale 1 → 0 on disappear
 # ── Trail config ────────────────────────────────────────────────────────────
 const TRAIL_COLOR         := Color(0.55, 0.88, 1.0, 1.0)  # light blue
 const TRAIL_LIFETIME      := 0.4   # seconds each trail point lives before fading out
+# ── VFX scenes (preload → resources ready at game start, avoids in-game hitch) ──
+const _VFX_HIT_SCENE:    PackedScene = preload("res://assets/BinbunVFX_Vol2/StylizedHitFX/effects/hit/vfx_hit_02.tscn")
+const _VFX_IMPACT_SCENE: PackedScene = preload("res://assets/BinbunVFX_Vol2/StylizedHitFX/effects/big_impact/vfx_big_impact_02.tscn")
+# One-time flag: first BasePiece spawns both VFX off-screen so shaders compile before combat
+static var _vfx_warmed_up: bool = false
 # ── Node refs (assigned in _ready by searching children) ───────────────────
 var _anim: AnimationPlayer = null
 var _model: Node3D = null          # first Node3D child (the actual mesh root)
@@ -66,6 +71,7 @@ var _base_alpha:  float = 1.0
 var _sword_skel:       Skeleton3D         = null
 var _sword_bone_idx:   int                = -1
 var _weapon_instance:  Node3D             = null
+var _weapon_tween:     Tween              = null  # active scale tween (killed before each new one)
 var _weapon_scale_t:   float              = 1.0   # 0=hidden 1=full, animated on appear/disappear
 # Trail runtime state
 var _trail_active:     bool               = false
@@ -122,17 +128,21 @@ func _show_weapon() -> void:
 	_setup_trail()
 
 	# Scale-in: 0 → 1 over WEAPON_FADE_IN_DUR seconds
-	var tw := create_tween()
-	tw.tween_property(self, "_weapon_scale_t", 1.0, WEAPON_FADE_IN_DUR).set_ease(Tween.EASE_OUT)
+	if _weapon_tween:
+		_weapon_tween.kill()
+	_weapon_tween = create_tween()
+	_weapon_tween.tween_property(self, "_weapon_scale_t", 1.0, WEAPON_FADE_IN_DUR).set_ease(Tween.EASE_OUT)
 
 func _hide_weapon() -> void:
 	if _weapon_instance == null or not is_instance_valid(_weapon_instance):
 		_destroy_weapon()
 		return
 	# Scale-out: 1 → 0, then destroy
-	var tw := create_tween()
-	tw.tween_property(self, "_weapon_scale_t", 0.0, WEAPON_FADE_OUT_DUR).set_ease(Tween.EASE_IN)
-	tw.tween_callback(_destroy_weapon)
+	if _weapon_tween:
+		_weapon_tween.kill()
+	_weapon_tween = create_tween()
+	_weapon_tween.tween_property(self, "_weapon_scale_t", 0.0, WEAPON_FADE_OUT_DUR).set_ease(Tween.EASE_IN)
+	_weapon_tween.tween_callback(_destroy_weapon)
 
 func _destroy_weapon() -> void:
 	_cleanup_trail()
@@ -185,6 +195,13 @@ func _on_attack_start() -> void:
 	_trail_active = true
 
 func _on_attack_hit() -> void:
+	# Spawn hit flash VFX at the target's position
+	if _attack_target != null and is_instance_valid(_attack_target):
+		_spawn_vfx(_VFX_HIT_SCENE, _attack_target.global_position + Vector3(0, 0.5, 0))
+	# Brief camera shake on sword impact
+	var cam_node := get_tree().root.find_child("OrbitCamera", true, false)
+	if cam_node is OrbitCamera:
+		(cam_node as OrbitCamera).shake(0.07, 0.3)
 	if _attack_target != null and is_instance_valid(_attack_target):
 		_attack_target.die()
 
@@ -257,6 +274,9 @@ func _update_weapon_transform() -> void:
 
 # ──────────────────────────────────────────────────────────────────────────
 func _ready() -> void:
+	if not _vfx_warmed_up:
+		_vfx_warmed_up = true
+		_prewarm_vfx()   # fire-and-forget coroutine — compiles shaders before first combat
 	_find_children()
 	_setup_animation_loops()
 	_apply_color()
@@ -450,17 +470,37 @@ func _set_alpha_recursive(node: Node, alpha: float) -> void:
 		_set_alpha_recursive(child, alpha)
 
 func _spawn_death_particles() -> void:
-	# Load and instance the shared death particle scene
-	var ps_scene := load("res://scenes/effects/death_particles.tscn") as PackedScene
-	if ps_scene == null:
-		return
-	var ps := ps_scene.instantiate() as GPUParticles3D
-	get_parent().add_child(ps)
-	ps.global_position = global_position + Vector3(0, 0.5, 0)
-	ps.emitting = true
-	# Auto-free after particles finish
-	var lifetime: float = ps.lifetime * (ps.amount + 1)
-	get_tree().create_timer(lifetime + 1.0).timeout.connect(ps.queue_free)
+	_spawn_vfx(_VFX_IMPACT_SCENE, global_position + Vector3(0, 0.5, 0))
+
+## Instantiate a VFX scene into the root scene so its global_transform is unaffected
+## by any parent node, then auto-free it after 4 seconds.
+func _spawn_vfx(vfx_scene: PackedScene, world_pos: Vector3) -> void:
+	var vfx: Node3D = vfx_scene.instantiate() as Node3D
+	get_tree().root.add_child(vfx)
+	vfx.global_position = world_pos
+	# VFXControllerBB.autoplay is false by default — must call play() manually
+	if vfx.has_method("play"):
+		vfx.call("play")
+	get_tree().create_timer(4.0).timeout.connect(func() -> void:
+		if is_instance_valid(vfx):
+			vfx.queue_free())
+
+## Spawn both VFX far off-screen for 2 frames so the GPU compiles their shaders
+## before the first combat encounter (eliminates the first-use freeze).
+func _prewarm_vfx() -> void:
+	await _prewarm_one(_VFX_HIT_SCENE)
+	await _prewarm_one(_VFX_IMPACT_SCENE)
+
+func _prewarm_one(scene: PackedScene) -> void:
+	var vfx: Node3D = scene.instantiate() as Node3D
+	get_tree().root.add_child(vfx)
+	vfx.global_position = Vector3(0.0, -999.0, 0.0)   # below the board, never visible
+	if vfx.has_method("play"):
+		vfx.call("play")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if is_instance_valid(vfx):
+		vfx.queue_free()
 
 # ── Animation helper ───────────────────────────────────────────────────────
 func _play(anim_name: String) -> void:
