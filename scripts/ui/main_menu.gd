@@ -32,6 +32,7 @@ var _save: Node = null
 var _stats_vbox:        VBoxContainer = null
 var _face_player_check: CheckBox      = null
 var _shadows_check:     CheckBox      = null
+var _shadow_quality_opt: OptionButton = null
 var _music_vol_slider:  HSlider       = null
 var _music_vol_label:   Label         = null
 var _sfx_vol_slider:    HSlider       = null
@@ -175,6 +176,9 @@ func _show_settings() -> void:
 			_face_player_check.button_pressed = cam_cfg.get("face_player_after_move") != false
 		if _shadows_check:
 			_shadows_check.button_pressed = cam_cfg.get("shadows_enabled") != false
+		if _shadow_quality_opt:
+			var q: int = int(cam_cfg.get("shadow_quality"))
+			_shadow_quality_opt.select(clampi(q, 0, 2))
 		# Populate volume sliders without triggering callbacks
 		var mv: int = int(cam_cfg.get("music_volume"))
 		var sv: int = int(cam_cfg.get("sfx_volume"))
@@ -242,6 +246,24 @@ func _setup_settings_extra() -> void:
 	vbox.add_child(sh_row)
 	_shadows_check.toggled.connect(_on_shadows_toggled)
 
+	var q_row := HBoxContainer.new()
+	q_row.name = "ShadowQualityRow"
+	var q_lbl := Label.new()
+	q_lbl.text = "Shadow Quality"
+	q_lbl.add_theme_font_size_override("font_size", 28)
+	q_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_shadow_quality_opt = OptionButton.new()
+	_shadow_quality_opt.name = "ShadowQualityOption"
+	_shadow_quality_opt.add_item("Low", 0)
+	_shadow_quality_opt.add_item("Medium", 1)
+	_shadow_quality_opt.add_item("High", 2)
+	var init_q: int = int(cam_cfg.get("shadow_quality")) if cam_cfg else 0
+	_shadow_quality_opt.select(clampi(init_q, 0, 2))
+	q_row.add_child(q_lbl)
+	q_row.add_child(_shadow_quality_opt)
+	vbox.add_child(q_row)
+	_shadow_quality_opt.item_selected.connect(_on_shadow_quality_selected)
+
 	# ── Music Volume ─────────────────────────────────────────────────────
 	cam_cfg = get_node_or_null("/root/CameraConfig")
 	var init_mv: int = int(cam_cfg.get("music_volume")) if cam_cfg else 80
@@ -296,6 +318,12 @@ func _on_shadows_toggled(pressed: bool) -> void:
 	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
 	if cam_cfg:
 		cam_cfg.set("shadows_enabled", pressed)
+		cam_cfg.save_config()
+
+func _on_shadow_quality_selected(index: int) -> void:
+	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
+	if cam_cfg:
+		cam_cfg.set("shadow_quality", clampi(index, 0, 2))
 		cam_cfg.save_config()
 
 func _on_music_vol_changed(value: float) -> void:

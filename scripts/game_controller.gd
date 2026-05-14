@@ -101,7 +101,21 @@ func _apply_graphics_settings() -> void:
 		return
 	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
 	var shadows_enabled: bool = bool(cam_cfg.get("shadows_enabled")) if cam_cfg else true
+	var shadow_quality: int = int(cam_cfg.get("shadow_quality")) if cam_cfg else 0
 	_sun.shadow_enabled = shadows_enabled
+	if not shadows_enabled:
+		return
+
+	match clampi(shadow_quality, 0, 2):
+		0: # Low
+			_sun.directional_shadow_mode = 0
+			_sun.directional_shadow_max_distance = 40.0
+		1: # Medium
+			_sun.directional_shadow_mode = 1
+			_sun.directional_shadow_max_distance = 65.0
+		2: # High
+			_sun.directional_shadow_mode = 2
+			_sun.directional_shadow_max_distance = 95.0
 
 ## Called from MainMenu before adding this node to the scene tree.
 func setup(p1_name: String, p2_name: String,
