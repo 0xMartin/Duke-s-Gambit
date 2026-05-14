@@ -11,7 +11,7 @@ var pan_sensitivity:  int  = 5
 var tilt_sensitivity: int  = 5
 var kill_cam_enabled:       bool = true
 var face_player_after_move: bool = true
-var shadows_enabled:        bool = false
+var shadows_enabled:        bool = true
 # 0–100 %; default: music slightly lower than SFX
 var music_volume: int = 80
 var sfx_volume:   int = 100
@@ -34,7 +34,7 @@ func _load() -> void:
 		tilt_sensitivity = cfg.get_value("camera", "tilt_sensitivity", 5)
 		kill_cam_enabled       = cfg.get_value("camera", "kill_cam_enabled",       true)
 		face_player_after_move = cfg.get_value("camera", "face_player_after_move", true)
-		shadows_enabled        = cfg.get_value("camera", "shadows_enabled",        false)
+		shadows_enabled        = cfg.get_value("camera", "shadows_enabled",        true)
 		music_volume = cfg.get_value("audio",  "music_volume", 80)
 		sfx_volume   = cfg.get_value("audio",  "sfx_volume",   100)
 

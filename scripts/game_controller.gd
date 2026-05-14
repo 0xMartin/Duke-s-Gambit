@@ -100,7 +100,7 @@ func _apply_graphics_settings() -> void:
 	if _sun == null:
 		return
 	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
-	var shadows_enabled: bool = bool(cam_cfg.get("shadows_enabled")) if cam_cfg else false
+	var shadows_enabled: bool = bool(cam_cfg.get("shadows_enabled")) if cam_cfg else true
 	_sun.shadow_enabled = shadows_enabled
 
 ## Called from MainMenu before adding this node to the scene tree.

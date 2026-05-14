@@ -236,7 +236,7 @@ func _setup_settings_extra() -> void:
 	_shadows_check = CheckBox.new()
 	_shadows_check.name = "ShadowsCheck"
 	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
-	_shadows_check.button_pressed = bool(cam_cfg.get("shadows_enabled")) if cam_cfg else false
+	_shadows_check.button_pressed = bool(cam_cfg.get("shadows_enabled")) if cam_cfg else true
 	sh_row.add_child(sh_lbl)
 	sh_row.add_child(_shadows_check)
 	vbox.add_child(sh_row)
