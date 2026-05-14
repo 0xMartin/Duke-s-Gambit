@@ -9,7 +9,8 @@ const CONFIG_PATH := "user://saves/camera_config.cfg"
 # 1–10 scale; 5 = default
 var pan_sensitivity:  int  = 5
 var tilt_sensitivity: int  = 5
-var kill_cam_enabled: bool = true
+var kill_cam_enabled:      bool = true
+var face_player_after_move: bool = true
 
 func _ready() -> void:
 	_load()
@@ -27,12 +28,14 @@ func _load() -> void:
 	if cfg.load(CONFIG_PATH) == OK:
 		pan_sensitivity  = cfg.get_value("camera", "pan_sensitivity",  5)
 		tilt_sensitivity = cfg.get_value("camera", "tilt_sensitivity", 5)
-		kill_cam_enabled = cfg.get_value("camera", "kill_cam_enabled", true)
+		kill_cam_enabled      = cfg.get_value("camera", "kill_cam_enabled",      true)
+		face_player_after_move = cfg.get_value("camera", "face_player_after_move", true)
 
 func save_config() -> void:
 	DirAccess.make_dir_recursive_absolute("user://saves")
 	var cfg := ConfigFile.new()
 	cfg.set_value("camera", "pan_sensitivity",  pan_sensitivity)
 	cfg.set_value("camera", "tilt_sensitivity", tilt_sensitivity)
-	cfg.set_value("camera", "kill_cam_enabled", kill_cam_enabled)
+	cfg.set_value("camera", "kill_cam_enabled",      kill_cam_enabled)
+	cfg.set_value("camera", "face_player_after_move", face_player_after_move)
 	cfg.save(CONFIG_PATH)

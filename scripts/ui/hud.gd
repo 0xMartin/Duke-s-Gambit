@@ -5,9 +5,9 @@
 extends Control
 
 # ── Constants ──────────────────────────────────────────────────────────────
-const ICON_SIZE  := 22
-const HUD_HEIGHT := 96
-const AVATAR_SIZE := 48
+const ICON_SIZE  := 36
+const HUD_HEIGHT := 180
+const AVATAR_SIZE := 84
 
 ## Maps PieceType int → piece name used in the SVG filename.
 const PIECE_NAMES: Dictionary = {
@@ -66,7 +66,7 @@ func _build_player_panel(parent: HBoxContainer, color: int) -> void:
 	panel.add_child(margin)
 
 	var hbox := HBoxContainer.new()
-	hbox.add_theme_constant_override("separation", 10)
+	hbox.add_theme_constant_override("separation", 16)
 	hbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	margin.add_child(hbox)
 
@@ -105,28 +105,30 @@ func _build_player_panel(parent: HBoxContainer, color: int) -> void:
 	vbox.add_child(row1)
 
 	var ind := ColorRect.new()
-	ind.custom_minimum_size = Vector2(4, 20)
+	ind.custom_minimum_size = Vector2(6, 32)
 	ind.color = Color.TRANSPARENT
 	_turn_ind[color] = ind
 	row1.add_child(ind)
 
 	var name_lbl := Label.new()
 	name_lbl.text = "Player"
-	name_lbl.add_theme_font_size_override("font_size", 16)
+	name_lbl.add_theme_font_size_override("font_size", 28)
 	_name_lbl[color] = name_lbl
 	row1.add_child(name_lbl)
 
 	var elo_lbl := Label.new()
 	elo_lbl.text = "ELO –"
 	elo_lbl.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+	elo_lbl.add_theme_font_size_override("font_size", 22)
 	_elo_lbl[color] = elo_lbl
 	row1.add_child(elo_lbl)
 
 	var timer_lbl := Label.new()
 	timer_lbl.text = ""
-	timer_lbl.custom_minimum_size = Vector2(76, 0)
+	timer_lbl.custom_minimum_size = Vector2(130, 0)
 	timer_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	timer_lbl.add_theme_color_override("font_color", Color(0.9, 0.85, 0.5))
+	timer_lbl.add_theme_font_size_override("font_size", 22)
 	_timer_lbl[color] = timer_lbl
 	row1.add_child(timer_lbl)
 

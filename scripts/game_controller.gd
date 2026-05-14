@@ -92,7 +92,7 @@ func setup(p1_name: String, p2_name: String,
 			var pname: String = _player_names[color]
 			if save_node.player_exists(pname):
 				var pdata: Dictionary = save_node.get_player(pname)
-				_player_elos[color] = pdata.get("elo", 1200)
+				_player_elos[color] = pdata.get("elo", 1000)
 
 	# Build controllers
 	_controllers.clear()
@@ -124,6 +124,7 @@ func start_game() -> void:
 	_captured_by = [[], []]
 	_time_remaining_ms = [_time_control_ms, _time_control_ms]
 	_clear_pieces()
+	_board.clear_last_move()
 	_spawn_all_pieces()
 	_camera.snap_to_player(ChessEnums.PieceColor.WHITE)
 	if _hud != null:
@@ -201,11 +202,11 @@ func _start_turn() -> void:
 		return
 	if state == ChessEnums.GameState.STALEMATE:
 		emit_signal("game_over", -1, ChessEnums.GameState.STALEMATE)
-		_show_game_over(-1, "Stalemate")
+		_show_game_over(-1, "Pat (remíza)")
 		return
 	if state == ChessEnums.GameState.DRAW:
 		emit_signal("game_over", -1, ChessEnums.GameState.DRAW)
-		_show_game_over(-1, "Draw")
+		_show_game_over(-1, "Remíza")
 		return
 	if state == ChessEnums.GameState.CHECK:
 		var king_sq := _chess._find_king(color)
@@ -224,7 +225,7 @@ func _animate_checkmate_end(loser_color: int) -> void:
 	if king_piece:
 		king_piece.die()
 	await get_tree().create_timer(2.2).timeout
-	_show_game_over(1 - loser_color, "Checkmate")
+	_show_game_over(1 - loser_color, "Šachmat")
 
 # ── Time-out ───────────────────────────────────────────────────────────────
 func _on_time_out(loser_color: int) -> void:
@@ -234,7 +235,18 @@ func _on_time_out(loser_color: int) -> void:
 	_busy = true
 	var winner := 1 - loser_color
 	emit_signal("game_over", winner, ChessEnums.GameState.DRAW)  # reuse signal
-	_show_game_over(winner, "Time out")
+	_show_game_over(winner, "Čas vypršel")
+
+## Forfeit: the current active player loses.
+func surrender() -> void:
+	if _game_over_shown or _chess == null:
+		return
+	_game_over_shown = true
+	_busy = true
+	var surrendering := _chess.active_color
+	var winner := 1 - surrendering
+	emit_signal("game_over", winner, ChessEnums.GameState.CHECKMATE)
+	_show_game_over(winner, "Vzdání se")
 
 func _update_ai_ui(is_ai: bool) -> void:
 	var lbl := _ui.get_node_or_null("AIThinkingLabel") as Label
@@ -320,6 +332,8 @@ func _raycast_board(screen_pos: Vector2) -> Vector2i:
 
 # ── Move execution ─────────────────────────────────────────────────────────
 func _on_move_chosen(mv: ChessMove) -> void:
+	if _game_over_shown:
+		return   # game ended (e.g. surrender while AI was thinking)
 	_busy = true
 	_deselect_piece()   # clear outline before move animation
 	# Track timing + deduct from clock
@@ -351,16 +365,16 @@ func _on_move_chosen(mv: ChessMove) -> void:
 		_camera.kill_cam(from_world, to_world, attacker_piece)
 
 	await _animate_move(mv)
-
+	_board.highlight_last_move(mv.from_sq, mv.to_sq)
 	_busy = false
 
 	# After a kill-cam capture, hold the view for 2 s so the player can appreciate the moment.
 	if _is_capture and cam_cfg != null and cam_cfg.kill_cam_enabled:
 		await get_tree().create_timer(2.0).timeout
 
-	# Rotate camera to active player
-	_camera.face_player(_chess.active_color)
-
+	# Rotate camera to active player (skip if disabled in settings)
+	if cam_cfg == null or cam_cfg.get("face_player_after_move") != false:
+		_camera.face_player(_chess.active_color)
 	_start_turn()
 
 func _animate_move(mv: ChessMove) -> void:
@@ -458,10 +472,11 @@ func _show_game_over(winner_color: int, reason: String) -> void:
 	var lbl := panel.get_node_or_null("Label") as Label
 	if lbl:
 		if winner_color == -1:
-			lbl.text = "%s!" % reason
+			lbl.text = "Remíza\n— %s —" % reason
 		else:
-			var pname: String = _player_names[winner_color]
-			lbl.text = "%s wins!\n(%s)" % [pname, reason]
+			var winner_name: String = _player_names[winner_color]
+			var loser_name: String  = _player_names[1 - winner_color]
+			lbl.text = "%s vyhrává!\n%s prohrává\n— %s —" % [winner_name, loser_name, reason]
 
 	# Save stats
 	var w_name: String = _player_names[ChessEnums.PieceColor.WHITE]

@@ -29,6 +29,8 @@ extends Control
 
 var _mode: String = "pvp"   # "pvp" or "pvai"
 var _save: Node = null
+var _stats_vbox:        VBoxContainer = null
+var _face_player_check: CheckBox      = null
 
 # ──────────────────────────────────────────────────────────────────────────
 func _ready() -> void:
@@ -42,6 +44,9 @@ func _ready() -> void:
 	_time_opt.add_item("10 min",   10 * 60 * 1000)
 	_time_opt.add_item("15 min",   15 * 60 * 1000)
 	_time_opt.select(3)   # default: 10 min
+	_stats_vbox = get_node_or_null("StatsPanel/VBox/ScrollContainer/VBox") as VBoxContainer
+	_setup_settings_extra()
+	_setup_font_sizes()
 
 func _setup_signals() -> void:
 	$MainPanel/VBox/PvPBtn.pressed.connect(   func(): _start_name_entry("pvp"))
@@ -120,6 +125,7 @@ func _on_start_pressed() -> void:
 
 	var strength := int(_ai_strength_slider.value)
 	var time_ms: int = _time_opt.get_item_id(_time_opt.selected)
+	hide()   # prevent one-frame overlap when game scene loads
 	var game_scene := load("res://scenes/game.tscn").instantiate() as GameController
 	get_tree().root.add_child(game_scene)
 	game_scene.setup(p1, p2, false, _mode == "pvai", strength, time_ms)
@@ -132,8 +138,7 @@ func _show_stats() -> void:
 	_show_panel(_stats_panel)
 
 func _populate_stats() -> void:
-	var container := $StatsPanel/ScrollContainer/VBox as VBoxContainer
-	for child in container.get_children():
+	for child in _stats_vbox.get_children():
 		child.queue_free()
 	if _save == null:
 		return
@@ -147,7 +152,7 @@ func _populate_stats() -> void:
 			p["wins"], p["losses"], p["draws"],
 			avg_s, p["games_played"]
 		]
-		container.add_child(lbl)
+		_stats_vbox.add_child(lbl)
 
 # ── Settings ───────────────────────────────────────────────────────────────
 func _show_settings() -> void:
@@ -158,6 +163,8 @@ func _show_settings() -> void:
 		_tilt_sens_slider.value = cam_cfg.tilt_sensitivity
 		_tilt_sens_label.text   = "Tilt Sensitivity: %d" % cam_cfg.tilt_sensitivity
 		_kill_cam_check.button_pressed = cam_cfg.kill_cam_enabled
+		if _face_player_check:
+			_face_player_check.button_pressed = cam_cfg.get("face_player_after_move") != false
 	_show_panel(_settings_panel)
 
 func _on_ai_strength_changed(value: float) -> void:
@@ -182,3 +189,57 @@ func _on_kill_cam_toggled(pressed: bool) -> void:
 	if cam_cfg:
 		cam_cfg.kill_cam_enabled = pressed
 		cam_cfg.save_config()
+
+# ── Runtime setup ─────────────────────────────────────────────────────────
+func _setup_settings_extra() -> void:
+	var vbox := _settings_panel.get_node_or_null("VBox") as VBoxContainer
+	if vbox == null:
+		return
+	var row := HBoxContainer.new()
+	row.name = "FacePlayerRow"
+	var lbl := Label.new()
+	lbl.text = "Auto-rotate camera after move"
+	lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_face_player_check = CheckBox.new()
+	_face_player_check.name = "FacePlayerCheck"
+	row.add_child(lbl)
+	row.add_child(_face_player_check)
+	vbox.add_child(row)
+	_face_player_check.toggled.connect(_on_face_player_toggled)
+
+func _on_face_player_toggled(pressed: bool) -> void:
+	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
+	if cam_cfg:
+		cam_cfg.set("face_player_after_move", pressed)
+		cam_cfg.save_config()
+
+func _setup_font_sizes() -> void:
+	# Title
+	var main_title := get_node_or_null("MainPanel/VBox/Title") as Label
+	if main_title:
+		main_title.add_theme_font_size_override("font_size", 72)
+	for lbl_path: String in ["NamePanel/VBox/TitleLabel", "StatsPanel/VBox/Title",
+			"SettingsPanel/VBox/Title"]:
+		var lbl := get_node_or_null(lbl_path) as Label
+		if lbl:
+			lbl.add_theme_font_size_override("font_size", 48)
+	# Buttons
+	for btn_path: String in [
+		"MainPanel/VBox/PvPBtn", "MainPanel/VBox/PvAIBtn",
+		"MainPanel/VBox/StatsBtn", "MainPanel/VBox/SettingsBtn", "MainPanel/VBox/QuitBtn",
+		"NamePanel/VBox/StartBtn", "NamePanel/VBox/BackBtn",
+		"SettingsPanel/VBox/BackBtn", "StatsPanel/BackBtn",
+	]:
+		var btn := get_node_or_null(btn_path) as Button
+		if btn:
+			btn.add_theme_font_size_override("font_size", 36)
+	# Settings labels
+	for lbl_path: String in [
+		"SettingsPanel/VBox/AIStrengthRow/Label",
+		"SettingsPanel/VBox/PanSensRow/PanSensLabel",
+		"SettingsPanel/VBox/TiltSensRow/TiltSensLabel",
+		"SettingsPanel/VBox/KillCamRow/KillCamLabel",
+	]:
+		var lbl := get_node_or_null(lbl_path) as Label
+		if lbl:
+			lbl.add_theme_font_size_override("font_size", 28)

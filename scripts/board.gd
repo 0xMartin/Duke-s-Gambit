@@ -13,6 +13,7 @@ const HL_SELECT      := Color(0.00, 1.00, 0.15, 0.95)  # selected piece  – viv
 const HL_MOVE        := Color(0.10, 0.90, 0.15, 0.80)  # valid move       – green
 const HL_CAPTURE     := Color(1.00, 0.05, 0.00, 0.95)  # capture target   – vivid red
 const HL_CHECK       := Color(1.00, 0.90, 0.00, 0.95)  # king in check    – vivid yellow
+const HL_LAST_MOVE   := Color(0.90, 0.75, 0.10, 0.55)  # last move        – subtle gold
 
 const TILE_SIZE      := 1.0   # world-units per square
 const BLINK_SPEED    := 3.0   # radians/sec for sin() blink
@@ -24,6 +25,8 @@ var _tiles: Array = []         # [col][row] -> MeshInstance3D
 var _overlays: Array = []      # [col][row] -> MeshInstance3D (highlight quad)
 var _overlay_state: Array = [] # [col][row] -> { active, color, blink }
 var _time: float = 0.0
+var _last_move_from: Vector2i = Vector2i(-1, -1)
+var _last_move_to:   Vector2i = Vector2i(-1, -1)
 # Shared highlight shader (loaded once, reused for all overlay materials)
 var _hl_shader: Shader = null
 # ── Initialisation ────────────────────────────────────────────────────────
@@ -74,6 +77,11 @@ func clear_highlights() -> void:
 	for c in range(8):
 		for r in range(8):
 			_set_overlay(Vector2i(c, r), Color.TRANSPARENT, false, false)
+	# Re-apply last-move highlight so it persists across turns
+	if _last_move_from.x >= 0:
+		_set_overlay(_last_move_from, HL_LAST_MOVE, true, false)
+	if _last_move_to.x >= 0:
+		_set_overlay(_last_move_to,   HL_LAST_MOVE, true, false)
 
 func highlight_selected(sq: Vector2i) -> void:
 	_set_overlay(sq, HL_SELECT, true, true)
@@ -87,6 +95,21 @@ func highlight_moves(moves: Array) -> void:
 
 func highlight_check(sq: Vector2i) -> void:
 	_set_overlay(sq, HL_CHECK, true, true)
+
+## Highlight the two squares of the last move (non-blinking gold).
+func highlight_last_move(from_sq: Vector2i, to_sq: Vector2i) -> void:
+	_last_move_from = from_sq
+	_last_move_to   = to_sq
+	_set_overlay(from_sq, HL_LAST_MOVE, true, false)
+	_set_overlay(to_sq,   HL_LAST_MOVE, true, false)
+
+func clear_last_move() -> void:
+	if _last_move_from.x >= 0:
+		_set_overlay(_last_move_from, Color.TRANSPARENT, false, false)
+	if _last_move_to.x >= 0:
+		_set_overlay(_last_move_to,   Color.TRANSPARENT, false, false)
+	_last_move_from = Vector2i(-1, -1)
+	_last_move_to   = Vector2i(-1, -1)
 
 ## World position of the centre of a square (Y = 0 = top of board surface)
 func sq_to_world(sq: Vector2i) -> Vector3:

@@ -58,7 +58,7 @@ func create_player(name: String) -> void:
 		return
 	players[key] = {
 		"name": name,
-		"elo": 1200,
+		"elo": 1000,
 		"wins": 0,
 		"losses": 0,
 		"draws": 0,

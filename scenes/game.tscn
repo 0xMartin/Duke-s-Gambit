@@ -56,49 +56,66 @@ visible = false
 
 [node name="GameOverPanel" type="PanelContainer" parent="UI"]
 layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
+anchor_left = 0.25
+anchor_top = 0.25
+anchor_right = 0.75
+anchor_bottom = 0.75
 grow_horizontal = 2
 grow_vertical = 2
-custom_minimum_size = Vector2(320, 180)
 visible = false
 
 [node name="VBox" type="VBoxContainer" parent="UI/GameOverPanel"]
 layout_mode = 2
 
 [node name="Label" type="Label" parent="UI/GameOverPanel/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
 text = "Game Over"
 horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+theme_override_font_sizes/font_size = 52
 
 [node name="BackButton" type="Button" parent="UI/GameOverPanel/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 64)
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 36
 text = "Back to Menu"
 
 [node name="PromotionPanel" type="PanelContainer" parent="UI"]
 layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
+anchor_left = 0.15
+anchor_top = 0.40
+anchor_right = 0.85
+anchor_bottom = 0.62
 grow_horizontal = 2
 grow_vertical = 2
-custom_minimum_size = Vector2(400, 100)
 visible = false
 
 [node name="HBox" type="HBoxContainer" parent="UI/PromotionPanel"]
 layout_mode = 2
 
 [node name="QueenBtn" type="Button" parent="UI/PromotionPanel/HBox"]
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 80)
+theme_override_font_sizes/font_size = 36
 text = "Queen"
 
 [node name="RookBtn" type="Button" parent="UI/PromotionPanel/HBox"]
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 80)
+theme_override_font_sizes/font_size = 36
 text = "Rook"
 
 [node name="BishopBtn" type="Button" parent="UI/PromotionPanel/HBox"]
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 80)
+theme_override_font_sizes/font_size = 36
 text = "Bishop"
 
 [node name="KnightBtn" type="Button" parent="UI/PromotionPanel/HBox"]
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 80)
+theme_override_font_sizes/font_size = 36
 text = "Knight"

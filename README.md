@@ -2,12 +2,17 @@
 - chess icons from: https://commons.wikimedia.org/wiki/Category:SVG_chess_pieces
 - hit vfx: https://binbun3d.itch.io/hit-fx
 
-sounds
-- zvuk kroku
-- zvuk vytaseni mece
-- zvuk zasahu protivnika
-- zvuk despawnuti figury
-- tick time
-- zvuk pri zmene selectu figury
-- soundtrack (alespon 5 ruznych)
-- soundtrack menu
+sounds:
+- footsteps:
+https://freesound.org/people/GiocoSound/sounds/421153/
+https://freesound.org/people/GiocoSound/sounds/421152/
+https://freesound.org/people/GiocoSound/sounds/421140/
+- hit:
+https://freesound.org/people/CogFireStudios/sounds/547041/
+- sword:
+https://freesound.org/people/Robhog/sounds/684749/
+- death:
+https://freesound.org/people/Breviceps/sounds/447922/
+- figure select:
+https://freesound.org/people/Vilkas_Sound/sounds/707041/
+
