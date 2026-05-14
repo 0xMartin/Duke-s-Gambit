@@ -1,7 +1,7 @@
 [gd_scene load_steps=4 format=3 uid="uid://bishop"]
 
 [ext_resource type="Script" path="res://scripts/pieces/base_piece.gd" id="1"]
-[ext_resource type="PackedScene" path="res://assets/models/bishop/bishop_final.blend" id="2"]
+[ext_resource type="PackedScene" path="res://assets/models/bishop/bishop_final.glb" id="2"]
 
 [node name="Bishop" type="Node3D"]
 script = ExtResource("1")
@@ -10,6 +10,9 @@ anim_idle = "idle"
 anim_walk = "walk"
 anim_attack = "attack"
 anim_death = "death"
+attack_trail_start = 0.6
+attack_trail_hit = 1.05
+attack_trail_end = 1.5
 
 [node name="Model" type="Node3D" parent="."]
 

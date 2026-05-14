@@ -1,7 +1,7 @@
 [gd_scene load_steps=4 format=3 uid="uid://pawn"]
 
 [ext_resource type="Script" path="res://scripts/pieces/base_piece.gd" id="1"]
-[ext_resource type="PackedScene" path="res://assets/models/pawn/pawn_final.blend" id="2"]
+[ext_resource type="PackedScene" path="res://assets/models/pawn/pawn_final.glb" id="2"]
 
 [node name="Pawn" type="Node3D"]
 script = ExtResource("1")
@@ -10,6 +10,9 @@ anim_idle = "idle"
 anim_walk = "walk"
 anim_attack = "attack"
 anim_death = "death"
+attack_trail_start = 0.36
+attack_trail_hit = 0.66
+attack_trail_end = 1.07
 
 [node name="Model" type="Node3D" parent="."]
 

@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://d1lng3521t60c"
-path="res://.godot/imported/jump.fbx-9f9ad3c93b30ce557f033e8c147957c7.scn"
+uid="uid://caxikaythe433"
+path="res://.godot/imported/pawn_final.glb-e9b38aa91e531199d425aad3bc9e7704.scn"
 
 [deps]
 
-source_file="res://assets/models/knight/jump.fbx"
-dest_files=["res://.godot/imported/jump.fbx-9f9ad3c93b30ce557f033e8c147957c7.scn"]
+source_file="res://assets/models/pawn/pawn_final.glb"
+dest_files=["res://.godot/imported/pawn_final.glb-e9b38aa91e531199d425aad3bc9e7704.scn"]
 
 [params]
 
@@ -30,7 +30,7 @@ meshes/force_disable_compression=false
 skins/use_named_skins=true
 animation/import=true
 animation/fps=30
-animation/trimming=true
+animation/trimming=false
 animation/remove_immutable_tracks=true
 animation/import_rest_as_RESET=false
 import_script/path=""
@@ -38,7 +38,5 @@ materials/extract=0
 materials/extract_format=0
 materials/extract_path=""
 _subresources={}
-fbx/importer=0
-fbx/allow_geometry_helper_nodes=false
-fbx/embedded_image_handling=1
-fbx/naming_version=2
+gltf/naming_version=2
+gltf/embedded_image_handling=1

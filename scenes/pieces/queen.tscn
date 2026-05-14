@@ -1,7 +1,7 @@
 [gd_scene load_steps=4 format=3 uid="uid://queen"]
 
 [ext_resource type="Script" path="res://scripts/pieces/base_piece.gd" id="1"]
-[ext_resource type="PackedScene" path="res://assets/models/queen/queen_final.blend" id="2"]
+[ext_resource type="PackedScene" path="res://assets/models/queen/queen_final.glb" id="2"]
 
 [node name="Queen" type="Node3D"]
 script = ExtResource("1")
@@ -10,6 +10,9 @@ anim_idle = "idle"
 anim_walk = "walk"
 anim_attack = "attack"
 anim_death = "death"
+attack_trail_start = 0.4
+attack_trail_hit = 1.03
+attack_trail_end = 1.3
 
 [node name="Model" type="Node3D" parent="."]
 
