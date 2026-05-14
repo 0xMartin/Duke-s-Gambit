@@ -357,6 +357,10 @@ func _on_move_chosen(mv: ChessMove) -> void:
 
 	_busy = false
 
+	# After a kill-cam capture, hold the view for 2 s so the player can appreciate the moment.
+	if _is_capture and cam_cfg != null and cam_cfg.kill_cam_enabled:
+		await get_tree().create_timer(2.0).timeout
+
 	# Rotate camera to active player
 	_camera.face_player(_chess.active_color)
 

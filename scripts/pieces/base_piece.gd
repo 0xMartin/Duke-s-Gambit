@@ -95,37 +95,43 @@ func _show_weapon() -> void:
 
 	var skel := _find_skeleton_recursive(self)
 	if skel == null:
-		push_warning("BasePiece._show_weapon: no Skeleton3D found in piece '%s'" % name)
+		push_warning("[BasePiece] _show_weapon: no Skeleton3D found in piece '%s'" % name)
 		return
-	if skel.find_bone(WEAPON_BONE) < 0:
-		push_warning("BasePiece._show_weapon: bone '%s' not found in skeleton of '%s'" % [WEAPON_BONE, name])
+	var bone_idx := skel.find_bone(WEAPON_BONE)
+	if bone_idx < 0:
+		var bone_names: Array[String] = []
+		for i in skel.get_bone_count():
+			bone_names.append(skel.get_bone_name(i))
+		push_warning("[BasePiece] _show_weapon: bone '%s' not found in '%s'.\n  Available bones: [%s]" \
+			% [WEAPON_BONE, name, ", ".join(bone_names)])
 		return
 
 	var sword_scene := load(WEAPON_SCENE_PATH) as PackedScene
 	if sword_scene == null:
-		push_warning("BasePiece._show_weapon: cannot load '%s'" % WEAPON_SCENE_PATH)
+		push_warning("[BasePiece] _show_weapon: cannot load '%s'" % WEAPON_SCENE_PATH)
 		return
 
-	# In Godot 4, bone_name must be set AFTER add_child so _ready() has run
-	# and the BoneAttachment3D can resolve the bone index against the live skeleton.
+	# In Godot 4, BoneAttachment3D.bone_name must be set AFTER add_child so its
+	# _ready() can resolve the bone index against the live skeleton.
 	_weapon_attach = BoneAttachment3D.new()
-	skel.add_child(_weapon_attach)           # enter tree first
-	_weapon_attach.bone_name = WEAPON_BONE   # then assign bone (triggers internal _skeleton_changed)
+	skel.add_child(_weapon_attach)
+	_weapon_attach.bone_name = WEAPON_BONE
+
+	# Wait one frame so BoneAttachment fully settles its transform before we
+	# parent the sword to it (avoids a one-frame wrong-position flash).
+	await get_tree().process_frame
+
+	if not is_instance_valid(_weapon_attach):
+		return  # safety: destroyed before frame ended
 
 	_weapon_instance = sword_scene.instantiate() as Node3D
 	_weapon_instance.transform = weapon_transform
 	_weapon_attach.add_child(_weapon_instance)
-
-	_set_weapon_alpha(0.0)
-	var tw := create_tween()
-	tw.tween_method(_set_weapon_alpha, 0.0, 1.0, WEAPON_FADE_IN_DUR)
+	print("[BasePiece] Sword shown on '%s' at bone '%s', attach_pos=%s" \
+		% [name, WEAPON_BONE, _weapon_attach.global_position])
 
 func _hide_weapon() -> void:
-	if _weapon_instance == null or not is_instance_valid(_weapon_instance):
-		return
-	var tw := create_tween()
-	tw.tween_method(_set_weapon_alpha, 1.0, 0.0, WEAPON_FADE_OUT_DUR)
-	tw.tween_callback(_destroy_weapon)
+	_destroy_weapon()
 
 func _destroy_weapon() -> void:
 	if _weapon_attach != null and is_instance_valid(_weapon_attach):
