@@ -19,7 +19,6 @@ extends Node3D
 @onready var _pieces:  Node3D      = get_node(pieces_root)
 @onready var _ui:      Control     = get_node(ui_root)
 @onready var _terrain: Node3D      = get_node_or_null("Terrain")
-@onready var _sun: DirectionalLight3D = get_node_or_null("DirectionalLight3D")
 
 var _hud: Node = null
 
@@ -81,7 +80,6 @@ func _process(_delta: float) -> void:
 
 # ──────────────────────────────────────────────────────────────────────────
 func _ready() -> void:
-	_apply_graphics_settings()
 	if _terrain != null and _board != null:
 		# Keep authored Y/Z so terrain can be fine-tuned manually in game.tscn.
 		var bc := _board.board_center()
@@ -95,27 +93,6 @@ func _ready() -> void:
 	_sfx_select.volume_db = -10.0
 	add_child(_sfx_select)
 	MusicManager.play_game_music()
-
-func _apply_graphics_settings() -> void:
-	if _sun == null:
-		return
-	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
-	var shadows_enabled: bool = bool(cam_cfg.get("shadows_enabled")) if cam_cfg else true
-	var shadow_quality: int = int(cam_cfg.get("shadow_quality")) if cam_cfg else 0
-	_sun.shadow_enabled = shadows_enabled
-	if not shadows_enabled:
-		return
-
-	match clampi(shadow_quality, 0, 2):
-		0: # Low
-			_sun.directional_shadow_mode = 0
-			_sun.directional_shadow_max_distance = 40.0
-		1: # Medium
-			_sun.directional_shadow_mode = 1
-			_sun.directional_shadow_max_distance = 65.0
-		2: # High
-			_sun.directional_shadow_mode = 2
-			_sun.directional_shadow_max_distance = 95.0
 
 ## Called from MainMenu before adding this node to the scene tree.
 func setup(p1_name: String, p2_name: String,
