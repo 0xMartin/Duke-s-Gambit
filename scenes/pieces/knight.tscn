@@ -1,7 +1,7 @@
 [gd_scene load_steps=4 format=3 uid="uid://knight"]
 
 [ext_resource type="Script" path="res://scripts/pieces/knight_piece.gd" id="1"]
-[ext_resource type="PackedScene" path="res://assets/models/knight/knight_final.glb" id="2"]
+[ext_resource type="PackedScene" path="res://assets/models/knight/knight_final.fbx" id="2"]
 
 [node name="Knight" type="Node3D"]
 script = ExtResource("1")

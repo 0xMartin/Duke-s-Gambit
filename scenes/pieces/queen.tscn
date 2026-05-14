@@ -1,7 +1,7 @@
 [gd_scene load_steps=4 format=3 uid="uid://queen"]
 
 [ext_resource type="Script" path="res://scripts/pieces/base_piece.gd" id="1"]
-[ext_resource type="PackedScene" path="res://assets/models/queen/queen_final.glb" id="2"]
+[ext_resource type="PackedScene" path="res://assets/models/queen/queen_final.fbx" id="2"]
 
 [node name="Queen" type="Node3D"]
 script = ExtResource("1")
