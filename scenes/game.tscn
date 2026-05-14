@@ -100,7 +100,7 @@ environment = SubResource("Env1")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=218313874]
 transform = Transform3D(0.707, -0.5, 0.5, 0, 0.707, 0.707, -0.707, -0.5, 0.5, 0, 8, 0)
-light_energy = 1.2
+light_energy = 1.05
 shadow_enabled = true
 
 [node name="UI" type="Control" parent="." unique_id=1898942881]

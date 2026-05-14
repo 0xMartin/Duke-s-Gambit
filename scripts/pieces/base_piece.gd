@@ -20,7 +20,7 @@ const COLOR_BLACK := Color(0.12, 0.10, 0.08)
 @export var anim_walk:   String = "walk"
 @export var anim_attack: String = "attack"
 @export var anim_death:  String = "death"
-@export var cast_piece_shadows: bool = false
+@export var cast_piece_shadows: bool = true
 
 ## Y-axis rotation offset (degrees) to align model's front with Godot's -Z axis.
 ## Blender exports typically have front = +Z in Godot, so 180 is the default.
@@ -312,10 +312,13 @@ func _ready() -> void:
 	_play(anim_idle)
 
 func _apply_shadow_cast(node: Node) -> void:
+	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
+	var shadows_enabled: bool = bool(cam_cfg.get("shadows_enabled")) if cam_cfg else false
+	var cast_enabled: bool = shadows_enabled and cast_piece_shadows
 	if node is GeometryInstance3D:
 		(node as GeometryInstance3D).cast_shadow = (
 			GeometryInstance3D.SHADOW_CASTING_SETTING_ON
-			if cast_piece_shadows
+			if cast_enabled
 			else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		)
 	for child in node.get_children():

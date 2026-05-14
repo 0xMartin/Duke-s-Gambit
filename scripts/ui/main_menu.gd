@@ -31,6 +31,7 @@ var _mode: String = "pvp"   # "pvp" or "pvai"
 var _save: Node = null
 var _stats_vbox:        VBoxContainer = null
 var _face_player_check: CheckBox      = null
+var _shadows_check:     CheckBox      = null
 var _music_vol_slider:  HSlider       = null
 var _music_vol_label:   Label         = null
 var _sfx_vol_slider:    HSlider       = null
@@ -172,6 +173,8 @@ func _show_settings() -> void:
 		_kill_cam_check.button_pressed = cam_cfg.kill_cam_enabled
 		if _face_player_check:
 			_face_player_check.button_pressed = cam_cfg.get("face_player_after_move") != false
+		if _shadows_check:
+			_shadows_check.button_pressed = cam_cfg.get("shadows_enabled") != false
 		# Populate volume sliders without triggering callbacks
 		var mv: int = int(cam_cfg.get("music_volume"))
 		var sv: int = int(cam_cfg.get("sfx_volume"))
@@ -215,6 +218,7 @@ func _setup_settings_extra() -> void:
 	row.name = "FacePlayerRow"
 	var lbl := Label.new()
 	lbl.text = "Auto-rotate camera after move"
+	lbl.add_theme_font_size_override("font_size", 28)
 	lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_face_player_check = CheckBox.new()
 	_face_player_check.name = "FacePlayerCheck"
@@ -223,8 +227,23 @@ func _setup_settings_extra() -> void:
 	vbox.add_child(row)
 	_face_player_check.toggled.connect(_on_face_player_toggled)
 
-	# ── Music Volume ─────────────────────────────────────────────────────
+	var sh_row := HBoxContainer.new()
+	sh_row.name = "ShadowsRow"
+	var sh_lbl := Label.new()
+	sh_lbl.text = "Enable Shadows"
+	sh_lbl.add_theme_font_size_override("font_size", 28)
+	sh_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_shadows_check = CheckBox.new()
+	_shadows_check.name = "ShadowsCheck"
 	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
+	_shadows_check.button_pressed = bool(cam_cfg.get("shadows_enabled")) if cam_cfg else false
+	sh_row.add_child(sh_lbl)
+	sh_row.add_child(_shadows_check)
+	vbox.add_child(sh_row)
+	_shadows_check.toggled.connect(_on_shadows_toggled)
+
+	# ── Music Volume ─────────────────────────────────────────────────────
+	cam_cfg = get_node_or_null("/root/CameraConfig")
 	var init_mv: int = int(cam_cfg.get("music_volume")) if cam_cfg else 80
 	var init_sv: int = int(cam_cfg.get("sfx_volume"))   if cam_cfg else 100
 
@@ -271,6 +290,12 @@ func _on_face_player_toggled(pressed: bool) -> void:
 	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
 	if cam_cfg:
 		cam_cfg.set("face_player_after_move", pressed)
+		cam_cfg.save_config()
+
+func _on_shadows_toggled(pressed: bool) -> void:
+	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
+	if cam_cfg:
+		cam_cfg.set("shadows_enabled", pressed)
 		cam_cfg.save_config()
 
 func _on_music_vol_changed(value: float) -> void:
