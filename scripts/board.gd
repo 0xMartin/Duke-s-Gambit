@@ -36,6 +36,10 @@ func _ready() -> void:
 func _build_board() -> void:
 	var tile_mesh  := BoxMesh.new()
 	tile_mesh.size = Vector3(TILE_SIZE, TILE_HEIGHT, TILE_SIZE)
+	var white_tile_mat := StandardMaterial3D.new()
+	white_tile_mat.albedo_color = TILE_WHITE
+	var black_tile_mat := StandardMaterial3D.new()
+	black_tile_mat.albedo_color = TILE_BLACK
 
 	var quad_mesh := PlaneMesh.new()
 	quad_mesh.size = Vector2(TILE_SIZE, TILE_SIZE)
@@ -48,12 +52,10 @@ func _build_board() -> void:
 		_overlay_state.append([])
 		for r in range(8):
 			# --- tile ---
-			var tile_mat := StandardMaterial3D.new()
-			tile_mat.albedo_color = TILE_WHITE if (c + r) % 2 == 0 else TILE_BLACK
-
 			var tile := MeshInstance3D.new()
-			tile.mesh = tile_mesh.duplicate()
-			tile.material_override = tile_mat
+			tile.mesh = tile_mesh
+			tile.material_override = white_tile_mat if (c + r) % 2 == 0 else black_tile_mat
+			tile.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			tile.position = _sq_to_world(Vector2i(c, r)) + Vector3(0, -TILE_HEIGHT * 0.5, 0)
 			add_child(tile)
 			_tiles[c].append(tile)
@@ -64,8 +66,9 @@ func _build_board() -> void:
 			ov_mat.set_shader_parameter("tile_color", Color(0, 0, 0, 0))
 
 			var ov := MeshInstance3D.new()
-			ov.mesh = quad_mesh.duplicate()
+			ov.mesh = quad_mesh
 			ov.material_override = ov_mat
+			ov.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			ov.position = _sq_to_world(Vector2i(c, r)) + Vector3(0, OVERLAY_OFFSET, 0)
 			ov.visible = false
 			add_child(ov)
