@@ -9,6 +9,8 @@
 [ext_resource type="PackedScene" uid="uid://ddoai7gywl243" path="res://assets/word/terrain.blend" id="7"]
 [ext_resource type="Texture2D" uid="uid://ih0bn2if7eyb" path="res://assets/textures/pieces/white_pawn.svg" id="8"]
 [ext_resource type="Texture2D" uid="uid://bj1851l6k55lq" path="res://assets/textures/pieces/black_pawn.svg" id="9"]
+[ext_resource type="PackedScene" path="res://scenes/effects/black_flag.tscn" id="10_vtaks"]
+[ext_resource type="PackedScene" path="res://scenes/effects/white_flag.tscn" id="11_kvpfn"]
 
 [sub_resource type="PanoramaSkyMaterial" id="SkyMat1"]
 panorama = ExtResource("6")
@@ -463,3 +465,9 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 36
 text = "Knight"
+
+[node name="BlackFlag" parent="." unique_id=1452135619 instance=ExtResource("10_vtaks")]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, -5.6745462, 4.2154307, 7.202332)
+
+[node name="WhiteFlag" parent="." unique_id=1144272281 instance=ExtResource("11_kvpfn")]
+transform = Transform3D(-1, -8.742278e-08, 3.821371e-15, 0, -4.371139e-08, -1, 8.742278e-08, -1, 4.371139e-08, 5.6743207, 4.5280175, -7.202)

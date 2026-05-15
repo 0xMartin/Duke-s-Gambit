@@ -1,0 +1,7 @@
+[gd_scene format=3 uid="uid://blackflag"]
+
+[ext_resource type="Script" path="res://scripts/effects/flag.gd" id="1"]
+
+[node name="BlackFlag" type="Node3D"]
+script = ExtResource("1")
+flag_color = Color(0.15, 0.15, 0.16, 1)
