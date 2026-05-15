@@ -525,7 +525,7 @@ func die() -> void:
 		dtmp.bus = "SFX"
 		get_tree().root.add_child(dtmp)
 		dtmp.stream = _SFX_DEATH
-		dtmp.volume_db = 10.0
+		dtmp.volume_db = 3.0
 		dtmp.finished.connect(dtmp.queue_free)
 		dtmp.play()
 	)
@@ -578,7 +578,7 @@ func _spawn_death_particles() -> void:
 	tmp.bus = "SFX"
 	get_tree().root.add_child(tmp)
 	tmp.stream = _SFX_SPELL
-	tmp.volume_db = -3.0 
+	tmp.volume_db = -6.0 
 	tmp.finished.connect(tmp.queue_free)
 	tmp.play()
 
@@ -643,7 +643,7 @@ func _play_footstep() -> void:
 		0: _sfx.stream = _SFX_STEP1
 		1: _sfx.stream = _SFX_STEP2
 		_: _sfx.stream = _SFX_STEP3
-	_sfx.volume_db = -8.0
+	_sfx.volume_db = -10.0
 	_sfx.play()
 
 func _start_footsteps() -> void:

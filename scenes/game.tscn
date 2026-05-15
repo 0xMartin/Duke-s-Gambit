@@ -9,8 +9,8 @@
 [ext_resource type="PackedScene" uid="uid://ddoai7gywl243" path="res://assets/word/terrain.blend" id="7"]
 [ext_resource type="Texture2D" uid="uid://ih0bn2if7eyb" path="res://assets/textures/pieces/white_pawn.svg" id="8"]
 [ext_resource type="Texture2D" uid="uid://bj1851l6k55lq" path="res://assets/textures/pieces/black_pawn.svg" id="9"]
-[ext_resource type="PackedScene" path="res://scenes/effects/black_flag.tscn" id="10_vtaks"]
-[ext_resource type="PackedScene" path="res://scenes/effects/white_flag.tscn" id="11_kvpfn"]
+[ext_resource type="PackedScene" uid="uid://blackflag" path="res://scenes/effects/black_flag.tscn" id="10_vtaks"]
+[ext_resource type="PackedScene" uid="uid://whiteflag" path="res://scenes/effects/white_flag.tscn" id="11_kvpfn"]
 
 [sub_resource type="PanoramaSkyMaterial" id="SkyMat1"]
 panorama = ExtResource("6")
@@ -24,6 +24,18 @@ sky = SubResource("Sky1")
 ambient_light_source = 2
 ambient_light_color = Color(0.95, 0.92, 0.88, 1)
 ambient_light_energy = 0.5
+fog_enabled = true
+fog_mode = 1
+fog_light_color = Color(0.42812687, 0.5652835, 0.69645584, 1)
+fog_light_energy = 1.7
+fog_sun_scatter = 0.48
+fog_density = 0.9826
+fog_sky_affect = 0.723
+fog_depth_curve = 0.32987672
+fog_depth_begin = 15.0
+fog_depth_end = 85.0
+adjustment_enabled = true
+adjustment_saturation = 0.9
 
 [sub_resource type="StyleBoxFlat" id="HudPanelWhite"]
 bg_color = Color(0.04, 0.05, 0.1, 0.82)

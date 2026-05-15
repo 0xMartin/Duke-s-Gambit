@@ -138,6 +138,11 @@ func _ensure_bus(bus_name: String) -> void:
 		AudioServer.set_bus_name(idx, bus_name)
 
 func _pct_to_db(pct: int) -> float:
-	if pct <= 0:
-		return -80.0
-	return linear_to_db(float(pct) / 100.0)
+		if pct <= 0:
+			return -80.0 # úplné ztlumení
+		var linear: float = float(pct) / 100.0
+		var db: float = linear_to_db(linear)
+		# Omezit minimum na -40 dB (tiché, ale ne úplně ztlumené)
+		if db < -40.0:
+			db = -40.0
+		return db
