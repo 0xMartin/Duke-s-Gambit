@@ -20,7 +20,8 @@ https://freesound.org/people/Vilkas_Sound/sounds/707041/
 https://freesound.org/people/LittleRobotSoundFactory/sounds/270409/ (zatim nepouzito)
 - jump land:
 https://opengameart.org/content/jump-landing-sound
-
+- knight attack:
+https://freesound.org/people/magnuswaker/sounds/524956/
 
 todo:
 - zvuky pro kone + trail za konem při skoku

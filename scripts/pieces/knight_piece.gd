@@ -104,11 +104,21 @@ func _process_jump(delta: float) -> void:
 	if diff.length_squared() > 0.001:
 		_face_direction(diff.normalized())
 
-	# Trigger enemy death 0.3 s before the natural trigger point so death anim isn't late
+	# Trigger enemy death 0.05 s before the natural trigger point so death anim isn't late
 	if _jump_is_attack and not _jump_attack_done \
-			and _jump_elapsed + 0.3 >= _jump_duration * DEATH_TRIGGER_T:
+			and _jump_elapsed + 0.05 >= _jump_duration * DEATH_TRIGGER_T:
 		_jump_attack_done = true
 		if _attack_target != null and is_instance_valid(_attack_target):
+			# Push attacked piece away before it dies
+			var from := global_position
+			var to := _attack_target.global_position
+			var dir := Vector3(to.x - from.x, 0.0, to.z - from.z)
+			if dir.length_squared() > 0.0001:
+				dir = dir.normalized() * 0.5
+				var target_pos := to + dir
+				target_pos.y = to.y  # zachovat výšku
+				var tw := _attack_target.create_tween()
+				tw.tween_property(_attack_target, "global_position", target_pos, 0.13).set_ease(Tween.EASE_OUT)
 			_attack_target.die()
 
 	# Play landing sound 0.2 s before actual landing
@@ -116,6 +126,15 @@ func _process_jump(delta: float) -> void:
 		_land_sound_played = true
 		if _land_player != null:
 			_land_player.play()
+		# Play knight attack sound if this is an attack jump
+		if _jump_is_attack:
+			var atk := AudioStreamPlayer.new()
+			atk.bus = "SFX"
+			atk.stream = preload("res://assets/sounds/knight_attack.mp3")
+			atk.volume_db = 2.0
+			get_tree().root.add_child(atk)
+			atk.finished.connect(atk.queue_free)
+			atk.play()
 
 	if t >= 1.0:
 		_finish_jump()
@@ -131,6 +150,7 @@ func _finish_jump() -> void:
 	_state = _State.IDLE
 	_play(anim_idle)
 	emit_signal("move_finished")
+
 
 func _disable_jump_shadow(disable: bool) -> void:
 	var blob := get_node_or_null("BlobShadow")
