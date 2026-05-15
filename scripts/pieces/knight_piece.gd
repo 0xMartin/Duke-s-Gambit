@@ -41,6 +41,8 @@ func _begin_jump(dest: Vector3, is_attack: bool, target: BasePiece) -> void:
 	_jump_attack_done = false
 	_attack_target   = target
 
+	_trail_active = true
+
 	# Match animation duration to jump duration (speed_scale=2 → 50 % faster)
 	if _anim and _anim.has_animation(anim_jump):
 		var anim_res := _anim.get_animation(anim_jump)
@@ -52,6 +54,12 @@ func _begin_jump(dest: Vector3, is_attack: bool, target: BasePiece) -> void:
 		push_warning("KnightPiece: jump animation '%s' not found" % anim_jump)
 
 	_state = _State.WALKING  # prevent base _process_walk from running
+
+# ── Trail: override to use knight body position directly ──────────────────
+func _get_blade_world_points() -> Array[Vector3]:
+	var top := global_position + Vector3(0.0, 0.6, 0.0)
+	var bot := global_position + Vector3(0.0, 0.05, 0.0)
+	return [top, bot]
 
 # ── Process override ───────────────────────────────────────────────────────
 func _process(delta: float) -> void:
@@ -70,6 +78,8 @@ func _process_jump(delta: float) -> void:
 	# Vertical parabola: h * 4 * t * (1 - t)
 	var vert: float = ARC_HEIGHT * 4.0 * t * (1.0 - t)
 	global_position = Vector3(horiz.x, _jump_start.y + vert, horiz.z)
+	# Disable shadow while jumping, so it only appears on the board
+	_disable_jump_shadow(true)
 
 	# Face direction of travel
 	var diff := (_jump_end - _jump_start)
@@ -93,6 +103,13 @@ func _finish_jump() -> void:
 	_jumping = false
 	global_position = _jump_end
 	_attack_target  = null
+	_trail_active = false
+	_disable_jump_shadow(false)  # Re-enable shadow on landing
 	_state = _State.IDLE
 	_play(anim_idle)
 	emit_signal("move_finished")
+
+func _disable_jump_shadow(disable: bool) -> void:
+	var blob := get_node_or_null("BlobShadow")
+	if blob != null:
+		blob.visible = not disable

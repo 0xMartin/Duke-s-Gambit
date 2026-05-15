@@ -44,7 +44,8 @@ const WEAPON_SCENE_PATH   := "res://assets/models/weapons/sword.glb"
 const WEAPON_FADE_IN_DUR  := 0.2   # seconds: scale 0 → 1 on appear
 const WEAPON_FADE_OUT_DUR := 0.8   # seconds: scale 1 → 0 on disappear
 # ── Trail config ────────────────────────────────────────────────────────────
-const TRAIL_COLOR         := Color(0.55, 0.88, 1.0, 1.0)  # light blue
+const TRAIL_COLOR_SWORD   := Color(0.55, 0.88, 1.0, 1.0)  # light blue for sword
+const TRAIL_COLOR_KNIGHT  := Color(0.92, 0.95, 1.0, 0.9)  # white/silver for jump
 const TRAIL_LIFETIME      := 0.4   # seconds each trail point lives before fading out
 # ── VFX scenes (preload → resources ready at game start, avoids in-game hitch) ──
 const _VFX_HIT_SCENE:    PackedScene = preload("res://assets/BinbunVFX_Vol2/StylizedHitFX/effects/hit/vfx_hit_02.tscn")
@@ -170,6 +171,8 @@ func _destroy_weapon() -> void:
 # ── Trail ──────────────────────────────────────────────────────────────────
 
 func _find_mesh_recursive(node: Node) -> MeshInstance3D:
+	if node == null:
+		return null
 	if node is MeshInstance3D:
 		return node as MeshInstance3D
 	for child in node.get_children():
@@ -179,7 +182,12 @@ func _find_mesh_recursive(node: Node) -> MeshInstance3D:
 	return null
 
 func _setup_trail() -> void:
-	_trail_sword_mesh = _find_mesh_recursive(_weapon_instance)
+	# Only setup trail if weapon exists (some pieces don't have weapons)
+	if _weapon_instance != null:
+		_trail_sword_mesh = _find_mesh_recursive(_weapon_instance)
+	# Fallback to model if no weapon (e.g., Knight's trail during jump)
+	if _trail_sword_mesh == null and _model != null:
+		_trail_sword_mesh = _find_mesh_recursive(_model)
 	_trail_points.clear()
 	_trail_active = false
 
@@ -188,7 +196,10 @@ func _setup_trail() -> void:
 	_trail_mat.vertex_color_use_as_albedo = true
 	_trail_mat.transparency               = BaseMaterial3D.TRANSPARENCY_ALPHA
 	_trail_mat.cull_mode                  = BaseMaterial3D.CULL_DISABLED
-	_trail_mat.albedo_color               = TRAIL_COLOR
+	var trail_color: Color = TRAIL_COLOR_SWORD
+	if piece_type == ChessEnums.PieceType.KNIGHT:
+		trail_color = TRAIL_COLOR_KNIGHT
+	_trail_mat.albedo_color               = trail_color
 
 	_trail_mesh_inst                      = MeshInstance3D.new()
 	_trail_mesh_inst.top_level            = true
@@ -307,6 +318,7 @@ func _ready() -> void:
 	_disable_shadow_cast(self)
 	_add_blob_shadow()
 	_setup_animation_loops()
+	_setup_trail()
 	_apply_color()
 	_set_initial_facing()
 	_play(anim_idle)
