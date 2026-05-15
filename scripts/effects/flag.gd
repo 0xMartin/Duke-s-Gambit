@@ -26,8 +26,9 @@ func _build_flag() -> void:
 	flag_mat.set_shader_parameter("flag_color", flag_color)
 	flag_mat.set_shader_parameter("logo_texture", logo_texture)
 	flag_mat.set_shader_parameter("logo_strength", 1.0)
-	flag_mat.set_shader_parameter("wave_strength", 0.14)
-	flag_mat.set_shader_parameter("wave_frequency", 3.0)
+	flag_mat.set_shader_parameter("wave_strength", 0.20)
+	flag_mat.set_shader_parameter("wave_frequency", 4.2)
+	flag_mat.set_shader_parameter("sag_strength", 0.10)
 	flag_mesh.material_override = flag_mat
 	flag_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	add_child(flag_mesh)

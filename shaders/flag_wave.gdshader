@@ -9,16 +9,19 @@ uniform float wave_strength : hint_range(0.0, 0.5) = 0.06;
 uniform float wave_speed : hint_range(0.0, 8.0) = 1.8;
 uniform float wave_frequency : hint_range(0.0, 12.0) = 4.0;
 uniform float anchor_width : hint_range(0.0, 0.5) = 0.16;
+uniform float sag_strength : hint_range(0.0, 0.3) = 0.08;
+uniform float sag_curve : hint_range(0.5, 3.0) = 1.6;
 
 void vertex() {
 	float along = UV.x;
 	float anchor = smoothstep(0.0, anchor_width, along);
+	float free_edge = pow(along, sag_curve);
 	float flutter = sin(TIME * wave_speed + along * wave_frequency) * wave_strength * anchor;
-	float ripple = sin(TIME * wave_speed * 1.7 + UV.y * 8.0 + along * 2.5) * wave_strength * 0.45 * anchor;
-	float billow = sin(TIME * wave_speed * 0.6 + UV.y * 4.0) * wave_strength * 0.25 * anchor;
-	VERTEX.y += flutter + ripple;
-	VERTEX.x += billow * 0.35;
-	VERTEX.z += ripple * 0.2;
+	float ripple = sin(TIME * wave_speed * 1.7 + UV.y * 8.0 + along * 2.5) * wave_strength * 0.55 * anchor;
+	float billow = sin(TIME * wave_speed * 0.6 + UV.y * 4.0) * wave_strength * 0.35 * anchor;
+	VERTEX.y += flutter + ripple - free_edge * sag_strength;
+	VERTEX.x += billow * 0.5;
+	VERTEX.z += ripple * 0.28;
 }
 
 void fragment() {
