@@ -116,10 +116,14 @@ func _process_jump(delta: float) -> void:
 			if dir.length_squared() > 0.0001:
 				dir = dir.normalized() * 0.5
 				var target_pos := to + dir
-				target_pos.y = to.y  # zachovat výšku
+				target_pos.y = to.y  
 				var tw := _attack_target.create_tween()
 				tw.tween_property(_attack_target, "global_position", target_pos, 0.13).set_ease(Tween.EASE_OUT)
 			_attack_target.die()
+			# Brief camera shake on knight attack impact
+			var cam_node := get_tree().root.find_child("OrbitCamera", true, false)
+			if cam_node is OrbitCamera:
+				(cam_node as OrbitCamera).shake(0.07, 0.3)
 
 	# Play landing sound 0.2 s before actual landing
 	if not _land_sound_played and _jump_elapsed >= _jump_duration - 0.2:
