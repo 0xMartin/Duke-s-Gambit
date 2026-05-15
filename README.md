@@ -23,3 +23,6 @@ https://freesound.org/people/LittleRobotSoundFactory/sounds/270409/ (zatim nepou
 todo:
 - zvuky pro kone + trail za konem při skoku
 - dokoncit teren, hrad na každe strane, vlajici vlajky
+- globalni velepseni UI
+- AI
+- Server + moznost hrat online
