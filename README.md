@@ -24,7 +24,6 @@ https://opengameart.org/content/jump-landing-sound
 https://freesound.org/people/magnuswaker/sounds/524956/
 
 todo:
-- zvuky pro kone + trail za konem při skoku
 - env particles
 - lepsi soundtrack
 - globalni velepseni UI
