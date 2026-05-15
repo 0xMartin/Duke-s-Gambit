@@ -9,11 +9,13 @@ extends BasePiece
 @export var anim_jump: String = "jump"
 
 # Arc parameters
-const ARC_HEIGHT       := 2.0   # peak height above board (world units)
-const JUMP_DURATION    := 1.0   # seconds for the full arc (matched to anim)
-const JUMP_TIME_SCALE  := 0.75  # 25% shorter jump duration
+const ARC_HEIGHT       := 1.8   # peak height above board (world units)
+const JUMP_DURATION    := 1.53   # seconds for the full arc (matched to anim)
+const JUMP_TIME_SCALE  := 0.6  
 # When attacking: trigger enemy death this fraction before landing
 const DEATH_TRIGGER_T  := 0.85
+
+const _SFX_LAND: AudioStream = preload("res://assets/sounds/jumpland.mp3")
 
 var _jumping:          bool    = false
 var _jump_start:       Vector3 = Vector3.ZERO
@@ -22,6 +24,19 @@ var _jump_elapsed:     float   = 0.0
 var _jump_duration:    float   = JUMP_DURATION
 var _jump_is_attack:   bool    = false
 var _jump_attack_done: bool    = false
+var _land_sound_played: bool   = false
+var _land_player:      AudioStreamPlayer = null
+
+# ── Ready ─────────────────────────────────────────────────────────────────
+func _ready() -> void:
+	super._ready()
+	_trail_lifetime = TRAIL_LIFETIME * 2.5  # longer, more visible trail
+	# Pre-allocate land sound player so there's no delay on first landing
+	_land_player = AudioStreamPlayer.new()
+	_land_player.bus = "SFX"
+	_land_player.stream = _SFX_LAND
+	_land_player.volume_db = 6.0
+	add_child(_land_player)
 
 # ── Override: move_to ──────────────────────────────────────────────────────
 func move_to(world_pos: Vector3) -> void:
@@ -39,6 +54,7 @@ func _begin_jump(dest: Vector3, is_attack: bool, target: BasePiece) -> void:
 	_jump_elapsed    = 0.0
 	_jump_is_attack  = is_attack
 	_jump_attack_done = false
+	_land_sound_played = false
 	_attack_target   = target
 
 	_trail_active = true
@@ -57,17 +73,18 @@ func _begin_jump(dest: Vector3, is_attack: bool, target: BasePiece) -> void:
 
 # ── Trail: override to use knight body position directly ──────────────────
 func _get_blade_world_points() -> Array[Vector3]:
-	var top := global_position + Vector3(0.0, 0.6, 0.0)
-	var bot := global_position + Vector3(0.0, 0.05, 0.0)
-	return [top, bot]
+	var right := global_transform.basis.x.normalized() * 0.1
+	var center := global_position + Vector3(0.0, 0.5, 0.0)
+	return [center - right, center + right]
 
 # ── Process override ───────────────────────────────────────────────────────
 func _process(delta: float) -> void:
 	if _jumping:
 		_process_jump(delta)
+		_update_weapon_transform()
+		_update_trail(delta)
 		return
-	if _state == _State.DYING:
-		_process_death_fade(delta)
+	super._process(delta)
 
 func _process_jump(delta: float) -> void:
 	_jump_elapsed += delta
@@ -93,6 +110,12 @@ func _process_jump(delta: float) -> void:
 		_jump_attack_done = true
 		if _attack_target != null and is_instance_valid(_attack_target):
 			_attack_target.die()
+
+	# Play landing sound 0.2 s before actual landing
+	if not _land_sound_played and _jump_elapsed >= _jump_duration - 0.2:
+		_land_sound_played = true
+		if _land_player != null:
+			_land_player.play()
 
 	if t >= 1.0:
 		_finish_jump()

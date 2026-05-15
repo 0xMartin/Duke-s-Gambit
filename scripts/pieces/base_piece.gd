@@ -41,11 +41,11 @@ const DEATH_FADE_DURATION := 0.5   # seconds for opacity to drop to 0
 # ── Weapon config ──────────────────────────────────────────────────────────
 const WEAPON_BONE         := "mixamorig_RightHand"
 const WEAPON_SCENE_PATH   := "res://assets/models/weapons/sword.glb"
-const WEAPON_FADE_IN_DUR  := 0.2   # seconds: scale 0 → 1 on appear
-const WEAPON_FADE_OUT_DUR := 0.8   # seconds: scale 1 → 0 on disappear
+const WEAPON_FADE_IN_DUR  := 0.3   # seconds: scale 0 → 1 on appear
+const WEAPON_FADE_OUT_DUR := 1.2   # seconds: scale 1 → 0 on disappear
 # ── Trail config ────────────────────────────────────────────────────────────
 const TRAIL_COLOR_SWORD   := Color(0.55, 0.88, 1.0, 1.0)  # light blue for sword
-const TRAIL_COLOR_KNIGHT  := Color(0.92, 0.95, 1.0, 0.9)  # white/silver for jump
+const TRAIL_COLOR_KNIGHT  := Color(0.90, 0.90, 0.92, 1.0)  # light grey-white for jump
 const TRAIL_LIFETIME      := 0.4   # seconds each trail point lives before fading out
 # ── VFX scenes (preload → resources ready at game start, avoids in-game hitch) ──
 const _VFX_HIT_SCENE:    PackedScene = preload("res://assets/BinbunVFX_Vol2/StylizedHitFX/effects/hit/vfx_hit_02.tscn")
@@ -90,6 +90,7 @@ var _weapon_instance:  Node3D             = null
 var _weapon_tween:     Tween              = null  # active scale tween (killed before each new one)
 var _weapon_scale_t:   float              = 1.0   # 0=hidden 1=full, animated on appear/disappear
 # Trail runtime state
+var _trail_lifetime:   float              = TRAIL_LIFETIME  # overrideable per subclass
 var _trail_active:     bool               = false
 var _trail_mesh_inst:  MeshInstance3D     = null
 var _trail_sword_mesh: MeshInstance3D     = null
@@ -226,7 +227,7 @@ func _on_attack_hit() -> void:
 	hit_tmp.bus = "SFX"
 	get_tree().root.add_child(hit_tmp)
 	hit_tmp.stream    = _SFX_HIT
-	hit_tmp.volume_db = 6.0
+	hit_tmp.volume_db = 10.0
 	hit_tmp.finished.connect(hit_tmp.queue_free)
 	hit_tmp.play()
 	# Spawn hit flash VFX at the target's position
@@ -261,12 +262,13 @@ func _update_trail(delta: float) -> void:
 	# Age all points; remove expired ones (oldest are at index 0)
 	for pt in _trail_points:
 		pt.age += delta
-	while _trail_points.size() > 0 and _trail_points[0].age >= TRAIL_LIFETIME:
+	while _trail_points.size() > 0 and _trail_points[0].age >= _trail_lifetime:
 		_trail_points.remove_at(0)
 	# Sample a new point when trail is active
-	if _trail_active and _trail_sword_mesh != null and is_instance_valid(_trail_sword_mesh):
+	if _trail_active:
 		var pts := _get_blade_world_points()
-		_trail_points.append({tip = pts[0], base = pts[1], age = 0.0})
+		if pts[0] != Vector3.ZERO or pts[1] != Vector3.ZERO:
+			_trail_points.append({tip = pts[0], base = pts[1], age = 0.0})
 	_rebuild_trail_mesh()
 
 func _rebuild_trail_mesh() -> void:
@@ -281,9 +283,9 @@ func _rebuild_trail_mesh() -> void:
 	for i in range(count - 1):
 		var p0: Dictionary = _trail_points[i]      # older → more transparent
 		var p1: Dictionary = _trail_points[i + 1]  # newer → more opaque
-		# Alpha = position-fraction × remaining-lifetime-fraction
-		var a0: float = (1.0 - float(p0.age) / TRAIL_LIFETIME) * (float(i)     / float(count - 1))
-		var a1: float = (1.0 - float(p1.age) / TRAIL_LIFETIME) * (float(i + 1) / float(count - 1))
+		# Alpha: age-fade × softer position curve (sqrt so old end stays more visible)
+		var a0: float = (1.0 - float(p0.age) / _trail_lifetime) * sqrt(float(i)     / float(count - 1))
+		var a1: float = (1.0 - float(p1.age) / _trail_lifetime) * sqrt(float(i + 1) / float(count - 1))
 		# Quad as two CCW triangles; vertices in world space (mesh is at identity transform)
 		im.surface_set_color(Color(1, 1, 1, a0)); im.surface_add_vertex(p0.base)
 		im.surface_set_color(Color(1, 1, 1, a0)); im.surface_add_vertex(p0.tip)
@@ -476,6 +478,7 @@ func _start_attack() -> void:
 	_play(anim_attack)
 	if piece_type != ChessEnums.PieceType.KNIGHT and _sfx != null:
 		_sfx.stream = _SFX_SWORD
+		_sfx.volume_db = 1.0
 		_sfx.play()
 	# Trail start
 	await get_tree().create_timer(attack_trail_start).timeout
@@ -522,7 +525,7 @@ func die() -> void:
 		dtmp.bus = "SFX"
 		get_tree().root.add_child(dtmp)
 		dtmp.stream = _SFX_DEATH
-		dtmp.volume_db = 6.0
+		dtmp.volume_db = 10.0
 		dtmp.finished.connect(dtmp.queue_free)
 		dtmp.play()
 	)
@@ -575,6 +578,7 @@ func _spawn_death_particles() -> void:
 	tmp.bus = "SFX"
 	get_tree().root.add_child(tmp)
 	tmp.stream = _SFX_SPELL
+	tmp.volume_db = -3.0 
 	tmp.finished.connect(tmp.queue_free)
 	tmp.play()
 
@@ -639,6 +643,7 @@ func _play_footstep() -> void:
 		0: _sfx.stream = _SFX_STEP1
 		1: _sfx.stream = _SFX_STEP2
 		_: _sfx.stream = _SFX_STEP3
+	_sfx.volume_db = -8.0
 	_sfx.play()
 
 func _start_footsteps() -> void:

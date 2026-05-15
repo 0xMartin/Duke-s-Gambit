@@ -18,6 +18,8 @@ https://freesound.org/people/Breviceps/sounds/447922/
 https://freesound.org/people/Vilkas_Sound/sounds/707041/
 - spell:
 https://freesound.org/people/LittleRobotSoundFactory/sounds/270409/ (zatim nepouzito)
+- jump land:
+https://opengameart.org/content/jump-landing-sound
 
 
 todo:
