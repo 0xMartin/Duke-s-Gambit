@@ -179,7 +179,10 @@ func start_game() -> void:
 	_clear_pieces()
 	_board.clear_last_move()
 	_spawn_all_pieces()
-	_camera.snap_to_player(ChessEnums.PieceColor.WHITE)
+	var initial_camera_color: int = ChessEnums.PieceColor.WHITE
+	if _is_player_vs_ai:
+		initial_camera_color = _human_player_color()
+	_camera.snap_to_player(initial_camera_color)
 	if _hud != null:
 		_hud.setup(
 			_player_names[ChessEnums.PieceColor.WHITE], _player_elos[ChessEnums.PieceColor.WHITE],
@@ -187,6 +190,13 @@ func start_game() -> void:
 			_time_control_ms > 0
 		)
 	_start_turn()
+
+func _human_player_color() -> int:
+	for color in [ChessEnums.PieceColor.WHITE, ChessEnums.PieceColor.BLACK]:
+		var ctrl: PlayerController = _controllers[color] as PlayerController
+		if ctrl != null and not ctrl.is_ai:
+			return color
+	return ChessEnums.PieceColor.WHITE
 
 # ── Piece scene setup ──────────────────────────────────────────────────────
 func _setup_piece_scenes() -> void:
