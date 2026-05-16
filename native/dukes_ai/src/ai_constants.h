@@ -32,7 +32,7 @@ constexpr int TT_UPPER = 2;
 
 constexpr int MATE_SCORE = 30000;
 constexpr const char *AI_VERSION = "dukes_ai_native/1.0.0";
-constexpr int QSEARCH_MAX_DEPTH = 3;
+constexpr int QSEARCH_MAX_DEPTH = 6;  // Increased for better tactical vision
 
 inline constexpr std::array<int, 7> PIECE_VALUES = {0, 100, 500, 320, 330, 900, 40000};
 

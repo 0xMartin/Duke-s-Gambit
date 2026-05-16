@@ -59,3 +59,6 @@ The previous GDScript AI backend (`ai_engine.gd`, `ai_bitboard_state.gd`) was re
 - `fullmove_number`: int
 
 Returned dictionary contains best move fields (`from_col`, `from_row`, `to_col`, `to_row`, `move_type`, `promotion_type`, etc.).
+
+## Author
+- 0xM4R71N

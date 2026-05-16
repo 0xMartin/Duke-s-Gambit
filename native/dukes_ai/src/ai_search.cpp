@@ -95,7 +95,113 @@ static uint64_t now_ms() {
 }
 
 // Move ordering: captures (MVV-LVA) > killer > history heuristic > quiet
-static void order_moves_with_context(std::vector<Move> &moves, const SearchContext &ctx, int depth, int prev_from = -1, int prev_to = -1) {
+
+// Static Exchange Evaluation - returns true if SEE(move) >= threshold
+// Simulates piece trades on capture square by finding all attackers/defenders
+static bool see_ge(SearchState &state, const Move &mv, int threshold) {
+	if (!mv.is_capture()) {
+		return true;
+	}
+	
+	int to_sq = mv.to;
+	int captured_value = PIECE_VALUES[mv.captured_type];
+	int attacking_value = PIECE_VALUES[mv.piece_type];
+	
+	// Simple exchange: if we capture and can't be recaptured
+	if (captured_value - threshold >= 0) {
+		// Try to find the weakest defending piece
+		// Check for pawn defenders first (cheapest)
+		int to_col = SearchState::idx_col(to_sq);
+		int to_row = SearchState::idx_row(to_sq);
+		int enemy_color = 1 - state.active_color;
+		int enemy_pawn_code = (enemy_color == WHITE) ? 1 : 7;
+		
+		// Pawn can defend from diagonals
+		for (int dc = -1; dc <= 1; dc += 2) {
+			int c = to_col + dc;
+			if (c >= 0 && c <= 7) {
+				int pawn_row = to_row + (enemy_color == WHITE ? -1 : 1);
+				if (pawn_row >= 0 && pawn_row <= 7) {
+					int idx = SearchState::sq_to_index(c, pawn_row);
+					if (state.board[idx] == enemy_pawn_code) {
+						// Pawn can recapture
+						int pawn_value = PIECE_VALUES[PIECE_PAWN];
+						if (attacking_value - pawn_value <= threshold) {
+							return false;  // We lose the exchange
+						}
+						// Continue searching for other defenders
+					}
+				}
+			}
+		}
+		
+		// Check for knight defenders (can attack from L-shape)
+		int knight_code = (enemy_color == WHITE) ? PIECE_KNIGHT : PIECE_KNIGHT + 6;
+		static const int knight_offsets[8][2] = {{2,1},{2,-1},{-2,1},{-2,-1},{1,2},{1,-2},{-1,2},{-1,-2}};
+		for (const auto &off : knight_offsets) {
+			int c = to_col + off[0];
+			int r = to_row + off[1];
+			if (c >= 0 && c <= 7 && r >= 0 && r <= 7) {
+				if (state.board[SearchState::sq_to_index(c, r)] == knight_code) {
+					int knight_value = PIECE_VALUES[PIECE_KNIGHT];
+					if (attacking_value - knight_value <= threshold) {
+						return false;
+					}
+				}
+			}
+		}
+		
+		// Check for bishop/queen diagonal defenders
+		int bishop_code = (enemy_color == WHITE) ? PIECE_BISHOP : PIECE_BISHOP + 6;
+		int queen_code = (enemy_color == WHITE) ? PIECE_QUEEN : PIECE_QUEEN + 6;
+		static const int bishop_dirs[4][2] = {{1,1},{1,-1},{-1,1},{-1,-1}};
+		for (const auto &dir : bishop_dirs) {
+			for (int dist = 1; dist < 8; ++dist) {
+				int c = to_col + dir[0] * dist;
+				int r = to_row + dir[1] * dist;
+				if (c < 0 || c > 7 || r < 0 || r > 7) break;
+				int code = state.board[SearchState::sq_to_index(c, r)];
+				if (code != 0) {
+					if (code == bishop_code || code == queen_code) {
+						int piece_val = (code == bishop_code) ? PIECE_VALUES[PIECE_BISHOP] : PIECE_VALUES[PIECE_QUEEN];
+						if (attacking_value - piece_val <= threshold) {
+							return false;
+						}
+					}
+					break;  // Blocked by a piece
+				}
+			}
+		}
+		
+		// Check for rook/queen straight defenders
+		int rook_code = (enemy_color == WHITE) ? PIECE_ROOK : PIECE_ROOK + 6;
+		static const int rook_dirs[4][2] = {{1,0},{-1,0},{0,1},{0,-1}};
+		for (const auto &dir : rook_dirs) {
+			for (int dist = 1; dist < 8; ++dist) {
+				int c = to_col + dir[0] * dist;
+				int r = to_row + dir[1] * dist;
+				if (c < 0 || c > 7 || r < 0 || r > 7) break;
+				int code = state.board[SearchState::sq_to_index(c, r)];
+				if (code != 0) {
+					if (code == rook_code || code == queen_code) {
+						int piece_val = (code == rook_code) ? PIECE_VALUES[PIECE_ROOK] : PIECE_VALUES[PIECE_QUEEN];
+						if (attacking_value - piece_val <= threshold) {
+							return false;
+						}
+					}
+					break;
+				}
+			}
+		}
+		
+		// If no strong defenders found, capture is safe
+		return true;
+	}
+	
+	return false;
+}
+
+static void order_moves_with_context(const SearchState &state, std::vector<Move> &moves, const SearchContext &ctx, int depth, int prev_from = -1, int prev_to = -1) {
 	int killer_from = -1, killer_to = -1;
 	auto kit = ctx.killer_moves.find(depth);
 	if (kit != ctx.killer_moves.end()) {
@@ -109,7 +215,36 @@ static void order_moves_with_context(std::vector<Move> &moves, const SearchConte
 	std::sort(moves.begin(), moves.end(), [&](const Move &a, const Move &b) {
 		auto score = [&](const Move &mv) -> int {
 			if (mv.is_capture()) {
-				return 10000 + PIECE_VALUES[mv.captured_type] * 10 - PIECE_VALUES[mv.piece_type];
+				// Check if it's a safe capture (using SEE)
+				bool safe = see_ge(const_cast<SearchState &>(state), mv, 0);
+				
+				if (safe) {
+					// Safe captures: prioritize HEAVILY by material gain
+					// MVV-LVA: Most Valuable Victim, Least Valuable Attacker
+					int victim_value = PIECE_VALUES[mv.captured_type];
+					int attacker_value = PIECE_VALUES[mv.piece_type];
+					// Higher score = better move
+					// Big bonus for capturing queen/rook, small penalty for sacrificing them
+					int score_val = 20000 + victim_value * 100 - attacker_value;
+					return score_val;
+				} else {
+					// Unsafe captures: check if it's a sacrifice that's still worth it
+					// (e.g., sacrificing queen for mate threat would show in search depth)
+					int victim_value = PIECE_VALUES[mv.captured_type];
+					int attacker_value = PIECE_VALUES[mv.piece_type];
+					// Much lower score for bad trades
+					int loss = attacker_value - victim_value;
+					if (loss > 300) {
+						// Big material loss - put it at the end
+						return 1000 + victim_value;
+					} else if (loss > 100) {
+						// Moderate loss - low priority
+						return 2000 + victim_value;
+					} else {
+						// Small loss or queen sacrifice - might be intentional
+						return 3000 + victim_value;
+					}
+				}
 			}
 			if (mv.from == killer_from && mv.to == killer_to) {
 				return 9000;
@@ -202,7 +337,7 @@ static int minimax(SearchState &state, int depth, int alpha, int beta, SearchCon
 		prev_to = last.to_idx;
 	}
 
-	order_moves_with_context(legal, ctx, depth, prev_from, prev_to);
+	order_moves_with_context(state, legal, ctx, depth, prev_from, prev_to);
 
 	int best_score = -100000;
 	for (int i = 0; i < (int)legal.size(); ++i) {
@@ -388,7 +523,7 @@ Dictionary find_best_move_internal(Dictionary position, int32_t depth, int32_t t
 		const uint64_t iteration_start_ms = now_ms();
 
 		// Best move from previous iteration goes first
-		order_moves_with_context(root_moves, ctx, 0);
+		order_moves_with_context(state, root_moves, ctx, 0);
 
 		auto search_root_with_window = [&](int alpha, int beta, int &out_score, Move &out_move) {
 			int local_alpha = alpha;
