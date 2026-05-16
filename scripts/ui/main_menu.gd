@@ -228,9 +228,9 @@ func _show_settings() -> void:
 	_show_panel(_settings_panel)
 
 func _on_name_ai_strength_changed(value: float) -> void:
-	var diff_idx := clampi(int(value), 1, 4)
-	var difficulty_names := ["", "Casual", "Challenger", "Master", "Grandmaster"]
-	var difficulty_depths := [0, 4, 8, 12, 15]
+	var diff_idx := clampi(int(value), 1, 3)
+	var difficulty_names := ["", "Casual", "Challenger", "Master"]
+	var difficulty_depths := [0, 4, 8, 12]
 	if _name_ai_label:
 		_name_ai_label.text = "AI Difficulty: %s (depth %d)" % [difficulty_names[diff_idx], difficulty_depths[diff_idx]]
 	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
@@ -251,7 +251,7 @@ func _setup_name_ai_controls() -> void:
 	_name_ai_label.add_theme_font_size_override("font_size", 28)
 	_name_ai_slider = HSlider.new()
 	_name_ai_slider.min_value = 1.0
-	_name_ai_slider.max_value = 4.0
+	_name_ai_slider.max_value = 3.0
 	_name_ai_slider.step = 1.0
 	_name_ai_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_name_ai_slider.custom_minimum_size = Vector2(260, 0)
@@ -261,7 +261,7 @@ func _setup_name_ai_controls() -> void:
 	if cam_cfg:
 		var ai_strength_val = cam_cfg.get("ai_strength")
 		if ai_strength_val != null:
-			init_ai = clampi(int(ai_strength_val), 1, 4)
+			init_ai = clampi(int(ai_strength_val), 1, 3)
 	_name_ai_slider.value = init_ai
 
 	_name_ai_row.add_child(_name_ai_label)

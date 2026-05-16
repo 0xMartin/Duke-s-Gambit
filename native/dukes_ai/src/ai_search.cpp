@@ -8,6 +8,8 @@
 #include <godot_cpp/variant/packed_int32_array.hpp>
 
 #include <algorithm>
+#include <future>
+#include <thread>
 
 namespace godot {
 namespace dukes_ai {
@@ -67,6 +69,15 @@ static int minimax(SearchState &state, int depth, int alpha, int beta, SearchCon
 	}
 
 	const bool in_check = state.is_in_check(state.active_color);
+	const bool can_futility = !in_check && depth <= 2;
+	int static_eval = -100000;
+	if (can_futility) {
+		static_eval = evaluate_position(state);
+		const int reverse_margin = (depth == 1) ? 100 : 220;
+		if (static_eval - reverse_margin >= beta) {
+			return static_eval - reverse_margin;
+		}
+	}
 
 	// Null move pruning: skip a turn and search at reduced depth.
 	// If the opponent can't improve even with a free move, we have a beta cutoff.
@@ -110,6 +121,12 @@ static int minimax(SearchState &state, int depth, int alpha, int beta, SearchCon
 			break;
 		}
 		const Move &mv = legal[i];
+		if (can_futility && i >= 4 && !mv.is_capture()) {
+			const int move_margin = (depth == 1) ? 120 : 260;
+			if (static_eval + move_margin <= alpha) {
+				continue;
+			}
+		}
 		state.make_move(mv);
 		int score;
 		if (i == 0) {
@@ -269,35 +286,160 @@ Dictionary find_best_move_internal(Dictionary position, int32_t depth, int32_t t
 			int local_alpha = alpha;
 			int local_best_score = -100000;
 			Move local_best_move = root_moves[0];
-			for (int i = 0; i < (int)root_moves.size(); ++i) {
-				if (now_ms() >= ctx.deadline_ms) {
-					ctx.timed_out = true;
-					break;
-				}
-				const Move &mv = root_moves[i];
+
+			// Keep principal variation move on the main thread.
+			if (now_ms() >= ctx.deadline_ms) {
+				ctx.timed_out = true;
+				out_score = local_best_score;
+				out_move = local_best_move;
+				return;
+			}
+			{
+				const Move &mv = root_moves[0];
 				state.make_move(mv);
-				int mv_score;
-				if (i == 0) {
-					mv_score = -minimax(state, current_depth - 1, -beta, -local_alpha, ctx);
-				} else {
-					mv_score = -minimax(state, current_depth - 1, -local_alpha - 1, -local_alpha, ctx);
-					if (!ctx.timed_out && mv_score > local_alpha && mv_score < beta) {
-						mv_score = -minimax(state, current_depth - 1, -beta, -local_alpha, ctx);
-					}
-				}
+				int mv_score = -minimax(state, current_depth - 1, -beta, -local_alpha, ctx);
 				state.unmake_move();
 				if (ctx.timed_out) {
-					break;
+					out_score = local_best_score;
+					out_move = local_best_move;
+					return;
 				}
 
-				if (mv_score > local_best_score) {
-					local_best_score = mv_score;
-					local_best_move = mv;
-				}
+				local_best_score = mv_score;
+				local_best_move = mv;
 				if (mv_score > local_alpha) {
 					local_alpha = mv_score;
 				}
 			}
+
+			const uint64_t now = now_ms();
+			const uint64_t time_left_ms = (ctx.deadline_ms > now) ? (ctx.deadline_ms - now) : 0;
+			const bool enable_parallel = (current_depth >= 4 && root_moves.size() >= 6 && time_left_ms >= 25);
+			const unsigned hw = std::thread::hardware_concurrency();
+			const unsigned physical_like = (hw == 0) ? 2u : hw;
+			const unsigned max_workers = std::max(1u, physical_like - 1u);
+
+			if (enable_parallel && max_workers > 1) {
+				struct RootTaskResult {
+					int score;
+					Move move;
+					bool timed_out;
+				};
+
+				SearchState root_state = state;
+				const int alpha_snapshot = local_alpha;
+				std::vector<std::future<RootTaskResult>> futures;
+				futures.reserve(root_moves.size() - 1);
+				std::vector<RootTaskResult> probe_results;
+				probe_results.reserve(root_moves.size() - 1);
+				std::vector<RootTaskResult> promising;
+				promising.reserve(root_moves.size() - 1);
+
+				auto consume_probe_result = [&](RootTaskResult result) {
+					if (result.timed_out) {
+						ctx.timed_out = true;
+						return;
+					}
+					probe_results.push_back(result);
+				};
+
+				for (int i = 1; i < (int)root_moves.size(); ++i) {
+					if (now_ms() >= ctx.deadline_ms) {
+						ctx.timed_out = true;
+						break;
+					}
+
+					const Move mv = root_moves[i];
+					futures.push_back(std::async(std::launch::async, [&root_state, mv, current_depth, alpha_snapshot, deadline_ms = ctx.deadline_ms]() -> RootTaskResult {
+						SearchState local_state = root_state;
+						SearchContext local_ctx;
+						local_ctx.deadline_ms = deadline_ms;
+						local_state.make_move(mv);
+						// Null-window probe first. Full re-search is only done for promising moves.
+						const int score = -minimax(local_state, current_depth - 1, -alpha_snapshot - 1, -alpha_snapshot, local_ctx);
+						return {score, mv, local_ctx.timed_out};
+					}));
+
+					if (futures.size() >= max_workers) {
+						RootTaskResult result = futures.front().get();
+						futures.erase(futures.begin());
+						consume_probe_result(result);
+						if (ctx.timed_out) {
+							break;
+						}
+					}
+				}
+
+				for (auto &fut : futures) {
+					RootTaskResult result = fut.get();
+					consume_probe_result(result);
+					if (ctx.timed_out) {
+						break;
+					}
+				}
+
+				if (!ctx.timed_out) {
+					for (const RootTaskResult &r : probe_results) {
+						if (r.score > local_best_score) {
+							local_best_score = r.score;
+							local_best_move = r.move;
+						}
+						if (r.score > local_alpha) {
+							promising.push_back(r);
+						}
+					}
+
+					std::sort(promising.begin(), promising.end(), [](const RootTaskResult &a, const RootTaskResult &b) {
+						return a.score > b.score;
+					});
+
+					for (const RootTaskResult &r : promising) {
+						if (now_ms() >= ctx.deadline_ms) {
+							ctx.timed_out = true;
+							break;
+						}
+						SearchState verify_state = state;
+						verify_state.make_move(r.move);
+						int full_score = -minimax(verify_state, current_depth - 1, -beta, -local_alpha, ctx);
+						if (ctx.timed_out) {
+							break;
+						}
+						if (full_score > local_best_score) {
+							local_best_score = full_score;
+							local_best_move = r.move;
+						}
+						if (full_score > local_alpha) {
+							local_alpha = full_score;
+						}
+					}
+				}
+			} else {
+				for (int i = 1; i < (int)root_moves.size(); ++i) {
+					if (now_ms() >= ctx.deadline_ms) {
+						ctx.timed_out = true;
+						break;
+					}
+					const Move &mv = root_moves[i];
+					state.make_move(mv);
+					int mv_score = -minimax(state, current_depth - 1, -local_alpha - 1, -local_alpha, ctx);
+					if (!ctx.timed_out && mv_score > local_alpha && mv_score < beta) {
+						mv_score = -minimax(state, current_depth - 1, -beta, -local_alpha, ctx);
+					}
+					state.unmake_move();
+					if (ctx.timed_out) {
+						break;
+					}
+
+					if (mv_score > local_best_score) {
+						local_best_score = mv_score;
+						local_best_move = mv;
+					}
+					if (mv_score > local_alpha) {
+						local_alpha = mv_score;
+					}
+				}
+			}
+
 			out_score = local_best_score;
 			out_move = local_best_move;
 		};

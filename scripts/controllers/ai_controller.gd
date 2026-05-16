@@ -7,7 +7,6 @@ enum Difficulty {
 	CASUAL = 1,
 	CHALLENGER = 2,
 	MASTER = 3,
-	GRANDMASTER = 4,
 }
 
 const _NATIVE_CLASS := "DukesAINative"
@@ -36,7 +35,8 @@ func request_move(board: ChessBoardState, legal_moves: Array) -> void:
 
 	var search_depth := 4
 	var time_limit_ms := 2000
-	match difficulty:
+	var selected_difficulty := maxi(Difficulty.CASUAL, mini(Difficulty.MASTER, difficulty))
+	match selected_difficulty:
 		Difficulty.CASUAL:
 			search_depth = 4
 			time_limit_ms = 2000
@@ -46,9 +46,6 @@ func request_move(board: ChessBoardState, legal_moves: Array) -> void:
 		Difficulty.MASTER:
 			search_depth = 12
 			time_limit_ms = 8000
-		Difficulty.GRANDMASTER:
-			search_depth = 15
-			time_limit_ms = 12000
 
 	var position_payload: Dictionary = _build_native_position(board)
 	var fallback_payload: Dictionary = _serialize_move(fallback_move)

@@ -151,7 +151,7 @@ text = "AI Strength: 1"
 [node name="HSlider" type="HSlider" parent="SettingsPanel/VBox/AIStrengthRow"]
 size_flags_horizontal = 3
 min_value = 1.0
-max_value = 5.0
+max_value = 3.0
 step = 1.0
 value = 1.0
 
