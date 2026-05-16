@@ -163,8 +163,30 @@ int quiescence(SearchState &state, int alpha, int beta, SearchContext &ctx, int 
 	}
 
 	order_moves(qmoves);
+	
+	// Delta pruning & hanging piece detection: skip moves unlikely to affect score.
+	const int delta_margin = 100;
 
 	for (const Move &mv : qmoves) {
+		// Delta pruning: if best_value + capture_value + margin < alpha, skip
+		if (!in_check && mv.is_capture() && depth <= -1) {
+			const int capture_gain = PIECE_VALUES[mv.captured_type];
+			if (best_value + capture_gain + delta_margin <= alpha) {
+				continue;
+			}
+		}
+		
+		// Hanging piece detection in quiescence: avoid capturing undefended pieces if we can be attacked back.
+		if (mv.is_capture() && depth >= -2) {
+			state.make_move(mv);
+			const bool to_sq_attacked = state.is_square_attacked(mv.to, 1 - state.active_color);
+			state.unmake_move();
+			// If captured piece is defended after capture, reduce penalty.
+			if (to_sq_attacked && PIECE_VALUES[mv.captured_type] < PIECE_VALUES[mv.piece_type]) {
+				continue; // Skip bad trades in shallow qsearch
+			}
+		}
+		
 		state.make_move(mv);
 		const int score = -quiescence(state, -beta, -alpha, ctx, depth - 1);
 		state.unmake_move();

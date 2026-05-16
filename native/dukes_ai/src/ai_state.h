@@ -47,6 +47,7 @@ struct TTEntry {
 	int depth = -1;
 	int score = 0;
 	int flag = TT_EXACT;
+	uint32_t generation = 0;
 };
 
 struct SearchState {
@@ -89,10 +90,14 @@ struct SearchState {
 struct SearchContext {
 	std::unordered_map<int, Move> killer_moves;
 	std::unordered_map<uint64_t, TTEntry> tt;
+	Move counter_moves[64][64]; // counter move for previous (from,to)
 	int history[64][64]; // history[from][to] for quiet move ordering
 	uint64_t deadline_ms = 0;
 	bool timed_out = false;
 	SearchContext() : killer_moves(), tt(), deadline_ms(0), timed_out(false) {
+		for (int i = 0; i < 64; ++i)
+			for (int j = 0; j < 64; ++j)
+				counter_moves[i][j] = Move();
 		for (int i = 0; i < 64; ++i)
 			for (int j = 0; j < 64; ++j)
 				history[i][j] = 0;

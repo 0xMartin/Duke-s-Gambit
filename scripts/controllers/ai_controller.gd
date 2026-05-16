@@ -10,6 +10,7 @@ enum Difficulty {
 }
 
 const _NATIVE_CLASS := "DukesAINative"
+const _LOG_TIMINGS := true
 
 var difficulty: int = Difficulty.CASUAL
 var _native_available: bool = false
@@ -36,29 +37,125 @@ func request_move(board: ChessBoardState, legal_moves: Array) -> void:
 	var search_depth := 4
 	var time_limit_ms := 2000
 	var selected_difficulty := maxi(Difficulty.CASUAL, mini(Difficulty.MASTER, difficulty))
-	match selected_difficulty:
-		Difficulty.CASUAL:
-			search_depth = 4
-			time_limit_ms = 2000
-		Difficulty.CHALLENGER:
-			search_depth = 8
-			time_limit_ms = 4000
-		Difficulty.MASTER:
-			search_depth = 12
-			time_limit_ms = 8000
+	var budget := _compute_search_budget(board, legal_moves.size(), selected_difficulty)
+	search_depth = int(budget.get("depth", search_depth))
+	time_limit_ms = int(budget.get("time_ms", time_limit_ms))
 
 	var position_payload: Dictionary = _build_native_position(board)
 	var fallback_payload: Dictionary = _serialize_move(fallback_move)
 	var t := Engine.get_main_loop() as SceneTree
+	var search_started_ms := Time.get_ticks_msec()
 
 	_search_in_progress = true
 	_search_payload = {}
 
 	await _run_native_search(position_payload, search_depth, time_limit_ms, fallback_payload, t)
 	_search_in_progress = false
+	if _LOG_TIMINGS:
+		_print_search_timing(search_started_ms, legal_moves.size(), selected_difficulty, search_depth, time_limit_ms)
 
 	var chosen: ChessMove = _resolve_payload_to_move(legal_moves, fallback_move)
 	emit_signal("move_chosen", chosen)
+
+func _print_search_timing(started_ms: int, legal_count: int, selected_difficulty: int, search_depth: int, time_limit_ms: int) -> void:
+	var elapsed_ms := Time.get_ticks_msec() - started_ms
+	_result_mutex.lock()
+	var payload: Dictionary = _search_payload.duplicate()
+	_result_mutex.unlock()
+
+	var reached_depth := int(payload.get("reached_depth", -1))
+	var score := int(payload.get("score", 0))
+	var ok := bool(payload.get("ok", false))
+	print(
+		"AI timing | diff=%s | legal=%d | depth_req=%d | depth_hit=%d | limit=%dms | elapsed=%dms | ok=%s | score=%d" % [
+			_difficulty_name(selected_difficulty),
+			legal_count,
+			search_depth,
+			reached_depth,
+			time_limit_ms,
+			elapsed_ms,
+			str(ok),
+			score,
+		]
+	)
+
+func _difficulty_name(diff: int) -> String:
+	match diff:
+		Difficulty.CASUAL:
+			return "Casual"
+		Difficulty.CHALLENGER:
+			return "Challenger"
+		Difficulty.MASTER:
+			return "Master"
+		_:
+			return "Unknown"
+
+func _compute_search_budget(board: ChessBoardState, legal_count: int, selected_difficulty: int) -> Dictionary:
+	var base_depth := 4
+	var base_time_ms := 2000
+	var min_time_ms := 900
+	var max_time_ms := 2600
+
+	match selected_difficulty:
+		Difficulty.CASUAL:
+			base_depth = 4
+			base_time_ms = 1700
+			min_time_ms = 800
+			max_time_ms = 2600
+		Difficulty.CHALLENGER:
+			base_depth = 8
+			base_time_ms = 3300
+			min_time_ms = 1400
+			max_time_ms = 5200
+		Difficulty.MASTER:
+			base_depth = 12
+			base_time_ms = 5200
+			min_time_ms = 1800
+			max_time_ms = 7200
+
+	var multiplier := 1.0
+
+	# Opening positions are usually theory-heavy and less tactical in this project,
+	# so we spend less time there and keep more budget for complex middlegames.
+	if board.fullmove_number <= 6:
+		multiplier *= 0.72
+	elif board.fullmove_number <= 10:
+		multiplier *= 0.84
+
+	if legal_count >= 34:
+		multiplier *= 1.25
+	elif legal_count >= 26:
+		multiplier *= 1.12
+	elif legal_count <= 10:
+		multiplier *= 0.84
+
+	if selected_difficulty == Difficulty.MASTER and legal_count >= 28:
+		multiplier *= 0.90
+
+	if board.is_in_check(board.active_color):
+		multiplier *= 1.18
+
+	if board.halfmove_clock >= 70:
+		multiplier *= 0.88
+
+	var phase := clampf(float(board.fullmove_number) / 24.0, 0.0, 1.0)
+	var phase_scale := lerpf(0.95, 1.08, phase)
+	var computed_time := int(round(float(base_time_ms) * multiplier * phase_scale))
+	computed_time = clampi(computed_time, min_time_ms, max_time_ms)
+
+	var depth_adjust := 0
+	if legal_count >= 34:
+		depth_adjust -= 1
+	if selected_difficulty == Difficulty.MASTER and board.fullmove_number <= 10 and legal_count >= 26:
+		depth_adjust -= 1
+	elif legal_count <= 9 and board.fullmove_number >= 10:
+		depth_adjust += 1
+
+	var computed_depth := clampi(base_depth + depth_adjust, 3, base_depth + 1)
+	return {
+		"depth": computed_depth,
+		"time_ms": computed_time,
+	}
 
 func _run_native_search(position_payload: Dictionary, search_depth: int, time_limit_ms: int, fallback_payload: Dictionary, tree: SceneTree) -> void:
 	var task_id := WorkerThreadPool.add_task(

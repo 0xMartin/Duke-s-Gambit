@@ -8,23 +8,103 @@
 #include <godot_cpp/variant/packed_int32_array.hpp>
 
 #include <algorithm>
+#include <atomic>
 #include <future>
+#include <mutex>
 #include <thread>
+#include <unordered_map>
 
 namespace godot {
 namespace dukes_ai {
+
+static std::unordered_map<uint64_t, TTEntry> G_PERSISTENT_TT;
+static std::mutex G_PERSISTENT_TT_MUTEX;
+static std::atomic<uint32_t> G_TT_GENERATION{0};
+static std::atomic<uint32_t> G_TT_STORE_COUNTER{0};
+static constexpr size_t PERSISTENT_TT_MAX_ENTRIES = 350000;
+static constexpr uint32_t PERSISTENT_TT_KEEP_GENERATIONS = 6;
+static constexpr int PERSISTENT_TT_MIN_PROBE_DEPTH = 4;
+static constexpr uint32_t PERSISTENT_TT_PRUNE_PERIOD = 4096;
+
+static void prune_persistent_tt_if_needed(uint32_t current_generation) {
+	if (G_PERSISTENT_TT.size() <= PERSISTENT_TT_MAX_ENTRIES) {
+		return;
+	}
+
+	for (auto it = G_PERSISTENT_TT.begin(); it != G_PERSISTENT_TT.end();) {
+		const uint32_t entry_gen = it->second.generation;
+		const uint32_t age = current_generation >= entry_gen ? (current_generation - entry_gen) : 0;
+		if (age > PERSISTENT_TT_KEEP_GENERATIONS) {
+			it = G_PERSISTENT_TT.erase(it);
+		} else {
+			++it;
+		}
+	}
+
+	if (G_PERSISTENT_TT.size() <= PERSISTENT_TT_MAX_ENTRIES) {
+		return;
+	}
+
+	// Safety cap: drop oldest arbitrary tail if aging alone wasn't enough.
+	while (G_PERSISTENT_TT.size() > PERSISTENT_TT_MAX_ENTRIES) {
+		G_PERSISTENT_TT.erase(G_PERSISTENT_TT.begin());
+	}
+}
+
+static bool load_tt_entry(uint64_t key, int depth, SearchContext &ctx, TTEntry &out_entry) {
+	auto it_local = ctx.tt.find(key);
+	if (it_local != ctx.tt.end() && it_local->second.depth >= depth) {
+		out_entry = it_local->second;
+		return true;
+	}
+
+	if (depth < PERSISTENT_TT_MIN_PROBE_DEPTH) {
+		return false;
+	}
+
+	std::lock_guard<std::mutex> lock(G_PERSISTENT_TT_MUTEX);
+	auto it_global = G_PERSISTENT_TT.find(key);
+	if (it_global == G_PERSISTENT_TT.end() || it_global->second.depth < depth) {
+		return false;
+	}
+	out_entry = it_global->second;
+	ctx.tt[key] = out_entry;
+	return true;
+}
+
+static void store_tt_entry(uint64_t key, const TTEntry &entry, SearchContext &ctx) {
+	ctx.tt[key] = entry;
+	if (entry.depth < PERSISTENT_TT_MIN_PROBE_DEPTH) {
+		return;
+	}
+
+	std::lock_guard<std::mutex> lock(G_PERSISTENT_TT_MUTEX);
+	auto it = G_PERSISTENT_TT.find(key);
+	if (it == G_PERSISTENT_TT.end() || entry.depth >= it->second.depth) {
+		G_PERSISTENT_TT[key] = entry;
+	}
+
+	const uint32_t stores = G_TT_STORE_COUNTER.fetch_add(1, std::memory_order_relaxed) + 1;
+	if (G_PERSISTENT_TT.size() > PERSISTENT_TT_MAX_ENTRIES && (stores % PERSISTENT_TT_PRUNE_PERIOD) == 0) {
+		prune_persistent_tt_if_needed(entry.generation);
+	}
+}
 
 static uint64_t now_ms() {
 	return Time::get_singleton()->get_ticks_msec();
 }
 
 // Move ordering: captures (MVV-LVA) > killer > history heuristic > quiet
-static void order_moves_with_context(std::vector<Move> &moves, const SearchContext &ctx, int depth) {
+static void order_moves_with_context(std::vector<Move> &moves, const SearchContext &ctx, int depth, int prev_from = -1, int prev_to = -1) {
 	int killer_from = -1, killer_to = -1;
 	auto kit = ctx.killer_moves.find(depth);
 	if (kit != ctx.killer_moves.end()) {
 		killer_from = kit->second.from;
 		killer_to = kit->second.to;
+	}
+	Move counter;
+	if (prev_from >= 0 && prev_from < 64 && prev_to >= 0 && prev_to < 64) {
+		counter = ctx.counter_moves[prev_from][prev_to];
 	}
 	std::sort(moves.begin(), moves.end(), [&](const Move &a, const Move &b) {
 		auto score = [&](const Move &mv) -> int {
@@ -33,6 +113,9 @@ static void order_moves_with_context(std::vector<Move> &moves, const SearchConte
 			}
 			if (mv.from == killer_from && mv.to == killer_to) {
 				return 9000;
+			}
+			if (counter.from >= 0 && mv.from == counter.from && mv.to == counter.to) {
+				return 8500;
 			}
 			return ctx.history[mv.from][mv.to];
 		};
@@ -52,9 +135,8 @@ static int minimax(SearchState &state, int depth, int alpha, int beta, SearchCon
 
 	const int alpha_orig = alpha;
 	const uint64_t key = state.hash_key();
-	auto it = ctx.tt.find(key);
-	if (it != ctx.tt.end() && it->second.depth >= depth) {
-		const TTEntry &e = it->second;
+	TTEntry e;
+	if (load_tt_entry(key, depth, ctx, e)) {
 		if (e.flag == TT_EXACT) {
 			return e.score;
 		}
@@ -112,7 +194,15 @@ static int minimax(SearchState &state, int depth, int alpha, int beta, SearchCon
 		return in_check ? -MATE_SCORE : 0;
 	}
 
-	order_moves_with_context(legal, ctx, depth);
+	int prev_from = -1;
+	int prev_to = -1;
+	if (!state.history.empty()) {
+		const UndoState &last = state.history.back();
+		prev_from = last.from_idx;
+		prev_to = last.to_idx;
+	}
+
+	order_moves_with_context(legal, ctx, depth, prev_from, prev_to);
 
 	int best_score = -100000;
 	for (int i = 0; i < (int)legal.size(); ++i) {
@@ -154,6 +244,9 @@ static int minimax(SearchState &state, int depth, int alpha, int beta, SearchCon
 			if (!mv.is_capture()) {
 				ctx.killer_moves[depth] = mv;
 				ctx.history[mv.from][mv.to] += depth * depth;
+				if (prev_from >= 0 && prev_from < 64 && prev_to >= 0 && prev_to < 64) {
+					ctx.counter_moves[prev_from][prev_to] = mv;
+				}
 			}
 			break;
 		}
@@ -164,9 +257,10 @@ static int minimax(SearchState &state, int depth, int alpha, int beta, SearchCon
 		store.depth = depth;
 		store.score = best_score;
 		store.flag = TT_EXACT;
+		store.generation = G_TT_GENERATION.load(std::memory_order_relaxed);
 		if (best_score <= alpha_orig) store.flag = TT_UPPER;
 		else if (best_score >= beta) store.flag = TT_LOWER;
-		ctx.tt[key] = store;
+		store_tt_entry(key, store, ctx);
 	}
 
 	return best_score > -100000 ? best_score : alpha_orig;
@@ -260,8 +354,12 @@ Dictionary find_best_move_internal(Dictionary position, int32_t depth, int32_t t
 		time_limit_ms = 1000;
 	}
 
+	G_TT_GENERATION.fetch_add(1, std::memory_order_relaxed);
+
 	SearchContext ctx;
 	ctx.deadline_ms = now_ms() + uint64_t(time_limit_ms);
+	const uint64_t search_start_ms = now_ms();
+	uint64_t last_iteration_ms = 0;
 
 	std::vector<Move> root_moves = state.generate_legal_moves();
 	if (root_moves.empty()) {
@@ -277,7 +375,17 @@ Dictionary find_best_move_internal(Dictionary position, int32_t depth, int32_t t
 
 	for (int current_depth = 1; current_depth <= depth; ++current_depth) {
 		if (now_ms() >= ctx.deadline_ms) break;
+		if (current_depth > 1 && last_iteration_ms > 0) {
+			const uint64_t elapsed_ms = now_ms() - search_start_ms;
+			// Predict next depth cost from last completed iteration and stop early
+			// when it is unlikely we can finish another full iteration in budget.
+			const uint64_t predicted_total_ms = elapsed_ms + (last_iteration_ms * 20) / 10;
+			if (predicted_total_ms >= uint64_t(time_limit_ms)) {
+				break;
+			}
+		}
 		ctx.timed_out = false;
+		const uint64_t iteration_start_ms = now_ms();
 
 		// Best move from previous iteration goes first
 		order_moves_with_context(root_moves, ctx, 0);
@@ -478,6 +586,7 @@ Dictionary find_best_move_internal(Dictionary position, int32_t depth, int32_t t
 		best_move = depth_best_move;
 		best_score = depth_best_score;
 		reached_depth = current_depth;
+		last_iteration_ms = now_ms() - iteration_start_ms;
 
 		// Move best move to front for better ordering in next iteration
 		for (int i = 1; i < (int)root_moves.size(); ++i) {
