@@ -44,11 +44,13 @@ var _pan_start: Vector2 = Vector2.ZERO
 var _pan_pivot_start: Vector3 = Vector3.ZERO
 
 # Kill cam state
-const KILL_CAM_ORBIT_SPEED := 18.0   # deg/s slow cinematic orbit
-var _kill_cam_active:     bool    = false
-var _kill_cam_track:      Node3D  = null    # moving attacker piece
-var _kill_cam_target_pos: Vector3 = Vector3.ZERO  # capture destination (XZ)
-var _pre_kill_cam_distance: float = 11.2  # zoom saved before kill cam, restored after
+const KILL_CAM_ORBIT_SPEED      := 18.0   # deg/s cinematic orbit during regular kill cam
+const CHECKMATE_CAM_ORBIT_SPEED :=  6.0   # deg/s slow mournful orbit around dying king
+var _kill_cam_active:      bool    = false
+var _checkmate_cam_active: bool    = false  # set together with _kill_cam_active for checkmate
+var _kill_cam_track:       Node3D  = null    # moving attacker piece
+var _kill_cam_target_pos:  Vector3 = Vector3.ZERO  # capture destination (XZ)
+var _pre_kill_cam_distance: float  = 11.2  # zoom saved before kill cam, restored after
 
 @onready var _cam: Camera3D = $Camera3D
 
@@ -115,18 +117,18 @@ func _unhandled_input(event: InputEvent) -> void:
 # ── Process ────────────────────────────────────────────────────────────────
 func _process(delta: float) -> void:
 	if _kill_cam_active:
-		# Slowly orbit around the action point.
-		_target_azimuth += KILL_CAM_ORBIT_SPEED * delta
-# Track attacker OR converge on a fixed target (checkmate cam).
+		# Orbit speed: slow mournful for checkmate, faster for regular capture.
+		var orb_speed := CHECKMATE_CAM_ORBIT_SPEED if _checkmate_cam_active else KILL_CAM_ORBIT_SPEED
+		_target_azimuth += orb_speed * delta
+		# Track attacker OR converge on a fixed target (checkmate cam).
 		if _kill_cam_track != null and is_instance_valid(_kill_cam_track):
 			var piece_xz := Vector3(_kill_cam_track.global_position.x, 0.0,
 								_kill_cam_track.global_position.z)
 			var mid := (piece_xz + _kill_cam_target_pos) * 0.5
 			position = position.lerp(mid, smooth_speed * delta)
 		else:
-			# Checkmate cam: slide pivot toward the king position.
-			position = position.lerp(_kill_cam_target_pos, smooth_speed * 0.6 * delta)
-
+			# Checkmate cam: pivot glides smoothly toward the king.
+			position = position.lerp(_kill_cam_target_pos, smooth_speed * 0.5 * delta)
 	_azimuth  = _lerp_angle(_azimuth, _target_azimuth, smooth_speed * delta)
 	elevation = lerp(elevation, _target_elevation, smooth_speed * delta)
 	distance  = lerp(distance, _target_distance, smooth_speed * delta)
@@ -159,15 +161,16 @@ func _apply_transform() -> void:
 ## resets pivot to board centre, and ensures a comfortable viewing distance.
 func face_player(color: int) -> void:
 	# Cancel any active drag or kill cam so the camera returns cleanly.
-	_dragging        = false
-	_panning         = false
+	_dragging             = false
+	_panning              = false
 	# Restore zoom to what it was before the kill cam (capped to distance_after_move).
 	if _kill_cam_active:
 		_target_distance = minf(_pre_kill_cam_distance, distance_after_move)
 	else:
 		_target_distance = minf(_target_distance, distance_after_move)
-	_kill_cam_active = false
-	_kill_cam_track  = null
+	_kill_cam_active      = false
+	_checkmate_cam_active = false
+	_kill_cam_track       = null
 
 	_target_azimuth   = AZIMUTH_WHITE if color == ChessEnums.PieceColor.WHITE else AZIMUTH_BLACK
 	_target_elevation = 40.0
@@ -223,23 +226,28 @@ func kill_cam(from_world: Vector3, to_world: Vector3, attacker: Node3D = null) -
 	_target_distance = clamp(separation * 2.0 + 1.5, 3.5, 7.0)
 
 ## Cinematic close-up of the losing king after checkmate.
-## Smoothly moves the pivot toward the king, zooms in and locks slowly orbiting.
+## Smoothly moves the pivot toward the king, zooms in and orbits slowly.
 ## kill_cam_enabled setting controls whether this fires (caller checks it).
 func checkmate_cam(king_world: Vector3) -> void:
-	_dragging = false
-	_panning  = false
-	_kill_cam_active     = true
-	_kill_cam_track      = null   # nothing moving to track; we drive pivot ourselves
-	_kill_cam_target_pos = Vector3(king_world.x, 0.0, king_world.z)
+	_dragging             = false
+	_panning              = false
+	_kill_cam_active      = true
+	_checkmate_cam_active = true
+	_kill_cam_track       = null   # nothing moving; pivot drifts on its own in _process()
+	_kill_cam_target_pos  = Vector3(king_world.x, 0.0, king_world.z)
 
-	# Start pivot from current position, animate toward the king over time.
-	# _process() will lerp position toward _kill_cam_target_pos each frame.
-
-	# Slightly side-on, low and close for drama.
-	_target_elevation = 18.0
+	# Dramatically lower elevation and zoom-in — camera peers at the fallen king.
+	_target_elevation      = 22.0
 	_pre_kill_cam_distance = _target_distance
-	_target_distance  = 4.5
-	# Keep current azimuth (don't flip to any player side), just let it slowly orbit.
+	_target_distance       = 5.0
+	# Keep current azimuth so there's no jarring flip; orbit handles rotation slowly.
+
+## Called when the king hits the ground — emphasises the impact before the game-over panel.
+## Adds a camera shake and a final dramatic close push.
+func king_impact() -> void:
+	shake(0.06, 0.9)
+	_target_elevation = 12.0
+	_target_distance  = 3.0
 
 ## Lerp shortest path between two angles
 func _lerp_angle(from: float, to: float, weight: float) -> float:

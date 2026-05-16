@@ -245,15 +245,29 @@ func _animate_checkmate_end(loser_color: int) -> void:
 		_captured_by[winner_color].append(ChessEnums.PieceType.KING)
 		if _hud != null:
 			_hud.refresh_captured(winner_color, _captured_by[winner_color])
-		king_piece.die()
 
-	# Checkmate cam: zoom in on the dying king instead of rotating to the loser's side.
+	# Checkmate cam: start zooming toward the king BEFORE die() so the camera
+	# is already moving when the death animation plays.
 	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
+	var use_cinematic: bool = cam_cfg == null or cam_cfg.kill_cam_enabled
 	var king_world := _board.sq_to_world(king_sq)
-	if cam_cfg == null or cam_cfg.kill_cam_enabled:
+	if use_cinematic:
 		_camera.checkmate_cam(king_world)
 
-	await get_tree().create_timer(2.5).timeout
+	if king_piece:
+		# Start death animation without awaiting — we wait on the signal instead.
+		king_piece.die()
+		# Wait until the animation fully plays out (king hits the ground).
+		await king_piece.death_finished
+	else:
+		# No king piece on board (shouldn't happen, but be safe).
+		await get_tree().create_timer(1.5).timeout
+
+	# King has fallen — emphasise the impact with shake and a final close push.
+	if use_cinematic:
+		_camera.king_impact()
+
+	await get_tree().create_timer(2.0).timeout
 	_show_game_over(winner_color, "Checkmate")
 
 # ── Time-out ───────────────────────────────────────────────────────────────

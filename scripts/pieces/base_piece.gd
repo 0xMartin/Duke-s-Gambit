@@ -99,6 +99,7 @@ var _trail_mat:        StandardMaterial3D = null
 
 signal move_finished          # emitted when piece arrives at destination
 signal attack_sequence_done   # emitted when full attack+death sequence is done
+signal death_finished         # emitted when death animation ends (before fade/free)
 
 # ── Weapon ──────────────────────────────────────────────────────────────────────
 func _find_skeleton_recursive(node: Node) -> Skeleton3D:
@@ -532,6 +533,7 @@ func die() -> void:
 	if _anim and _anim.has_animation(anim_death):
 		var dur := _anim.get_animation(anim_death).length
 		await get_tree().create_timer(dur).timeout
+	emit_signal("death_finished")
 	_start_fade()
 
 func _start_fade() -> void:
