@@ -13,6 +13,8 @@ extends Control
 var _pending_promo_sq: Vector2i = Vector2i(-1, -1)
 var _pending_promo_color: int = 0
 var _surrender_btn: Button = null
+var _ai_status_container: Control = null
+var _ai_status_bar: ProgressBar = null
 
 func _ready() -> void:
 	$GameOverPanel/VBox/BackButton.pressed.connect(_on_back_pressed)
@@ -26,27 +28,89 @@ func _ready() -> void:
 
 	_game.promotion_needed.connect(_on_promotion_needed)
 	_setup_surrender_btn()
+	_setup_ai_status()
 	_game.game_over.connect(func(_w: int, _r: int) -> void:
 		_surrender_btn.visible = false
 		_surrender_panel.visible = false
+		_ai_status_container.visible = false
 	)
 	_apply_roblox_theme()
 
 func _setup_surrender_btn() -> void:
 	_surrender_btn = Button.new()
 	_surrender_btn.text = "Surrender"
+	# Umístění: nahoře uprostřed
 	_surrender_btn.anchor_left    = 0.5
 	_surrender_btn.anchor_right   = 0.5
-	_surrender_btn.anchor_top     = 1.0
-	_surrender_btn.anchor_bottom  = 1.0
+	_surrender_btn.anchor_top     = 0.0
+	_surrender_btn.anchor_bottom  = 0.0
 	_surrender_btn.grow_horizontal = 2  # GROW_DIRECTION_BOTH
-	_surrender_btn.offset_left    = -180.0
-	_surrender_btn.offset_right   =  180.0
-	_surrender_btn.offset_top     = -80.0
-	_surrender_btn.offset_bottom  = -12.0
-	_surrender_btn.add_theme_font_size_override("font_size", 32)
+	_surrender_btn.offset_left    = -100.0
+	_surrender_btn.offset_right   =  100.0
+	_surrender_btn.offset_top     = 16.0
+	_surrender_btn.offset_bottom  = 56.0
+	_surrender_btn.add_theme_font_size_override("font_size", 24)
 	add_child(_surrender_btn)
 	_surrender_btn.pressed.connect(_on_surrender_pressed)
+
+func _setup_ai_status() -> void:
+	"""Vytvoří AI status indikátor - defaultně skrytý"""
+	_ai_status_container = Control.new()
+	_ai_status_container.anchor_left    = 0.5
+	_ai_status_container.anchor_right   = 0.5
+	_ai_status_container.anchor_top     = 0.0
+	_ai_status_container.anchor_bottom  = 0.0
+	_ai_status_container.grow_horizontal = 2
+	_ai_status_container.offset_left    = -150.0
+	_ai_status_container.offset_right   =  150.0
+	_ai_status_container.offset_top     = 64.0
+	_ai_status_container.offset_bottom  = 120.0
+	_ai_status_container.visible = false
+	add_child(_ai_status_container)
+
+	# Label "AI thinking..."
+	var label = Label.new()
+	label.text = "AI tahá..."
+	label.add_theme_font_size_override("font_size", 16)
+	label.anchor_left = 0.0
+	label.anchor_right = 1.0
+	label.anchor_top = 0.0
+	label.anchor_bottom = 0.4
+	_ai_status_container.add_child(label)
+
+	# Loading bar
+	_ai_status_bar = ProgressBar.new()
+	_ai_status_bar.show_percentage = false
+	_ai_status_bar.anchor_left = 0.0
+	_ai_status_bar.anchor_right = 1.0
+	_ai_status_bar.anchor_top = 0.4
+	_ai_status_bar.anchor_bottom = 1.0
+	_ai_status_bar.offset_top = 4.0
+	_ai_status_container.add_child(_ai_status_bar)
+
+	# Animace loading baru
+	_animate_ai_loading_bar()
+
+func _animate_ai_loading_bar() -> void:
+	"""Nekonečná animace loading baru"""
+	if _ai_status_container == null or not _ai_status_container.visible:
+		return
+	var tween = create_tween().set_loops()
+	_ai_status_bar.value = 0
+	tween.tween_property(_ai_status_bar, "value", 100, 1.5) \
+		.set_trans(Tween.TRANS_LINEAR)
+	tween.tween_property(_ai_status_bar, "value", 0, 0.2)
+
+func show_ai_thinking() -> void:
+	"""Zobrazí AI status indikátor"""
+	if _ai_status_container != null:
+		_ai_status_container.visible = true
+		_animate_ai_loading_bar()
+
+func hide_ai_thinking() -> void:
+	"""Skryje AI status indikátor"""
+	if _ai_status_container != null:
+		_ai_status_container.visible = false
 
 func _on_surrender_pressed() -> void:
 	_surrender_panel.visible = true

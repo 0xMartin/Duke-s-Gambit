@@ -270,6 +270,11 @@ func _start_turn() -> void:
 	_move_start_time_ms = Time.get_ticks_msec()
 	var ctrl: PlayerController = _controllers[color] as PlayerController
 	_update_ai_ui(ctrl.is_ai)
+	# Show AI thinking indicator
+	if ctrl.is_ai and _ui != null:
+		var game_ui = _ui as Control
+		if game_ui.has_method("show_ai_thinking"):
+			game_ui.show_ai_thinking()
 	ctrl.request_move(_chess, legal)
 
 # ── Checkmate animation ────────────────────────────────────────────────────
@@ -445,6 +450,11 @@ func _raycast_board(screen_pos: Vector2) -> Vector2i:
 func _on_move_chosen(mv: ChessMove) -> void:
 	if _game_over_shown:
 		return   # game ended (e.g. surrender while AI was thinking)
+	# Hide AI thinking indicator
+	if _ui != null:
+		var game_ui = _ui as Control
+		if game_ui.has_method("hide_ai_thinking"):
+			game_ui.hide_ai_thinking()
 	_busy = true
 	_deselect_piece()   # clear outline before move animation
 	# Track timing + deduct from clock
