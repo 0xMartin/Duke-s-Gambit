@@ -70,7 +70,7 @@ func _setup_ai_status() -> void:
 
 	# Label "AI thinking..."
 	var label = Label.new()
-	label.text = "AI tahá..."
+	label.text = "AI is thinking..."
 	label.add_theme_font_size_override("font_size", 16)
 	label.anchor_left = 0.0
 	label.anchor_right = 1.0

@@ -26,6 +26,4 @@ https://freesound.org/people/magnuswaker/sounds/524956/
 todo:
 - globalni velepseni UI
 
-- AI
-
 - Server + moznost hrat online

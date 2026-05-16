@@ -48,6 +48,7 @@ var _captured_by: Array = [[], []]
 
 var _player_names: Array = ["Player1", "Player2"]
 var _player_elos:  Array = [1200, 1200]
+var _is_player_vs_ai: bool = false
 
 # Chess clock (ms). 0 = no limit.
 var _time_control_ms:   int = 0
@@ -133,6 +134,7 @@ func setup(p1_name: String, p2_name: String,
 	_player_names[ChessEnums.PieceColor.WHITE] = p1_name
 	_player_names[ChessEnums.PieceColor.BLACK] = p2_name
 	_time_control_ms = time_control_ms
+	_is_player_vs_ai = white_is_ai != black_is_ai
 
 	# Read ELOs from SaveManager
 	var save_node := get_node_or_null("/root/SaveManager")
@@ -499,8 +501,11 @@ func _on_move_chosen(mv: ChessMove) -> void:
 	# (checkmate_cam will take over instead of face_player in _animate_checkmate_end).
 	var _next_state := _chess.get_game_state()
 	var _is_checkmate := _next_state == ChessEnums.GameState.CHECKMATE
-	if not _is_checkmate and (cam_cfg == null or cam_cfg.get("face_player_after_move") != false):
-		_camera.face_player(_chess.active_color)
+	if not _is_checkmate:
+		if _is_player_vs_ai and _is_capture and cam_cfg != null and cam_cfg.kill_cam_enabled:
+			_camera.restore_pre_kill_cam_view()
+		elif not _is_player_vs_ai and (cam_cfg == null or cam_cfg.get("face_player_after_move") != false):
+			_camera.face_player(_chess.active_color)
 	_start_turn()
 
 func _animate_move(mv: ChessMove) -> void:

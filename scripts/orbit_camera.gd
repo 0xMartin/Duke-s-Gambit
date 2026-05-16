@@ -51,6 +51,12 @@ var _checkmate_cam_active: bool    = false  # set together with _kill_cam_active
 var _kill_cam_track:       Node3D  = null    # moving attacker piece
 var _kill_cam_target_pos:  Vector3 = Vector3.ZERO  # capture destination (XZ)
 var _pre_kill_cam_distance: float  = 11.2  # zoom saved before kill cam, restored after
+var _pre_kill_cam_position: Vector3 = Vector3.ZERO
+var _pre_kill_cam_azimuth: float = AZIMUTH_WHITE
+var _pre_kill_cam_target_azimuth: float = AZIMUTH_WHITE
+var _pre_kill_cam_elevation: float = 40.0
+var _pre_kill_cam_target_elevation: float = 40.0
+var _pre_kill_cam_target_distance: float = 11.2
 
 @onready var _cam: Camera3D = $Camera3D
 
@@ -176,6 +182,21 @@ func face_player(color: int) -> void:
 	_target_elevation = 40.0
 	position          = Vector3.ZERO                              # reset pivot to board centre
 
+## Restore the exact player view from before a regular kill cam started.
+func restore_pre_kill_cam_view() -> void:
+	_dragging = false
+	_panning = false
+	_kill_cam_active = false
+	_checkmate_cam_active = false
+	_kill_cam_track = null
+	position = _pre_kill_cam_position
+	_azimuth = _pre_kill_cam_azimuth
+	_target_azimuth = _pre_kill_cam_target_azimuth
+	elevation = _pre_kill_cam_elevation
+	_target_elevation = _pre_kill_cam_target_elevation
+	distance = _pre_kill_cam_distance
+	_target_distance = _pre_kill_cam_target_distance
+
 ## Teleport instantly (used on game start)
 func snap_to_player(color: int) -> void:
 	_azimuth          = AZIMUTH_WHITE if color == ChessEnums.PieceColor.WHITE else AZIMUTH_BLACK
@@ -190,6 +211,13 @@ func snap_to_player(color: int) -> void:
 func kill_cam(from_world: Vector3, to_world: Vector3, attacker: Node3D = null) -> void:
 	_dragging = false
 	_panning  = false
+	_pre_kill_cam_position = position
+	_pre_kill_cam_azimuth = _azimuth
+	_pre_kill_cam_target_azimuth = _target_azimuth
+	_pre_kill_cam_elevation = elevation
+	_pre_kill_cam_target_elevation = _target_elevation
+	_pre_kill_cam_distance = distance
+	_pre_kill_cam_target_distance = _target_distance
 	_kill_cam_active     = true
 	_kill_cam_track      = attacker
 	_kill_cam_target_pos = Vector3(to_world.x, 0.0, to_world.z)
@@ -222,7 +250,6 @@ func kill_cam(from_world: Vector3, to_world: Vector3, attacker: Node3D = null) -
 
 	# Distance: show both pieces clearly, scaled by their separation.
 	var separation: float = maxf(len, 1.0)
-	_pre_kill_cam_distance = _target_distance  # save zoom before overwriting
 	_target_distance = clamp(separation * 2.0 + 1.5, 3.5, 7.0)
 
 ## Cinematic close-up of the losing king after checkmate.
