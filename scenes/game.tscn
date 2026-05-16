@@ -98,7 +98,7 @@ corner_radius_bottom_right = 42
 corner_radius_bottom_left = 42
 
 [sub_resource type="Curve" id="Curve_kvpfn"]
-_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.188862, 0.17180437), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.20096853, 0.24393755), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
 point_count = 3
 
 [sub_resource type="CurveTexture" id="CurveTexture_kvpfn"]
@@ -582,7 +582,7 @@ size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 36
 text = "Knight"
 
-[node name="Terrain" parent="." unique_id=121026107 instance=ExtResource("7")]
+[node name="Terrain" parent="." unique_id=1796226433 instance=ExtResource("7")]
 transform = Transform3D(0.45, 0, 0, 0, 0.45, 0, 0, 0, 0.45, 0.005435705, -0.50431836, -0.00023984909)
 
 [node name="Board" parent="." unique_id=1969348578 instance=ExtResource("2")]
@@ -592,10 +592,10 @@ transform = Transform3D(0.45, 0, 0, 0, 0.45, 0, 0, 0, 0.45, 0.005435705, -0.5043
 [node name="Pieces" type="Node3D" parent="." unique_id=1526320121]
 
 [node name="BlackFlag" parent="." unique_id=1452135619 instance=ExtResource("10_vtaks")]
-transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, -5.6745462, 4.2154307, 7.202332)
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, -5.6745462, 3.1592908, 7.202332)
 
 [node name="WhiteFlag" parent="." unique_id=1144272281 instance=ExtResource("11_kvpfn")]
-transform = Transform3D(-1, -8.742278e-08, 3.821371e-15, 0, -4.371139e-08, -1, 8.742278e-08, -1, 4.371139e-08, 5.6743207, 4.5280175, -7.202)
+transform = Transform3D(-1, -8.742278e-08, 3.821371e-15, 0, -4.371139e-08, -1, 8.742278e-08, -1, 4.371139e-08, 5.6743207, 3.342095, -7.202)
 
 [node name="DustParticles" type="GPUParticles3D" parent="." unique_id=344429125]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.4352119, 0)
@@ -612,7 +612,7 @@ draw_pass_1 = SubResource("QuadMesh_trtic")
 
 [node name="CupParticles1" type="GPUParticles3D" parent="." unique_id=645091759]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11.187263, 1.2404153, -1.4640417)
-amount = 15
+amount = 12
 lifetime = 5.0
 transform_align = 1
 process_material = SubResource("ParticleProcessMaterial_dinhu")
@@ -620,7 +620,7 @@ draw_pass_1 = SubResource("QuadMesh_ir15t")
 
 [node name="CupParticles2" type="GPUParticles3D" parent="." unique_id=2109526035]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.938821, 1.2696118, 6.323589)
-amount = 15
+amount = 12
 lifetime = 5.0
 transform_align = 1
 process_material = SubResource("ParticleProcessMaterial_dinhu")
@@ -628,7 +628,7 @@ draw_pass_1 = SubResource("QuadMesh_ir15t")
 
 [node name="CupParticles3" type="GPUParticles3D" parent="." unique_id=1418757217]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17.534225, 1.8061094, -6.2001767)
-amount = 30
+amount = 25
 lifetime = 5.0
 transform_align = 1
 process_material = SubResource("ParticleProcessMaterial_dinhu")
@@ -636,7 +636,7 @@ draw_pass_1 = SubResource("QuadMesh_ir15t")
 
 [node name="CupParticles4" type="GPUParticles3D" parent="." unique_id=1511731194]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26.409893, 3.1188111, 17.583021)
-amount = 30
+amount = 20
 lifetime = 5.0
 transform_align = 1
 process_material = SubResource("ParticleProcessMaterial_dinhu")
