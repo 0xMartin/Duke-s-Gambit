@@ -19,8 +19,7 @@ extends Control
 @onready var _time_opt:  OptionButton = $NamePanel/VBox/TimeControlRow/TimeOption
 
 # Settings
-@onready var _ai_strength_slider: HSlider = $SettingsPanel/VBox/AIStrengthRow/HSlider
-@onready var _ai_strength_label:  Label   = $SettingsPanel/VBox/AIStrengthRow/Label
+@onready var _settings_ai_row:    Control  = $SettingsPanel/VBox/AIStrengthRow
 @onready var _pan_sens_slider:    HSlider  = $SettingsPanel/VBox/PanSensRow/PanSensSlider
 @onready var _pan_sens_label:     Label    = $SettingsPanel/VBox/PanSensRow/PanSensLabel
 @onready var _tilt_sens_slider:   HSlider  = $SettingsPanel/VBox/TiltSensRow/TiltSensSlider
@@ -35,6 +34,9 @@ var _music_vol_slider:  HSlider       = null
 var _music_vol_label:   Label         = null
 var _sfx_vol_slider:    HSlider       = null
 var _sfx_vol_label:     Label         = null
+var _name_ai_row:       HBoxContainer = null
+var _name_ai_label:     Label         = null
+var _name_ai_slider:    HSlider       = null
 
 # ──────────────────────────────────────────────────────────────────────────
 func _ready() -> void:
@@ -50,10 +52,13 @@ func _ready() -> void:
 	_time_opt.add_item("15 min",   15 * 60 * 1000)
 	_time_opt.select(3)   # default: 10 min
 	_stats_vbox = get_node_or_null("StatsPanel/VBox/ScrollContainer/VBox") as VBoxContainer
+	_setup_name_ai_controls()
 	_setup_settings_extra()
 	_setup_font_sizes()
 	_apply_roblox_theme()
 	_connect_button_sounds()
+	if _settings_ai_row:
+		_settings_ai_row.visible = false
 
 func _setup_signals() -> void:
 	$MainPanel/VBox/PvPBtn.pressed.connect(   func(): _start_name_entry("pvp"))
@@ -68,7 +73,6 @@ func _setup_signals() -> void:
 	$StatsPanel/VBox/BackBtn.pressed.connect(   func(): _show_panel(_main_panel))
 	$SettingsPanel/VBox/BackBtn.pressed.connect(func(): _show_panel(_main_panel))
 
-	_ai_strength_slider.value_changed.connect(_on_ai_strength_changed)
 	_pan_sens_slider.value_changed.connect(_on_pan_sens_changed)
 	_tilt_sens_slider.value_changed.connect(_on_tilt_sens_changed)
 	_kill_cam_check.toggled.connect(_on_kill_cam_toggled)
@@ -88,6 +92,10 @@ func _start_name_entry(mode: String) -> void:
 	_p2_label.visible = (mode == "pvp")
 	_p2_edit.visible  = (mode == "pvp")
 	_p2_list.visible  = (mode == "pvp")
+	if _name_ai_row:
+		_name_ai_row.visible = (mode == "pvai")
+		if mode == "pvai":
+			_on_name_ai_strength_changed(_name_ai_slider.value)
 	_show_panel(_name_panel)
 
 func _populate_name_lists() -> void:
@@ -130,10 +138,18 @@ func _on_start_pressed() -> void:
 		if _mode == "pvp" and not _save.player_exists(p2):
 			_save.create_player(p2)
 
-	var strength := int(_ai_strength_slider.value)
+	var strength := int(_name_ai_slider.value) if _name_ai_slider else 2
 	var time_ms: int = _time_opt.get_item_id(_time_opt.selected)
 	hide()   # prevent one-frame overlap when game scene loads
-	var game_scene := load("res://scenes/game.tscn").instantiate() as GameController
+	var game_scene_pack := load("res://scenes/game.tscn") as PackedScene
+	if game_scene_pack == null:
+		push_error("MainMenu: could not load game scene")
+		return
+	var game_scene_node := game_scene_pack.instantiate()
+	var game_scene := game_scene_node as GameController
+	if game_scene == null:
+		push_error("MainMenu: game scene root is not GameController")
+		return
 	get_tree().root.add_child(game_scene)
 	game_scene.setup(p1, p2, false, _mode == "pvai", strength, time_ms)
 	game_scene.start_game()
@@ -183,8 +199,48 @@ func _show_settings() -> void:
 			_sfx_vol_label.text = "SFX Volume: %d%%" % sv
 	_show_panel(_settings_panel)
 
-func _on_ai_strength_changed(value: float) -> void:
-	_ai_strength_label.text = "AI Strength: %d" % int(value)
+func _on_name_ai_strength_changed(value: float) -> void:
+	var diff_idx := clampi(int(value), 1, 4)
+	var difficulty_names := ["", "Easy", "Medium", "Hard", "Extreme"]
+	if _name_ai_label:
+		_name_ai_label.text = "AI Difficulty: %s (depth %d)" % [difficulty_names[diff_idx], diff_idx * 2]
+	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
+	if cam_cfg:
+		cam_cfg.set("ai_strength", diff_idx)
+		cam_cfg.save_config()
+
+func _setup_name_ai_controls() -> void:
+	var vbox := _name_panel.get_node_or_null("VBox") as VBoxContainer
+	if vbox == null:
+		return
+
+	_name_ai_row = HBoxContainer.new()
+	_name_ai_row.name = "AIStrengthRow"
+	_name_ai_label = Label.new()
+	_name_ai_label.text = "AI Difficulty: Medium (depth 4)"
+	_name_ai_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_name_ai_label.add_theme_font_size_override("font_size", 28)
+	_name_ai_slider = HSlider.new()
+	_name_ai_slider.min_value = 1.0
+	_name_ai_slider.max_value = 4.0
+	_name_ai_slider.step = 1.0
+	_name_ai_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_name_ai_slider.custom_minimum_size = Vector2(260, 0)
+
+	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
+	var init_ai: int = 2
+	if cam_cfg:
+		var ai_strength_val = cam_cfg.get("ai_strength")
+		if ai_strength_val != null:
+			init_ai = clampi(int(ai_strength_val), 1, 4)
+	_name_ai_slider.value = init_ai
+
+	_name_ai_row.add_child(_name_ai_label)
+	_name_ai_row.add_child(_name_ai_slider)
+	vbox.add_child(_name_ai_row)
+	_name_ai_slider.value_changed.connect(_on_name_ai_strength_changed)
+	_on_name_ai_strength_changed(_name_ai_slider.value)
+	_name_ai_row.visible = false
 
 func _on_pan_sens_changed(value: float) -> void:
 	_pan_sens_label.text = "Pan Sensitivity: %d" % int(value)
