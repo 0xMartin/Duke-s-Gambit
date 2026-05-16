@@ -26,7 +26,7 @@ ambient_light_color = Color(0.95, 0.92, 0.88, 1)
 ambient_light_energy = 0.5
 fog_enabled = true
 fog_mode = 1
-fog_light_color = Color(0.42812687, 0.5652835, 0.69645584, 1)
+fog_light_color = Color(0.34331775, 0.58549196, 0.6975872, 1)
 fog_light_energy = 1.7
 fog_sun_scatter = 0.48
 fog_density = 0.9826
@@ -582,7 +582,7 @@ size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 36
 text = "Knight"
 
-[node name="Terrain" parent="." unique_id=1796226433 instance=ExtResource("7")]
+[node name="Terrain" parent="." unique_id=893150857 instance=ExtResource("7")]
 transform = Transform3D(0.45, 0, 0, 0, 0.45, 0, 0, 0, 0.45, 0.005435705, -0.50431836, -0.00023984909)
 
 [node name="Board" parent="." unique_id=1969348578 instance=ExtResource("2")]
