@@ -22,6 +22,29 @@ var fullmove_number: int = 1
 
 var move_history: Array = []   # Array[ChessMove]
 
+# default starting position (can be overridden for custom setups)
+# lowercase = white, uppercase = black, . = empty
+# p,P = pawn, r,R = rook, n,N = knight, b,B = bishop, q,Q = queen, k,K = king
+# default placement:
+# 	"RNBQKBNR",
+#	"PPPPPPPP",
+#	"........",
+#	"........",
+#	"........",
+#	"........",
+#	"pppppppp",
+#	"rnbqkbnr",
+const DEFAULT_START_LAYOUT: Array[String] = [
+	"RNBRKR..",
+	"PPPP.PPp",
+	"........",
+	"...q....",
+	"........",
+	"........",
+	"pp..pp..",
+	"rnb.kbn.",
+]
+
 # ── Signals (connected by GameController) ──────────────────────────────────
 signal pawn_promotion_required(sq: Vector2i, color: int)
 
@@ -39,7 +62,7 @@ func _init_board() -> void:
 		board.append(col)
 
 # ── Setup ──────────────────────────────────────────────────────────────────
-func setup_start_position() -> void:
+func setup_start_position(layout: Array[String] = DEFAULT_START_LAYOUT) -> void:
 	_init_board()
 	active_color = ChessEnums.PieceColor.WHITE
 	castling_rights = 0b1111
@@ -48,29 +71,26 @@ func setup_start_position() -> void:
 	fullmove_number = 1
 	move_history.clear()
 
-	# White pieces (row 0 = rank 1)
-	_place(0, 0, ChessEnums.PieceType.ROOK,   ChessEnums.PieceColor.WHITE)
-	_place(1, 0, ChessEnums.PieceType.KNIGHT, ChessEnums.PieceColor.WHITE)
-	_place(2, 0, ChessEnums.PieceType.BISHOP, ChessEnums.PieceColor.WHITE)
-	_place(3, 0, ChessEnums.PieceType.QUEEN,  ChessEnums.PieceColor.WHITE)
-	_place(4, 0, ChessEnums.PieceType.KING,   ChessEnums.PieceColor.WHITE)
-	_place(5, 0, ChessEnums.PieceType.BISHOP, ChessEnums.PieceColor.WHITE)
-	_place(6, 0, ChessEnums.PieceType.KNIGHT, ChessEnums.PieceColor.WHITE)
-	_place(7, 0, ChessEnums.PieceType.ROOK,   ChessEnums.PieceColor.WHITE)
-	for c in range(8):
-		_place(c, 1, ChessEnums.PieceType.PAWN, ChessEnums.PieceColor.WHITE)
-
-	# Black pieces (row 7 = rank 8)
-	_place(0, 7, ChessEnums.PieceType.ROOK,   ChessEnums.PieceColor.BLACK)
-	_place(1, 7, ChessEnums.PieceType.KNIGHT, ChessEnums.PieceColor.BLACK)
-	_place(2, 7, ChessEnums.PieceType.BISHOP, ChessEnums.PieceColor.BLACK)
-	_place(3, 7, ChessEnums.PieceType.QUEEN,  ChessEnums.PieceColor.BLACK)
-	_place(4, 7, ChessEnums.PieceType.KING,   ChessEnums.PieceColor.BLACK)
-	_place(5, 7, ChessEnums.PieceType.BISHOP, ChessEnums.PieceColor.BLACK)
-	_place(6, 7, ChessEnums.PieceType.KNIGHT, ChessEnums.PieceColor.BLACK)
-	_place(7, 7, ChessEnums.PieceType.ROOK,   ChessEnums.PieceColor.BLACK)
-	for c in range(8):
-		_place(c, 6, ChessEnums.PieceType.PAWN, ChessEnums.PieceColor.BLACK)
+	for row in range(8):
+		if row >= layout.size():
+			continue
+		var line: String = layout[7 - row]
+		for col in range(min(line.length(), 8)):
+			var ch: String = line.substr(7 - col, 1)
+			match ch:
+				"P": _place(col, row, ChessEnums.PieceType.PAWN,   ChessEnums.PieceColor.BLACK)
+				"R": _place(col, row, ChessEnums.PieceType.ROOK,   ChessEnums.PieceColor.BLACK)
+				"N": _place(col, row, ChessEnums.PieceType.KNIGHT, ChessEnums.PieceColor.BLACK)
+				"B": _place(col, row, ChessEnums.PieceType.BISHOP, ChessEnums.PieceColor.BLACK)
+				"Q": _place(col, row, ChessEnums.PieceType.QUEEN,  ChessEnums.PieceColor.BLACK)
+				"K": _place(col, row, ChessEnums.PieceType.KING,   ChessEnums.PieceColor.BLACK)
+				"p": _place(col, row, ChessEnums.PieceType.PAWN,   ChessEnums.PieceColor.WHITE)
+				"r": _place(col, row, ChessEnums.PieceType.ROOK,   ChessEnums.PieceColor.WHITE)
+				"n": _place(col, row, ChessEnums.PieceType.KNIGHT, ChessEnums.PieceColor.WHITE)
+				"b": _place(col, row, ChessEnums.PieceType.BISHOP, ChessEnums.PieceColor.WHITE)
+				"q": _place(col, row, ChessEnums.PieceType.QUEEN,  ChessEnums.PieceColor.WHITE)
+				"k": _place(col, row, ChessEnums.PieceType.KING,   ChessEnums.PieceColor.WHITE)
+				_: pass
 
 func _place(col: int, row: int, type: int, color: int) -> void:
 	board[col][row] = { "type": type, "color": color }

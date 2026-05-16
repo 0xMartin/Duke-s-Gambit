@@ -24,7 +24,6 @@ https://opengameart.org/content/jump-landing-sound
 https://freesound.org/people/magnuswaker/sounds/524956/
 
 todo:
-- env particles (dust, cup fog)
 - lepsi animace smrti krale (plynule priblizeni na krale + vfx)
 - otestovat zmenu pesce na lepsi (+ vfx)
 

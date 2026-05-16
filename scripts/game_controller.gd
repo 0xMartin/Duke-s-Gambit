@@ -246,7 +246,14 @@ func _animate_checkmate_end(loser_color: int) -> void:
 		if _hud != null:
 			_hud.refresh_captured(winner_color, _captured_by[winner_color])
 		king_piece.die()
-	await get_tree().create_timer(2.2).timeout
+
+	# Checkmate cam: zoom in on the dying king instead of rotating to the loser's side.
+	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
+	var king_world := _board.sq_to_world(king_sq)
+	if cam_cfg == null or cam_cfg.kill_cam_enabled:
+		_camera.checkmate_cam(king_world)
+
+	await get_tree().create_timer(2.5).timeout
 	_show_game_over(winner_color, "Checkmate")
 
 # ── Time-out ───────────────────────────────────────────────────────────────
@@ -423,8 +430,11 @@ func _on_move_chosen(mv: ChessMove) -> void:
 	if _is_capture and cam_cfg != null and cam_cfg.kill_cam_enabled:
 		await get_tree().create_timer(2.0).timeout
 
-	# Rotate camera to active player (skip if disabled in settings)
-	if cam_cfg == null or cam_cfg.get("face_player_after_move") != false:
+	# Rotate camera to active player — skip if disabled OR if checkmate is coming
+	# (checkmate_cam will take over instead of face_player in _animate_checkmate_end).
+	var _next_state := _chess.get_game_state()
+	var _is_checkmate := _next_state == ChessEnums.GameState.CHECKMATE
+	if not _is_checkmate and (cam_cfg == null or cam_cfg.get("face_player_after_move") != false):
 		_camera.face_player(_chess.active_color)
 	_start_turn()
 

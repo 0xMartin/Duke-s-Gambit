@@ -117,12 +117,15 @@ func _process(delta: float) -> void:
 	if _kill_cam_active:
 		# Slowly orbit around the action point.
 		_target_azimuth += KILL_CAM_ORBIT_SPEED * delta
-		# Track the attacker: pivot smoothly follows midpoint between piece and capture square.
+# Track attacker OR converge on a fixed target (checkmate cam).
 		if _kill_cam_track != null and is_instance_valid(_kill_cam_track):
 			var piece_xz := Vector3(_kill_cam_track.global_position.x, 0.0,
-									_kill_cam_track.global_position.z)
+								_kill_cam_track.global_position.z)
 			var mid := (piece_xz + _kill_cam_target_pos) * 0.5
 			position = position.lerp(mid, smooth_speed * delta)
+		else:
+			# Checkmate cam: slide pivot toward the king position.
+			position = position.lerp(_kill_cam_target_pos, smooth_speed * 0.6 * delta)
 
 	_azimuth  = _lerp_angle(_azimuth, _target_azimuth, smooth_speed * delta)
 	elevation = lerp(elevation, _target_elevation, smooth_speed * delta)
@@ -218,6 +221,25 @@ func kill_cam(from_world: Vector3, to_world: Vector3, attacker: Node3D = null) -
 	var separation: float = maxf(len, 1.0)
 	_pre_kill_cam_distance = _target_distance  # save zoom before overwriting
 	_target_distance = clamp(separation * 2.0 + 1.5, 3.5, 7.0)
+
+## Cinematic close-up of the losing king after checkmate.
+## Smoothly moves the pivot toward the king, zooms in and locks slowly orbiting.
+## kill_cam_enabled setting controls whether this fires (caller checks it).
+func checkmate_cam(king_world: Vector3) -> void:
+	_dragging = false
+	_panning  = false
+	_kill_cam_active     = true
+	_kill_cam_track      = null   # nothing moving to track; we drive pivot ourselves
+	_kill_cam_target_pos = Vector3(king_world.x, 0.0, king_world.z)
+
+	# Start pivot from current position, animate toward the king over time.
+	# _process() will lerp position toward _kill_cam_target_pos each frame.
+
+	# Slightly side-on, low and close for drama.
+	_target_elevation = 18.0
+	_pre_kill_cam_distance = _target_distance
+	_target_distance  = 4.5
+	# Keep current azimuth (don't flip to any player side), just let it slowly orbit.
 
 ## Lerp shortest path between two angles
 func _lerp_angle(from: float, to: float, weight: float) -> float:
