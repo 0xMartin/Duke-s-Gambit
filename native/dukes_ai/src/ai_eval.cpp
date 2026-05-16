@@ -1,5 +1,8 @@
 #include "ai_eval.h"
 
+#include "ai_state.h"
+#include "ai_constants.h"
+
 #include <algorithm>
 
 namespace godot {
@@ -71,6 +74,45 @@ void order_moves(std::vector<Move> &moves) {
 		}
 		return false;
 	});
+}
+
+int quiescence(SearchState &state, int alpha, int beta, SearchContext &ctx) {
+	const int stand_pat = evaluate_position(state);
+	if (stand_pat >= beta) {
+		return beta;
+	}
+	if (alpha < stand_pat) {
+		alpha = stand_pat;
+	}
+	
+	std::vector<Move> legal = state.generate_legal_moves();
+	std::vector<Move> captures;
+	for (const Move &mv : legal) {
+		if (mv.is_capture()) {
+			captures.push_back(mv);
+		}
+	}
+	
+	if (captures.empty()) {
+		return stand_pat;
+	}
+	
+	order_moves(captures);
+	
+	for (const Move &mv : captures) {
+		state.make_move(mv);
+		const int score = -quiescence(state, -beta, -alpha, ctx);
+		state.unmake_move();
+		
+		if (score >= beta) {
+			return beta;
+		}
+		if (score > alpha) {
+			alpha = score;
+		}
+	}
+	
+	return alpha;
 }
 
 } // namespace dukes_ai

@@ -19,17 +19,15 @@ static uint64_t now_ms() {
 static int minimax(SearchState &state, int depth, int alpha, int beta, SearchContext &ctx) {
 	if (now_ms() >= ctx.deadline_ms) {
 		ctx.timed_out = true;
-		const int t_eval = evaluate_position(state);
-		return state.active_color == WHITE ? t_eval : -t_eval;
+		return quiescence(state, alpha, beta, ctx);
 	}
 
 	if (depth == 0) {
-		const int eval = evaluate_position(state);
-		return state.active_color == WHITE ? eval : -eval;
+		return quiescence(state, alpha, beta, ctx);
 	}
 
 	const int alpha_orig = alpha;
-	const std::string key = state.hash_key();
+	const uint64_t key = state.hash_key();
 	auto it = ctx.tt.find(key);
 	if (it != ctx.tt.end() && it->second.depth >= depth) {
 		const TTEntry &e = it->second;
@@ -140,6 +138,22 @@ Dictionary find_best_move_internal(Dictionary position, int32_t depth, int32_t t
 		err["ok"] = false;
 		err["error"] = String("Invalid position payload");
 		return err;
+	}
+
+	// Initialize zobrist hash from scratch
+	state.zobrist_hash = 0;
+	for (int idx = 0; idx < 64; ++idx) {
+		const int code = state.board[idx];
+		if (code != 0) {
+			state.zobrist_hash ^= ZOBRIST_PIECES[code][idx];
+		}
+	}
+	state.zobrist_hash ^= ZOBRIST_CASTLING[state.castling_rights];
+	if (state.en_passant_index >= 0) {
+		state.zobrist_hash ^= ZOBRIST_EN_PASSANT[state.en_passant_index % 8];
+	}
+	if (state.active_color == BLACK) {
+		state.zobrist_hash ^= ZOBRIST_ACTIVE_COLOR;
 	}
 
 	if (depth <= 0) {

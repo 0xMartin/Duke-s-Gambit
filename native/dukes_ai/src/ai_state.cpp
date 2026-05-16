@@ -168,6 +168,7 @@ void SearchState::make_move(const Move &mv) {
 	st.prev_castling = castling_rights;
 	st.prev_halfmove = halfmove_clock;
 	st.prev_fullmove = fullmove_number;
+	st.prev_zobrist_hash = zobrist_hash;
 
 	if (mv.move_type == MOVE_EN_PASSANT) {
 		st.ep_capture_idx = sq_to_index(idx_col(mv.to), idx_row(mv.from));
@@ -219,6 +220,20 @@ void SearchState::make_move(const Move &mv) {
 	if (active_color == BLACK) {
 		++fullmove_number;
 	}
+	
+	// Update zobrist hash
+	zobrist_hash ^= ZOBRIST_ACTIVE_COLOR;
+	if (st.prev_castling != castling_rights) {
+		zobrist_hash ^= ZOBRIST_CASTLING[st.prev_castling];
+		zobrist_hash ^= ZOBRIST_CASTLING[castling_rights];
+	}
+	if (st.prev_en_passant >= 0 && st.prev_en_passant < 8) {
+		zobrist_hash ^= ZOBRIST_EN_PASSANT[st.prev_en_passant % 8];
+	}
+	if (en_passant_index >= 0 && en_passant_index < 8) {
+		zobrist_hash ^= ZOBRIST_EN_PASSANT[en_passant_index % 8];
+	}
+	
 	active_color = 1 - active_color;
 }
 
@@ -234,6 +249,7 @@ void SearchState::unmake_move() {
 	en_passant_index = st.prev_en_passant;
 	halfmove_clock = st.prev_halfmove;
 	fullmove_number = st.prev_fullmove;
+	zobrist_hash = st.prev_zobrist_hash;
 
 	if (st.rook_from >= 0) {
 		clear_square(st.rook_to);
@@ -471,21 +487,8 @@ int SearchState::count_pseudo_moves(int color) const {
 	return static_cast<int>(generate_pseudo_legal_moves_for_color(color).size());
 }
 
-std::string SearchState::hash_key() const {
-	std::string out;
-	out.reserve(256);
-	out += std::to_string(active_color);
-	out += '|';
-	out += std::to_string(castling_rights);
-	out += '|';
-	out += std::to_string(en_passant_index);
-	out += '|';
-	out += std::to_string(halfmove_clock);
-	for (int i = 1; i <= 12; ++i) {
-		out += '|';
-		out += std::to_string(piece_bb[i]);
-	}
-	return out;
+uint64_t SearchState::hash_key() const {
+	return zobrist_hash;
 }
 
 } // namespace dukes_ai

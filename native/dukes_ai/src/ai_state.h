@@ -40,6 +40,7 @@ struct UndoState {
 	int rook_code = 0;
 	int ep_capture_idx = -1;
 	int ep_capture_code = 0;
+	uint64_t prev_zobrist_hash = 0;
 };
 
 struct TTEntry {
@@ -57,6 +58,7 @@ struct SearchState {
 	int halfmove_clock = 0;
 	int fullmove_number = 1;
 	std::vector<UndoState> history;
+	uint64_t zobrist_hash = 0;
 
 	static int sq_to_index(int col, int row);
 	static int idx_col(int idx);
@@ -81,12 +83,12 @@ struct SearchState {
 	std::vector<Move> generate_pseudo_legal_moves_for_color(int color) const;
 	std::vector<Move> generate_legal_moves();
 	int count_pseudo_moves(int color) const;
-	std::string hash_key() const;
+	uint64_t hash_key() const;
 };
 
 struct SearchContext {
 	std::unordered_map<int, Move> killer_moves;
-	std::unordered_map<std::string, TTEntry> tt;
+	std::unordered_map<uint64_t, TTEntry> tt;
 	uint64_t deadline_ms = 0;
 	bool timed_out = false;
 };
