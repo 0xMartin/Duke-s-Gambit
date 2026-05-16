@@ -131,6 +131,13 @@ static Dictionary move_to_dict(const Move &mv, int score, int reached_depth) {
 }
 
 Dictionary find_best_move_internal(Dictionary position, int32_t depth, int32_t time_limit_ms) {
+	// Initialize Zobrist tables once (thread-safe via static flag)
+	static bool zobrist_initialized = false;
+	if (!zobrist_initialized) {
+		init_zobrist();
+		zobrist_initialized = true;
+	}
+	
 	bool ok = false;
 	SearchState state = parse_position(position, ok);
 	if (!ok) {

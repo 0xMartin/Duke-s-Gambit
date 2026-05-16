@@ -5,6 +5,39 @@
 namespace godot {
 namespace dukes_ai {
 
+// Zobrist table definitions (declared extern in ai_constants.h)
+uint64_t ZOBRIST_PIECES[13][64];
+uint64_t ZOBRIST_ACTIVE_COLOR;
+uint64_t ZOBRIST_CASTLING[16];
+uint64_t ZOBRIST_EN_PASSANT[8];
+
+void init_zobrist() {
+	// xorshift64 with fixed seed for deterministic, well-distributed values
+	uint64_t s = 0x9e3779b97f4a7c15ULL;
+	auto next = [&]() -> uint64_t {
+		s ^= s << 13;
+		s ^= s >> 7;
+		s ^= s << 17;
+		return s;
+	};
+	for (int p = 0; p < 13; ++p) {
+		for (int sq = 0; sq < 64; ++sq) {
+			ZOBRIST_PIECES[p][sq] = next();
+		}
+	}
+	// piece code 0 (empty square) should always be 0 to avoid hash changes for empty squares
+	for (int sq = 0; sq < 64; ++sq) {
+		ZOBRIST_PIECES[0][sq] = 0ULL;
+	}
+	ZOBRIST_ACTIVE_COLOR = next();
+	for (int i = 0; i < 16; ++i) {
+		ZOBRIST_CASTLING[i] = next();
+	}
+	for (int i = 0; i < 8; ++i) {
+		ZOBRIST_EN_PASSANT[i] = next();
+	}
+}
+
 int SearchState::sq_to_index(int col, int row) { return row * 8 + col; }
 int SearchState::idx_col(int idx) { return idx % 8; }
 int SearchState::idx_row(int idx) { return idx / 8; }

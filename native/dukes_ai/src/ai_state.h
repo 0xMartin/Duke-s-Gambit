@@ -96,4 +96,7 @@ struct SearchContext {
 } // namespace dukes_ai
 } // namespace godot
 
+// Must be called once before any search - initializes Zobrist random tables
+namespace godot { namespace dukes_ai { void init_zobrist(); } }
+
 #endif // DUKES_AI_STATE_H
