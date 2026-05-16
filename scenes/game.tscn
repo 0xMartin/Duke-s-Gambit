@@ -97,7 +97,12 @@ corner_radius_top_right = 42
 corner_radius_bottom_right = 42
 corner_radius_bottom_left = 42
 
+[sub_resource type="Curve" id="Curve_kvpfn"]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.220339, 0.46033704), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 3
+
 [sub_resource type="CurveTexture" id="CurveTexture_kvpfn"]
+curve = SubResource("Curve_kvpfn")
 
 [sub_resource type="Gradient" id="Gradient_dinhu"]
 colors = PackedColorArray(0.23934713, 0.23934713, 0.23934713, 1, 1, 1, 1, 1)
@@ -106,8 +111,8 @@ colors = PackedColorArray(0.23934713, 0.23934713, 0.23934713, 1, 1, 1, 1, 1)
 gradient = SubResource("Gradient_dinhu")
 
 [sub_resource type="Curve" id="Curve_trtic"]
-_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.10638297, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
-point_count = 3
+_data = [Vector2(1e-05, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 2
 
 [sub_resource type="CurveTexture" id="CurveTexture_ir15t"]
 curve = SubResource("Curve_trtic")
@@ -118,13 +123,17 @@ emission_shape_offset = Vector3(0, 2.5, 0)
 emission_shape_scale = Vector3(8, 4, 8)
 emission_shape = 3
 emission_box_extents = Vector3(1, 1, 1)
+angle_min = -720.0
+angle_max = 666.4
 velocity_pivot = Vector3(2, 0, 0)
 direction = Vector3(0, 0, 0)
 spread = 180.0
 initial_velocity_min = 0.02
 initial_velocity_max = 0.19999999
-angular_velocity_min = -360.0
-angular_velocity_max = 360.0
+angular_velocity_min = -122.000015
+angular_velocity_max = 121.999985
+orbit_velocity_min = -2.0
+orbit_velocity_max = 2.0000002
 radial_velocity_min = -0.20002235
 radial_velocity_max = 0.19997764
 gravity = Vector3(0, 0, 0)
@@ -132,12 +141,24 @@ scale_curve = SubResource("CurveTexture_ir15t")
 color_initial_ramp = SubResource("GradientTexture1D_kvuet")
 alpha_curve = SubResource("CurveTexture_kvpfn")
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ca42v"]
-vertex_color_use_as_albedo = true
+[sub_resource type="Gradient" id="Gradient_kvpfn"]
+offsets = PackedFloat32Array(0.36512262, 0.83923703)
+colors = PackedColorArray(0.591, 0.676, 0.511, 1, 0.68918926, 0.7670468, 0.6128881, 1)
 
-[sub_resource type="BoxMesh" id="BoxMesh_rysoc"]
-material = SubResource("StandardMaterial3D_ca42v")
-size = Vector3(0.05, 0.05, 0.05)
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_dinhu"]
+gradient = SubResource("Gradient_kvpfn")
+fill = 2
+fill_from = Vector2(0.5, 0.5)
+metadata/_snap_enabled = true
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_kvuet"]
+transparency = 1
+vertex_color_use_as_albedo = true
+albedo_texture = SubResource("GradientTexture2D_dinhu")
+
+[sub_resource type="QuadMesh" id="QuadMesh_trtic"]
+material = SubResource("StandardMaterial3D_kvuet")
+size = Vector2(0.15, 0.15)
 
 [node name="GameScene" type="Node3D" unique_id=345240271]
 script = ExtResource("1")
@@ -489,31 +510,39 @@ anchor_bottom = 0.62
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="HBox" type="HBoxContainer" parent="UI/PromotionPanel" unique_id=165090484]
+[node name="VBox" type="VBoxContainer" parent="UI/PromotionPanel" unique_id=165090484]
 layout_mode = 2
 
-[node name="QueenBtn" type="Button" parent="UI/PromotionPanel/HBox" unique_id=1520320148]
+[node name="TitleLabel" type="Label" parent="UI/PromotionPanel/VBox" unique_id=165090485]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "Promote pawn"
+
+[node name="HBox" type="HBoxContainer" parent="UI/PromotionPanel/VBox" unique_id=165090486]
+layout_mode = 2
+
+[node name="QueenBtn" type="Button" parent="UI/PromotionPanel/VBox/HBox" unique_id=1520320148]
 custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 36
 text = "Queen"
 
-[node name="RookBtn" type="Button" parent="UI/PromotionPanel/HBox" unique_id=47212626]
+[node name="RookBtn" type="Button" parent="UI/PromotionPanel/VBox/HBox" unique_id=47212626]
 custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 36
 text = "Rook"
 
-[node name="BishopBtn" type="Button" parent="UI/PromotionPanel/HBox" unique_id=1068299863]
+[node name="BishopBtn" type="Button" parent="UI/PromotionPanel/VBox/HBox" unique_id=1068299863]
 custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 36
 text = "Bishop"
 
-[node name="KnightBtn" type="Button" parent="UI/PromotionPanel/HBox" unique_id=1714199918]
+[node name="KnightBtn" type="Button" parent="UI/PromotionPanel/VBox/HBox" unique_id=1714199918]
 custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -528,13 +557,13 @@ transform = Transform3D(-1, -8.742278e-08, 3.821371e-15, 0, -4.371139e-08, -1, 8
 
 [node name="CPUParticles3D" type="GPUParticles3D" parent="." unique_id=344429125]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.4352119, 0)
-transparency = 0.5
 cast_shadow = 0
 visibility_range_fade_mode = 1
-amount = 300
+amount = 250
 lifetime = 8.0
 randomness = 0.26
 fixed_fps = 0
 visibility_aabb = AABB(-4, -4, -4, 80, 80, 80)
+transform_align = 1
 process_material = SubResource("ParticleProcessMaterial_kvpfn")
-draw_pass_1 = SubResource("BoxMesh_rysoc")
+draw_pass_1 = SubResource("QuadMesh_trtic")

@@ -33,6 +33,7 @@ var _sq_pieces:   Dictionary = {}   # Vector2i -> BasePiece (live scene nodes)
 var _selected_sq: Vector2i   = Vector2i(-1, -1)
 var _selected_piece: BasePiece = null
 var _legal_from_selected: Array = []
+var _pending_promotion_moves: Array = []
 
 var _busy:        bool = false   # true while piece animation is running
 var _move_start_time_ms: int = 0  # timestamp for avg-move-time tracking
@@ -239,10 +240,14 @@ func _animate_checkmate_end(loser_color: int) -> void:
 	_busy = true   # block further input
 	var king_sq := _chess._find_king(loser_color)
 	var king_piece: BasePiece = _sq_pieces.get(king_sq)
+	var winner_color := 1 - loser_color
 	if king_piece:
+		_captured_by[winner_color].append(ChessEnums.PieceType.KING)
+		if _hud != null:
+			_hud.refresh_captured(winner_color, _captured_by[winner_color])
 		king_piece.die()
 	await get_tree().create_timer(2.2).timeout
-	_show_game_over(1 - loser_color, "Checkmate")
+	_show_game_over(winner_color, "Checkmate")
 
 # ── Time-out ───────────────────────────────────────────────────────────────
 func _on_time_out(loser_color: int) -> void:
@@ -306,6 +311,10 @@ func _handle_human_click(sq: Vector2i, ctrl: HumanController) -> void:
 	# Clicking a valid move square?
 	for mv in _legal_from_selected:
 		if mv.to_sq == sq:
+			if mv.move_type == ChessEnums.MoveType.PROMOTION \
+			or mv.move_type == ChessEnums.MoveType.PROMOTION_CAPTURE:
+				_request_promotion(sq, color)
+				return
 			_board.clear_highlights()
 			_deselect_piece()
 			ctrl.try_move(mv)
@@ -333,6 +342,21 @@ func _handle_human_click(sq: Vector2i, ctrl: HumanController) -> void:
 	_selected_sq = Vector2i(-1, -1)
 	_legal_from_selected.clear()
 	_board.clear_highlights()
+
+func _request_promotion(sq: Vector2i, color: int) -> void:
+	_pending_promotion_moves.clear()
+	for mv in _legal_from_selected:
+		if mv.to_sq == sq and (
+			mv.move_type == ChessEnums.MoveType.PROMOTION
+			or mv.move_type == ChessEnums.MoveType.PROMOTION_CAPTURE
+		):
+			_pending_promotion_moves.append(mv)
+	if _pending_promotion_moves.is_empty():
+		return
+	_busy = true
+	_board.clear_highlights()
+	_deselect_piece()
+	emit_signal("promotion_needed", sq, color)
 
 func _select_piece(sq: Vector2i) -> void:
 	var bp: BasePiece = _sq_pieces.get(sq) as BasePiece
@@ -484,11 +508,16 @@ func _on_promotion_required(sq: Vector2i, color: int) -> void:
 	# UI handled by PromotionPanel node; it calls choose_promotion()
 
 func choose_promotion(sq: Vector2i, piece_type: int) -> void:
-	# Called by UI after player picks promoted piece
-	var mv := _chess.move_history.back() as ChessMove
-	if mv:
-		mv.promotion_type = piece_type
-		_swap_promoted_piece(_sq_pieces.get(sq), mv)
+	# Called by UI after player picks promoted piece.
+	var chosen: ChessMove = null
+	for mv in _pending_promotion_moves:
+		if mv.to_sq == sq and mv.promotion_type == piece_type:
+			chosen = mv
+			break
+	_pending_promotion_moves.clear()
+	if chosen == null:
+		return
+	_on_move_chosen(chosen)
 
 # ── Game over UI ───────────────────────────────────────────────────────────
 func _show_game_over(winner_color: int, reason: String) -> void:
