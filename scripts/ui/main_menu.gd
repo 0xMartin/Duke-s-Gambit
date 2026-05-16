@@ -226,7 +226,7 @@ func _setup_settings_extra() -> void:
 
 	# ── Music Volume ─────────────────────────────────────────────────────
 	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
-	var init_mv: int = int(cam_cfg.get("music_volume")) if cam_cfg else 80
+	var init_mv: int = int(cam_cfg.get("music_volume")) if cam_cfg else 50
 	var init_sv: int = int(cam_cfg.get("sfx_volume"))   if cam_cfg else 100
 
 	_music_vol_label = Label.new()
