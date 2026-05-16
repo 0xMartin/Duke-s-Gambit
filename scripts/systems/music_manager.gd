@@ -19,6 +19,8 @@ var _game_player: AudioStreamPlayer = null   # random game playlist
 
 var _game_streams: Array[AudioStream] = []
 var _last_idx:     int               = -1
+var _shuffle_bag:  Array[int]        = []
+var _rng:          RandomNumberGenerator = RandomNumberGenerator.new()
 var _game_active:  bool              = false
 var _tween:        Tween             = null
 
@@ -101,6 +103,7 @@ const TRANSITION_NORMAL: float = 0.55
 const TRANSITION_ATTACK: float = 0.35
 
 func _ready() -> void:
+	_rng.randomize()
 	_menu_player = AudioStreamPlayer.new()
 	_game_player = AudioStreamPlayer.new()
 	_menu_player.volume_db = -80.0
@@ -116,6 +119,7 @@ func _ready() -> void:
 	_game_player.bus = "Music"
 	_ensure_music_lowpass()
 	_load_tracks()
+	_rebuild_shuffle_bag()
 	# Apply persisted volumes (CameraConfig loads before MusicManager)
 	var cam_cfg := get_node_or_null("/root/CameraConfig")
 	if cam_cfg != null:
@@ -163,8 +167,8 @@ func play_game_music() -> void:
 		return
 	_game_active = true
 	reset_dynamic_music()
-	if not _game_player.playing:
-		_play_next_game_track()
+	# Always start a fresh random track when entering gameplay.
+	_play_next_game_track()
 	_crossfade(_menu_player, _game_player)
 
 ## Called while an attack animation is actively playing.
@@ -219,17 +223,36 @@ func _on_game_finished() -> void:
 func _play_next_game_track() -> void:
 	if _game_streams.is_empty():
 		return
-	_game_player.stream = _game_streams[_pick_random()]
+	var idx := _pick_random()
+	_game_player.stream = _game_streams[idx]
 	_game_player.play()
 
 func _pick_random() -> int:
+	if _game_streams.is_empty():
+		return -1
 	if _game_streams.size() == 1:
+		_last_idx = 0
 		return 0
-	var idx := randi() % _game_streams.size()
-	while idx == _last_idx:
-		idx = randi() % _game_streams.size()
+	if _shuffle_bag.is_empty():
+		_rebuild_shuffle_bag(_last_idx)
+		if _shuffle_bag.is_empty():
+			_rebuild_shuffle_bag()
+	var idx: int = _shuffle_bag.pop_back()
 	_last_idx = idx
 	return idx
+
+func _rebuild_shuffle_bag(exclude_idx: int = -1) -> void:
+	_shuffle_bag.clear()
+	for i in range(_game_streams.size()):
+		if i == exclude_idx:
+			continue
+		_shuffle_bag.append(i)
+	# Fisher-Yates shuffle for unbiased order.
+	for i in range(_shuffle_bag.size() - 1, 0, -1):
+		var j := _rng.randi_range(0, i)
+		var tmp := _shuffle_bag[i]
+		_shuffle_bag[i] = _shuffle_bag[j]
+		_shuffle_bag[j] = tmp
 
 ## Parallel crossfade: fade out one player, fade in the other simultaneously.
 func _crossfade(fade_out: AudioStreamPlayer, fade_in: AudioStreamPlayer) -> void:
