@@ -19,6 +19,7 @@ extends Node3D
 @onready var _pieces:  Node3D      = get_node(pieces_root)
 @onready var _ui:      Control     = get_node(ui_root)
 @onready var _terrain: Node3D      = get_node_or_null("Terrain")
+@onready var _world_env: WorldEnvironment = get_node_or_null("WorldEnvironment")
 
 var _hud: Node = null
 
@@ -53,6 +54,8 @@ var _time_control_ms:   int = 0
 var _time_remaining_ms: Array = [0, 0]  # [white, black]
 var _game_over_shown:   bool = false
 var _sfx_select: AudioStreamPlayer = null
+var _base_saturation: float = 0.9
+var _sat_tween: Tween = null
 
 # Promotion impact (same assets as BasePiece death effect)
 const _PROMO_VFX_IMPACT_SCENE: PackedScene = preload("res://assets/BinbunVFX_Vol2/StylizedHitFX/effects/big_impact/vfx_big_impact_02.tscn")
@@ -97,7 +100,31 @@ func _ready() -> void:
 	_sfx_select.stream = preload("res://assets/sounds/piece_select.mp3")
 	_sfx_select.volume_db = -10.0
 	add_child(_sfx_select)
+	if _world_env != null and _world_env.environment != null:
+		_base_saturation = _world_env.environment.adjustment_saturation
+	if not MusicManager.dynamic_preset_changed.is_connected(_on_dynamic_music_preset_changed):
+		MusicManager.dynamic_preset_changed.connect(_on_dynamic_music_preset_changed)
 	MusicManager.play_game_music()
+	_on_dynamic_music_preset_changed("normal")
+
+func _on_dynamic_music_preset_changed(preset: String) -> void:
+	if _world_env == null or _world_env.environment == null:
+		return
+
+	var target_sat: float = _base_saturation
+	match preset:
+		"check":
+			target_sat = _base_saturation * 0.72
+		"mat":
+			target_sat = _base_saturation * 0.54
+		_:
+			target_sat = _base_saturation
+
+	if _sat_tween:
+		_sat_tween.kill()
+	_sat_tween = create_tween()
+	_sat_tween.tween_property(_world_env.environment, "adjustment_saturation", target_sat, 0.45) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 ## Called from MainMenu before adding this node to the scene tree.
 func setup(p1_name: String, p2_name: String,
@@ -218,21 +245,27 @@ func _start_turn() -> void:
 
 	# Check / checkmate / stalemate
 	if state == ChessEnums.GameState.CHECKMATE:
+		MusicManager.set_checkmate_tension(true)
 		emit_signal("game_over", 1 - color, ChessEnums.GameState.CHECKMATE)
 		_board.highlight_check(_chess._find_king(color))   # red highlight on losing king
 		_animate_checkmate_end(color)                        # async: king dies → 2s → panel
 		return
 	if state == ChessEnums.GameState.STALEMATE:
+		MusicManager.reset_dynamic_music()
 		emit_signal("game_over", -1, ChessEnums.GameState.STALEMATE)
 		_show_game_over(-1, "Pat (remíza)")
 		return
 	if state == ChessEnums.GameState.DRAW:
+		MusicManager.reset_dynamic_music()
 		emit_signal("game_over", -1, ChessEnums.GameState.DRAW)
 		_show_game_over(-1, "Remíza")
 		return
 	if state == ChessEnums.GameState.CHECK:
+		MusicManager.set_check_tension(true)
 		var king_sq := _chess._find_king(color)
 		_board.highlight_check(king_sq)
+	else:
+		MusicManager.set_check_tension(false)
 
 	_move_start_time_ms = Time.get_ticks_msec()
 	var ctrl: PlayerController = _controllers[color] as PlayerController
@@ -280,6 +313,7 @@ func _on_time_out(loser_color: int) -> void:
 		return
 	_game_over_shown = true
 	_busy = true
+	MusicManager.reset_dynamic_music()
 	var winner := 1 - loser_color
 	emit_signal("game_over", winner, ChessEnums.GameState.DRAW)  # reuse signal
 	_show_game_over(winner, "Time Expired")
@@ -290,6 +324,7 @@ func surrender() -> void:
 		return
 	_game_over_shown = true
 	_busy = true
+	MusicManager.reset_dynamic_music()
 	var surrendering := _chess.active_color
 	var winner := 1 - surrendering
 	emit_signal("game_over", winner, ChessEnums.GameState.CHECKMATE)

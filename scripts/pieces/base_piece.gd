@@ -473,6 +473,7 @@ func _process_walk(delta: float) -> void:
 func _start_attack() -> void:
 	_stop_footsteps()
 	_state = _State.ATTACKING
+	MusicManager.set_attack_tension(true)
 	if _attack_target != null and is_instance_valid(_attack_target):
 		_face_direction(_attack_target.global_position - global_position)
 	_show_weapon()
@@ -490,6 +491,7 @@ func _start_attack() -> void:
 	# Trail end — stop sampling, points fade on their own
 	await get_tree().create_timer(attack_trail_end - attack_trail_hit).timeout
 	_on_attack_end()
+	MusicManager.set_attack_tension(false)
 	# Wait for target to fully leave the scene tree
 	if _attack_target != null and is_instance_valid(_attack_target):
 		await _attack_target.tree_exited
