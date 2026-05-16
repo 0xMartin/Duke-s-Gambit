@@ -29,3 +29,6 @@ exports/
 
 # Local save data (user:// maps here during development)
 saves/
+
+# SCons build files
+.sconsign.dblite
