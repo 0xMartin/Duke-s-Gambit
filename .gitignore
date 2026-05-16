@@ -34,9 +34,14 @@ saves/
 native/dukes_ai/.sconsign.dblite
 native/dukes_ai/.scons-option-cache
 native/dukes_ai/bin/
+native/dukes_ai/*.o
 native/dukes_ai/**/*.o
+native/dukes_ai/*.a
 native/dukes_ai/**/*.a
+native/dukes_ai/*.dylib
 native/dukes_ai/**/*.dylib
+native/dukes_ai/*.so
 native/dukes_ai/**/*.so
+native/dukes_ai/*.dll
 native/dukes_ai/**/*.dll
 native/dukes_ai/build/
