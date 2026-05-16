@@ -10,7 +10,7 @@ namespace dukes_ai {
 
 int evaluate_position(SearchState &state);
 void order_moves(std::vector<Move> &moves);
-int quiescence(SearchState &state, int alpha, int beta, SearchContext &ctx);
+int quiescence(SearchState &state, int alpha, int beta, SearchContext &ctx, int depth);
 
 } // namespace dukes_ai
 } // namespace godot

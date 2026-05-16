@@ -4,6 +4,7 @@
 #include "ai_constants.h"
 
 #include <algorithm>
+#include <godot_cpp/classes/time.hpp>
 
 namespace godot {
 namespace dukes_ai {
@@ -76,13 +77,26 @@ void order_moves(std::vector<Move> &moves) {
 	});
 }
 
-int quiescence(SearchState &state, int alpha, int beta, SearchContext &ctx) {
+int quiescence(SearchState &state, int alpha, int beta, SearchContext &ctx, int depth) {
+	// Timeout check
+	if (godot::Time::get_singleton()->get_ticks_msec() >= ctx.deadline_ms) {
+		const int eval = evaluate_position(state);
+		return state.active_color == WHITE ? eval : -eval;
+	}
+	
+	// Depth limit
+	if (depth <= -QSEARCH_MAX_DEPTH) {
+		const int eval = evaluate_position(state);
+		return state.active_color == WHITE ? eval : -eval;
+	}
+	
 	const int stand_pat = evaluate_position(state);
-	if (stand_pat >= beta) {
+	const int negamax_stand = state.active_color == WHITE ? stand_pat : -stand_pat;
+	if (negamax_stand >= beta) {
 		return beta;
 	}
-	if (alpha < stand_pat) {
-		alpha = stand_pat;
+	if (alpha < negamax_stand) {
+		alpha = negamax_stand;
 	}
 	
 	std::vector<Move> legal = state.generate_legal_moves();
@@ -94,14 +108,14 @@ int quiescence(SearchState &state, int alpha, int beta, SearchContext &ctx) {
 	}
 	
 	if (captures.empty()) {
-		return stand_pat;
+		return negamax_stand;
 	}
 	
 	order_moves(captures);
 	
 	for (const Move &mv : captures) {
 		state.make_move(mv);
-		const int score = -quiescence(state, -beta, -alpha, ctx);
+		const int score = -quiescence(state, -beta, -alpha, ctx, depth - 1);
 		state.unmake_move();
 		
 		if (score >= beta) {

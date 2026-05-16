@@ -221,17 +221,44 @@ void SearchState::make_move(const Move &mv) {
 		++fullmove_number;
 	}
 	
-	// Update zobrist hash
+	// Update zobrist hash - remove pieces from old positions
+	zobrist_hash ^= ZOBRIST_PIECES[st.moving_code][mv.from];
+	
+	// Add piece to new position (handle promotion)
+	if (mv.move_type == MOVE_PROMOTION || mv.move_type == MOVE_PROMO_CAPTURE) {
+		zobrist_hash ^= ZOBRIST_PIECES[placed_code][mv.to];
+	} else {
+		zobrist_hash ^= ZOBRIST_PIECES[st.moving_code][mv.to];
+	}
+	
+	// Handle captured piece
+	if (st.captured_code != 0) {
+		if (mv.move_type == MOVE_EN_PASSANT) {
+			zobrist_hash ^= ZOBRIST_PIECES[st.ep_capture_code][st.ep_capture_idx];
+		} else {
+			zobrist_hash ^= ZOBRIST_PIECES[st.captured_code][mv.to];
+		}
+	}
+	
+	// Handle rook moves for castling
+	if (st.rook_from >= 0) {
+		zobrist_hash ^= ZOBRIST_PIECES[st.rook_code][st.rook_from];
+		zobrist_hash ^= ZOBRIST_PIECES[st.rook_code][st.rook_to];
+	}
+	
+	// Update zobrist for side to move
 	zobrist_hash ^= ZOBRIST_ACTIVE_COLOR;
+	
+	// Update castling and en passant
 	if (st.prev_castling != castling_rights) {
 		zobrist_hash ^= ZOBRIST_CASTLING[st.prev_castling];
 		zobrist_hash ^= ZOBRIST_CASTLING[castling_rights];
 	}
-	if (st.prev_en_passant >= 0 && st.prev_en_passant < 8) {
-		zobrist_hash ^= ZOBRIST_EN_PASSANT[st.prev_en_passant % 8];
+	if (st.prev_en_passant >= 0) {
+		zobrist_hash ^= ZOBRIST_EN_PASSANT[SearchState::idx_col(st.prev_en_passant)];
 	}
-	if (en_passant_index >= 0 && en_passant_index < 8) {
-		zobrist_hash ^= ZOBRIST_EN_PASSANT[en_passant_index % 8];
+	if (en_passant_index >= 0) {
+		zobrist_hash ^= ZOBRIST_EN_PASSANT[SearchState::idx_col(en_passant_index)];
 	}
 	
 	active_color = 1 - active_color;

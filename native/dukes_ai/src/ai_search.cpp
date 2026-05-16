@@ -17,13 +17,13 @@ static uint64_t now_ms() {
 }
 
 static int minimax(SearchState &state, int depth, int alpha, int beta, SearchContext &ctx) {
-	if (now_ms() >= ctx.deadline_ms) {
+	if (godot::Time::get_singleton()->get_ticks_msec() >= ctx.deadline_ms) {
 		ctx.timed_out = true;
-		return quiescence(state, alpha, beta, ctx);
+		return quiescence(state, alpha, beta, ctx, 0);
 	}
 
 	if (depth == 0) {
-		return quiescence(state, alpha, beta, ctx);
+		return quiescence(state, alpha, beta, ctx, 0);
 	}
 
 	const int alpha_orig = alpha;
@@ -150,7 +150,7 @@ Dictionary find_best_move_internal(Dictionary position, int32_t depth, int32_t t
 	}
 	state.zobrist_hash ^= ZOBRIST_CASTLING[state.castling_rights];
 	if (state.en_passant_index >= 0) {
-		state.zobrist_hash ^= ZOBRIST_EN_PASSANT[state.en_passant_index % 8];
+		state.zobrist_hash ^= ZOBRIST_EN_PASSANT[SearchState::idx_col(state.en_passant_index)];
 	}
 	if (state.active_color == BLACK) {
 		state.zobrist_hash ^= ZOBRIST_ACTIVE_COLOR;
