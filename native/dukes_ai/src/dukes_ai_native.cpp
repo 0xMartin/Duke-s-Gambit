@@ -303,14 +303,13 @@ struct SearchState {
 				castling_rights &= ~0b1100;
 			}
 		}
+		// Use explicit indices for rook squares (a1, h1, a8, h8)
 		auto rook_bit = [](int idx) -> int {
-			switch (idx) {
-				case SearchState::sq_to_index(0, 0): return 0;
-				case SearchState::sq_to_index(7, 0): return 1;
-				case SearchState::sq_to_index(0, 7): return 2;
-				case SearchState::sq_to_index(7, 7): return 3;
-				default: return -1;
-			}
+			if (idx == 0) return 0;      // a1
+			if (idx == 7) return 1;      // h1
+			if (idx == 56) return 2;     // a8
+			if (idx == 63) return 3;     // h8
+			return -1;
 		};
 		const int from_bit = rook_bit(mv.from);
 		const int to_bit = rook_bit(mv.to);
