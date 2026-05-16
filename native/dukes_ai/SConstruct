@@ -23,6 +23,9 @@ out_dir = os.path.join("bin")
 out_file = os.path.join(out_dir, "lib%s%s" % (libname, suffix))
 
 sources = [
+    "src/ai_state.cpp",
+    "src/ai_eval.cpp",
+    "src/ai_search.cpp",
     "src/dukes_ai_native.cpp",
     "src/register_types.cpp",
 ]
