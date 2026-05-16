@@ -35,14 +35,14 @@ var move_history: Array = []   # Array[ChessMove]
 #	"pppppppp",
 #	"rnbqkbnr",
 const DEFAULT_START_LAYOUT: Array[String] = [
-	"R..QKQ.R",
-	".PP.P.P.",
+	"RNBQKBNR",
+	"PPPPPPPP",
 	"........",
 	"........",
 	"........",
 	"........",
-	".pp.p.p.",
-	"r..qkq.r",
+	"pppppppp",
+	"rnbqkbnr",
 ]
 
 # ── Signals (connected by GameController) ──────────────────────────────────
