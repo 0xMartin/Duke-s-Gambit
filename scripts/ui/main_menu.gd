@@ -104,8 +104,11 @@ func _populate_name_lists() -> void:
 	if _save == null:
 		return
 	for n in _save.get_all_player_names():
-		_p1_list.add_item(_save.get_player(n)["name"])
-		_p2_list.add_item(_save.get_player(n)["name"])
+		var profile_name: String = str(_save.get_player(n)["name"])
+		if _mode == "pvai" and _is_ai_reserved_name(profile_name):
+			continue
+		_p1_list.add_item(profile_name)
+		_p2_list.add_item(profile_name)
 	# Auto-select random players (different ones for P1 and P2)
 	var count: int = _p1_list.get_item_count()
 	if count == 0:
@@ -126,6 +129,8 @@ func _populate_name_lists() -> void:
 func _on_start_pressed() -> void:
 	var p1 := _p1_edit.text.strip_edges()
 	var p2 := _p2_edit.text.strip_edges() if _mode == "pvp" else "AI"
+	if _mode == "pvai" and _is_ai_reserved_name(p1):
+		p1 = "White Player"
 
 	if p1.is_empty():
 		p1 = "White Player"
@@ -154,6 +159,10 @@ func _on_start_pressed() -> void:
 	game_scene.setup(p1, p2, false, _mode == "pvai", strength, time_ms)
 	game_scene.start_game()
 	queue_free()
+
+func _is_ai_reserved_name(name: String) -> bool:
+	var normalized := name.strip_edges().to_lower()
+	return normalized == "ai" or normalized == "computer" or normalized == "bot"
 
 # ── Stats ──────────────────────────────────────────────────────────────────
 func _show_stats() -> void:
@@ -201,9 +210,10 @@ func _show_settings() -> void:
 
 func _on_name_ai_strength_changed(value: float) -> void:
 	var diff_idx := clampi(int(value), 1, 4)
-	var difficulty_names := ["", "Easy", "Medium", "Hard", "Extreme"]
+	var difficulty_names := ["", "Casual", "Challenger", "Master", "Grandmaster"]
+	var difficulty_depths := [0, 4, 8, 12, 15]
 	if _name_ai_label:
-		_name_ai_label.text = "AI Difficulty: %s (depth %d)" % [difficulty_names[diff_idx], diff_idx * 2]
+		_name_ai_label.text = "AI Difficulty: %s (depth %d)" % [difficulty_names[diff_idx], difficulty_depths[diff_idx]]
 	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
 	if cam_cfg:
 		cam_cfg.set("ai_strength", diff_idx)
@@ -217,7 +227,7 @@ func _setup_name_ai_controls() -> void:
 	_name_ai_row = HBoxContainer.new()
 	_name_ai_row.name = "AIStrengthRow"
 	_name_ai_label = Label.new()
-	_name_ai_label.text = "AI Difficulty: Medium (depth 4)"
+	_name_ai_label.text = "AI Difficulty: Challenger (depth 8)"
 	_name_ai_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_name_ai_label.add_theme_font_size_override("font_size", 28)
 	_name_ai_slider = HSlider.new()

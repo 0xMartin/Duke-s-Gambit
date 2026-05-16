@@ -371,8 +371,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	var clicked_sq := _raycast_board(mb.position)
 	if clicked_sq.x < 0:
 		return
+	var human_ctrl := ctrl as HumanController
+	if human_ctrl == null:
+		return
 
-	_handle_human_click(clicked_sq, ctrl as HumanController)
+	_handle_human_click(clicked_sq, human_ctrl)
 
 func _handle_human_click(sq: Vector2i, ctrl: HumanController) -> void:
 	var color := _chess.active_color

@@ -147,7 +147,7 @@ func make_move(mv: ChessMove) -> void:
 		"rook_to": rook_to,
 		"rook_code": rook_code,
 		"ep_capture_idx": ep_capture_idx,
-		"ep_capture_code": ep_capture_idx >= 0 ? board[ep_capture_idx] : 0,
+		"ep_capture_code": board[ep_capture_idx] if ep_capture_idx >= 0 else 0,
 	})
 
 	# Halfmove clock reset on pawn move or capture.

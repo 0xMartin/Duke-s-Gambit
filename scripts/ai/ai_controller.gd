@@ -13,24 +13,25 @@ enum Difficulty {
 }
 
 var engine: ChessAIEngine = null
-var difficulty: int = Difficulty.MEDIUM
+var difficulty: int = Difficulty.CASUAL
 var _search_result: ChessMove = null
 var _search_in_progress: bool = false
 var _parallel_results: Array = []
 var _result_mutex := Mutex.new()
 
-func _init(p_difficulty: int = Difficulty.MEDIUM) -> void:
+
+func _init() -> void:
 	is_ai = true
 	player_name = "AI"
-	difficulty = p_difficulty
-	engine = ChessAIEngine.new()
+	if engine == null:
+		engine = ChessAIEngine.new()
 
 func request_move(board: ChessBoardState, legal_moves: Array) -> void:
 	if legal_moves.is_empty():
 		return
 	if _search_in_progress:
 		return
-	
+
 	# Get difficulty parameters
 	var search_depth := 4
 	var time_limit_ms := 2000
@@ -162,9 +163,9 @@ func _recommended_worker_count(root_move_count: int) -> int:
 	var cpu_budget: int = maxi(OS.get_processor_count() - 1, 1)
 	var device_cap: int = 2 if OS.has_feature("mobile") else 4
 	match difficulty:
-		Difficulty.EASY:
+		Difficulty.CASUAL:
 			device_cap = 1
-		Difficulty.MEDIUM:
+		Difficulty.CHALLENGER:
 			device_cap = mini(device_cap, 2)
 		_:
 			pass
