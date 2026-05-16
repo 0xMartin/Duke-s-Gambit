@@ -38,6 +38,7 @@ const COLOR_BLACK := Color(0.20, 0.18, 0.15)
 const MOVE_SPEED          := 1.0   # units/sec while walking
 const ATTACK_STOP_DIST    := 1.1   # stop this many units before target square centre
 const DEATH_FADE_DURATION := 0.5   # seconds for opacity to drop to 0
+const DEFAULT_OUTLINE_WIDTH := 0.5
 # ── Weapon config ──────────────────────────────────────────────────────────
 const WEAPON_BONE         := "mixamorig_RightHand"
 const WEAPON_SCENE_PATH   := "res://assets/models/weapons/sword.glb"
@@ -52,6 +53,7 @@ const _VFX_HIT_SCENE:    PackedScene = preload("res://assets/BinbunVFX_Vol2/Styl
 const _VFX_IMPACT_SCENE: PackedScene = preload("res://assets/BinbunVFX_Vol2/StylizedHitFX/effects/big_impact/vfx_big_impact_02.tscn")
 # One-time flag: first BasePiece spawns both VFX off-screen so shaders compile before combat
 static var _vfx_warmed_up: bool = false
+static var _outline_shader: Shader = null
 # ── Audio preloads ─────────────────────────────────────────────────────────
 const _SFX_STEP1: AudioStream = preload("res://assets/sounds/footstep/footstep_1.mp3")
 const _SFX_STEP2: AudioStream = preload("res://assets/sounds/footstep/footstep_2.mp3")
@@ -96,6 +98,8 @@ var _trail_mesh_inst:  MeshInstance3D     = null
 var _trail_sword_mesh: MeshInstance3D     = null
 var _trail_points:     Array              = []    # [{tip:Vector3, base:Vector3, age:float}]
 var _trail_mat:        StandardMaterial3D = null
+var _outline_material: ShaderMaterial = null
+var _outline_meshes: Array[MeshInstance3D] = []
 
 signal move_finished          # emitted when piece arrives at destination
 signal attack_sequence_done   # emitted when full attack+death sequence is done
@@ -322,9 +326,44 @@ func _ready() -> void:
 	_add_blob_shadow()
 	_setup_animation_loops()
 	_setup_trail()
+	_setup_outline()
 	_apply_color()
 	_set_initial_facing()
 	_play(anim_idle)
+
+func _setup_outline() -> void:
+	if _outline_shader == null:
+		_outline_shader = load("res://shaders/outline.gdshader") as Shader
+	if _outline_shader == null:
+		return
+	_outline_material = ShaderMaterial.new()
+	_outline_material.shader = _outline_shader
+	_outline_material.set_shader_parameter("outline_width", DEFAULT_OUTLINE_WIDTH)
+	_outline_material.set_shader_parameter("outline_color", Color(0.0, 1.0, 0.15, 1.0))
+	_outline_meshes.clear()
+	_collect_outline_meshes(self)
+
+func _collect_outline_meshes(node: Node) -> void:
+	if node is MeshInstance3D:
+		_outline_meshes.append(node as MeshInstance3D)
+	for child in node.get_children():
+		_collect_outline_meshes(child)
+
+func set_outline(color: Color, width: float = DEFAULT_OUTLINE_WIDTH) -> void:
+	if _outline_material == null:
+		_setup_outline()
+	if _outline_material == null:
+		return
+	_outline_material.set_shader_parameter("outline_color", color)
+	_outline_material.set_shader_parameter("outline_width", width)
+	for mi in _outline_meshes:
+		if mi != null and is_instance_valid(mi):
+			mi.material_overlay = _outline_material
+
+func clear_outline() -> void:
+	for mi in _outline_meshes:
+		if mi != null and is_instance_valid(mi):
+			mi.material_overlay = null
 
 func _disable_shadow_cast(node: Node) -> void:
 	if node is GeometryInstance3D:

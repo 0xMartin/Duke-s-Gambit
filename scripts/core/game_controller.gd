@@ -35,6 +35,8 @@ var _selected_sq: Vector2i   = Vector2i(-1, -1)
 var _selected_piece: BasePiece = null
 var _legal_from_selected: Array = []
 var _pending_promotion_moves: Array = []
+var _attack_outlined_pieces: Array[BasePiece] = []
+var _check_outlined_king: BasePiece = null
 
 var _busy:        bool = false   # true while piece animation is running
 var _move_start_time_ms: int = 0  # timestamp for avg-move-time tracking
@@ -57,6 +59,11 @@ var _game_over_shown:   bool = false
 var _sfx_select: AudioStreamPlayer = null
 var _base_saturation: float = 0.9
 var _sat_tween: Tween = null
+
+const OUTLINE_SELECTED := Color(0.00, 1.00, 0.15, 1.0)
+const OUTLINE_ATTACK   := Color(1.00, 0.05, 0.00, 1.0)
+const OUTLINE_CHECK    := Color(1.00, 0.05, 0.00, 1.0)
+const OUTLINE_WIDTH    := 0.5
 
 # Promotion impact (same assets as BasePiece death effect)
 const _PROMO_VFX_IMPACT_SCENE: PackedScene = preload("res://assets/BinbunVFX_Vol2/StylizedHitFX/effects/big_impact/vfx_big_impact_02.tscn")
@@ -246,6 +253,8 @@ func _clear_pieces() -> void:
 
 # ── Turn loop ──────────────────────────────────────────────────────────────
 func _start_turn() -> void:
+	_clear_check_outline()
+	_deselect_piece()
 	_board.clear_highlights()
 	_selected_sq = Vector2i(-1, -1)
 	_legal_from_selected.clear()
@@ -262,7 +271,6 @@ func _start_turn() -> void:
 	if state == ChessEnums.GameState.CHECKMATE:
 		MusicManager.set_checkmate_tension(true)
 		emit_signal("game_over", 1 - color, ChessEnums.GameState.CHECKMATE)
-		_board.highlight_check(_chess._find_king(color))   # red highlight on losing king
 		_animate_checkmate_end(color)                        # async: king dies → 2s → panel
 		return
 	if state == ChessEnums.GameState.STALEMATE:
@@ -279,6 +287,7 @@ func _start_turn() -> void:
 		MusicManager.set_check_tension(true)
 		var king_sq := _chess._find_king(color)
 		_board.highlight_check(king_sq)
+		_apply_check_outline(color)
 	else:
 		MusicManager.set_check_tension(false)
 
@@ -428,6 +437,7 @@ func _handle_human_click(sq: Vector2i, ctrl: HumanController) -> void:
 		_selected_sq = sq
 		_select_piece(sq)
 		_legal_from_selected = ctrl.get_legal_moves_from(sq)
+		_highlight_attack_targets(_legal_from_selected)
 		_board.clear_highlights()
 		_board.highlight_selected(sq)
 		_board.highlight_moves(_legal_from_selected)
@@ -436,6 +446,7 @@ func _handle_human_click(sq: Vector2i, ctrl: HumanController) -> void:
 		# Re-draw check highlight if still in check
 		if _chess.get_game_state() == ChessEnums.GameState.CHECK:
 			_board.highlight_check(_chess._find_king(color))
+			_apply_check_outline(color)
 		return
 
 	# Click on empty or enemy without selection → deselect
@@ -463,9 +474,47 @@ func _select_piece(sq: Vector2i) -> void:
 	var bp: BasePiece = _sq_pieces.get(sq) as BasePiece
 	if bp:
 		_selected_piece = bp
+		_selected_piece.set_outline(OUTLINE_SELECTED, OUTLINE_WIDTH)
 
 func _deselect_piece() -> void:
+	if _selected_piece != null and is_instance_valid(_selected_piece):
+		_selected_piece.clear_outline()
+	for bp in _attack_outlined_pieces:
+		if bp != null and is_instance_valid(bp):
+			bp.clear_outline()
+	_attack_outlined_pieces.clear()
 	_selected_piece = null
+
+func _highlight_attack_targets(moves: Array) -> void:
+	_attack_outlined_pieces.clear()
+	var seen := {}
+	for mv in moves:
+		if not mv.is_capture():
+			continue
+		var target_sq: Vector2i = mv.to_sq
+		if mv.move_type == ChessEnums.MoveType.EN_PASSANT:
+			target_sq = Vector2i(mv.to_sq.x, mv.from_sq.y)
+		var key := "%d,%d" % [target_sq.x, target_sq.y]
+		if seen.has(key):
+			continue
+		seen[key] = true
+		var target: BasePiece = _sq_pieces.get(target_sq) as BasePiece
+		if target != null and is_instance_valid(target):
+			target.set_outline(OUTLINE_ATTACK, OUTLINE_WIDTH)
+			_attack_outlined_pieces.append(target)
+
+func _apply_check_outline(color: int) -> void:
+	_clear_check_outline()
+	var king_sq := _chess._find_king(color)
+	var king_piece: BasePiece = _sq_pieces.get(king_sq) as BasePiece
+	if king_piece != null and is_instance_valid(king_piece):
+		king_piece.set_outline(OUTLINE_CHECK, OUTLINE_WIDTH)
+		_check_outlined_king = king_piece
+
+func _clear_check_outline() -> void:
+	if _check_outlined_king != null and is_instance_valid(_check_outlined_king):
+		_check_outlined_king.clear_outline()
+	_check_outlined_king = null
 
 func _raycast_board(screen_pos: Vector2) -> Vector2i:
 	var camera := _camera.get_node("Camera3D") as Camera3D
