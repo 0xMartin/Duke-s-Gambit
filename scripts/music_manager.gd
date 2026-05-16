@@ -27,7 +27,12 @@ var _attack_tension_active: bool = false
 var _check_tension_active: bool = false
 var _checkmate_tension_active: bool = false
 var _music_lpf: AudioEffectLowPassFilter = null
-var _music_lpf_bus_idx: int = -1
+var _music_hpf: AudioEffectHighPassFilter = null
+var _music_compressor: AudioEffectCompressor = null
+var _music_distortion: AudioEffectDistortion = null
+
+var _music_stereo: AudioEffectStereoEnhance = null
+var _music_bus_idx: int = -1
 var _dyn_tween: Tween = null
 var _current_dynamic_preset: String = "normal"
 var _attack_release_token: int = 0
@@ -39,20 +44,61 @@ const DYN_PRESET_MATE := "mat"
 
 const ATTACK_RELEASE_HOLD_SEC: float = 0.28
 
+# Low-pass filter presets (removes high frequencies during tension)
 const LPF_CUTOFF_NORMAL: float = 20500.0
-const LPF_CUTOFF_ATTACK: float = 6500.0
-const LPF_CUTOFF_CHECK: float = 3200.0
-const LPF_CUTOFF_MATE: float = 2600.0
+const LPF_CUTOFF_ATTACK: float = 8000.0
+const LPF_CUTOFF_CHECK: float = 4200.0
+const LPF_CUTOFF_MATE: float = 2800.0
 
 const LPF_RESO_NORMAL: float = 0.78
-const LPF_RESO_ATTACK: float = 0.90
-const LPF_RESO_CHECK: float = 1.08
-const LPF_RESO_MATE: float = 1.12
+const LPF_RESO_ATTACK: float = 0.88
+const LPF_RESO_CHECK: float = 1.05
+const LPF_RESO_MATE: float = 1.10
 
+# High-pass filter presets (removes low frequencies)
+const HPF_CUTOFF_NORMAL: float = 20.0
+const HPF_CUTOFF_ATTACK: float = 50.0
+const HPF_CUTOFF_CHECK: float = 80.0
+const HPF_CUTOFF_MATE: float = 100.0
+
+# Compressor presets (dynamic range control)
+const COMP_THRESHOLD_NORMAL: float = 0.0
+const COMP_THRESHOLD_ATTACK: float = -15.0
+const COMP_THRESHOLD_CHECK: float = -20.0
+const COMP_THRESHOLD_MATE: float = -25.0
+
+const COMP_RATIO_NORMAL: float = 1.0
+const COMP_RATIO_ATTACK: float = 4.0
+const COMP_RATIO_CHECK: float = 6.0
+const COMP_RATIO_MATE: float = 8.0
+
+const COMP_MAKEUP_GAIN_NORMAL: float = 0.0
+const COMP_MAKEUP_GAIN_ATTACK: float = 2.0
+const COMP_MAKEUP_GAIN_CHECK: float = 3.0
+const COMP_MAKEUP_GAIN_MATE: float = 4.0
+
+# Distortion presets (subtle overdrive during intensity)
+const DIST_LEVEL_NORMAL: float = 0.0
+const DIST_LEVEL_ATTACK: float = 0.15
+const DIST_LEVEL_CHECK: float = 0.25
+const DIST_LEVEL_MATE: float = 0.35
+
+
+# Stereo enhancement (narrower during tension)
+const STEREO_ENHANCE_NORMAL: float = 1.0
+const STEREO_ENHANCE_ATTACK: float = 0.75
+const STEREO_ENHANCE_CHECK: float = 0.5
+const STEREO_ENHANCE_MATE: float = 0.3
+
+# Pitch adjustments for tension
 const PITCH_NORMAL: float = 1.00
 const PITCH_ATTACK: float = 1.00
 const PITCH_CHECK: float = 0.978
 const PITCH_MATE: float = 0.970
+
+# Tween transition duration
+const TRANSITION_NORMAL: float = 0.55
+const TRANSITION_ATTACK: float = 0.35
 
 func _ready() -> void:
 	_menu_player = AudioStreamPlayer.new()
@@ -214,24 +260,46 @@ func _ensure_bus(bus_name: String) -> void:
 		AudioServer.set_bus_name(idx, bus_name)
 
 func _ensure_music_lowpass() -> void:
-	_music_lpf_bus_idx = AudioServer.get_bus_index("Music")
-	if _music_lpf_bus_idx < 0:
+	_music_bus_idx = AudioServer.get_bus_index("Music")
+	if _music_bus_idx < 0:
 		return
 
-	# Reuse first low-pass filter already present on the Music bus, if any.
-	for i in range(AudioServer.get_bus_effect_count(_music_lpf_bus_idx)):
-		var fx := AudioServer.get_bus_effect(_music_lpf_bus_idx, i)
-		if fx is AudioEffectLowPassFilter:
-			_music_lpf = fx as AudioEffectLowPassFilter
-			break
-
-	# Otherwise add one dedicated low-pass filter for dynamic tone changes.
+	# Setup LPF at slot 0
 	if _music_lpf == null:
 		_music_lpf = AudioEffectLowPassFilter.new()
-		AudioServer.add_bus_effect(_music_lpf_bus_idx, _music_lpf, 0)
-
+		AudioServer.add_bus_effect(_music_bus_idx, _music_lpf, 0)
 	_music_lpf.cutoff_hz = LPF_CUTOFF_NORMAL
 	_music_lpf.resonance = LPF_RESO_NORMAL
+
+	# Setup HPF at slot 1
+	if _music_hpf == null:
+		_music_hpf = AudioEffectHighPassFilter.new()
+		AudioServer.add_bus_effect(_music_bus_idx, _music_hpf, 1)
+	_music_hpf.cutoff_hz = HPF_CUTOFF_NORMAL
+
+	# Setup Compressor at slot 2
+	if _music_compressor == null:
+		_music_compressor = AudioEffectCompressor.new()
+		AudioServer.add_bus_effect(_music_bus_idx, _music_compressor, 2)
+	_music_compressor.threshold = COMP_THRESHOLD_NORMAL
+	_music_compressor.ratio = COMP_RATIO_NORMAL
+	_music_compressor.gain = COMP_MAKEUP_GAIN_NORMAL
+	_music_compressor.attack_us = 10000  # 10ms
+	_music_compressor.release_ms = 100
+
+	# Setup Distortion at slot 3
+	if _music_distortion == null:
+		_music_distortion = AudioEffectDistortion.new()
+		AudioServer.add_bus_effect(_music_bus_idx, _music_distortion, 3)
+	_music_distortion.pre_gain = 0.0
+	_music_distortion.post_gain = 0.0
+	_music_distortion.mode = AudioEffectDistortion.MODE_OVERDRIVE
+
+	# Setup Stereo Enhancement at slot 4 (was slot 5)
+	if _music_stereo == null:
+		_music_stereo = AudioEffectStereoEnhance.new()
+		AudioServer.add_bus_effect(_music_bus_idx, _music_stereo, 4)
+	_music_stereo.pan_pullout = STEREO_ENHANCE_NORMAL
 
 func _apply_dynamic_music_tone(force_fast: bool = false) -> void:
 	if _music_lpf == null:
@@ -242,19 +310,45 @@ func _apply_dynamic_music_tone(force_fast: bool = false) -> void:
 	var preset := _resolve_dynamic_preset()
 	var target_cutoff: float = LPF_CUTOFF_NORMAL
 	var target_reso: float = LPF_RESO_NORMAL
+	var target_hpf_cutoff: float = HPF_CUTOFF_NORMAL
+	var target_comp_threshold: float = COMP_THRESHOLD_NORMAL
+	var target_comp_ratio: float = COMP_RATIO_NORMAL
+	var target_comp_makeup: float = COMP_MAKEUP_GAIN_NORMAL
+	var target_dist_level: float = DIST_LEVEL_NORMAL
+	var target_stereo: float = STEREO_ENHANCE_NORMAL
 	var target_pitch: float = PITCH_NORMAL
-	if preset == DYN_PRESET_MATE:
-		target_cutoff = LPF_CUTOFF_MATE
-		target_reso = LPF_RESO_MATE
-		target_pitch = PITCH_MATE
-	elif preset == DYN_PRESET_CHECK:
-		target_cutoff = LPF_CUTOFF_CHECK
-		target_reso = LPF_RESO_CHECK
-		target_pitch = PITCH_CHECK
-	elif preset == DYN_PRESET_ATTACK:
-		target_cutoff = LPF_CUTOFF_ATTACK
-		target_reso = LPF_RESO_ATTACK
-		target_pitch = PITCH_ATTACK
+
+	match preset:
+		DYN_PRESET_MATE:
+			target_cutoff = LPF_CUTOFF_MATE
+			target_reso = LPF_RESO_MATE
+			target_hpf_cutoff = HPF_CUTOFF_MATE
+			target_comp_threshold = COMP_THRESHOLD_MATE
+			target_comp_ratio = COMP_RATIO_MATE
+			target_comp_makeup = COMP_MAKEUP_GAIN_MATE
+			target_dist_level = DIST_LEVEL_MATE
+			target_stereo = STEREO_ENHANCE_MATE
+			target_pitch = PITCH_MATE
+		DYN_PRESET_CHECK:
+			target_cutoff = LPF_CUTOFF_CHECK
+			target_reso = LPF_RESO_CHECK
+			target_hpf_cutoff = HPF_CUTOFF_CHECK
+			target_comp_threshold = COMP_THRESHOLD_CHECK
+			target_comp_ratio = COMP_RATIO_CHECK
+			target_comp_makeup = COMP_MAKEUP_GAIN_CHECK
+			target_dist_level = DIST_LEVEL_CHECK
+			target_stereo = STEREO_ENHANCE_CHECK
+			target_pitch = PITCH_CHECK
+		DYN_PRESET_ATTACK:
+			target_cutoff = LPF_CUTOFF_ATTACK
+			target_reso = LPF_RESO_ATTACK
+			target_hpf_cutoff = HPF_CUTOFF_ATTACK
+			target_comp_threshold = COMP_THRESHOLD_ATTACK
+			target_comp_ratio = COMP_RATIO_ATTACK
+			target_comp_makeup = COMP_MAKEUP_GAIN_ATTACK
+			target_dist_level = DIST_LEVEL_ATTACK
+			target_stereo = STEREO_ENHANCE_ATTACK
+			target_pitch = PITCH_ATTACK
 
 	if preset != _current_dynamic_preset:
 		_current_dynamic_preset = preset
@@ -263,11 +357,43 @@ func _apply_dynamic_music_tone(force_fast: bool = false) -> void:
 	if _dyn_tween:
 		_dyn_tween.kill()
 	_dyn_tween = create_tween().set_parallel(true)
-	var dur: float = 0.20 if force_fast else 0.55
-	_dyn_tween.tween_property(_music_lpf, "cutoff_hz", target_cutoff, dur).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	_dyn_tween.tween_property(_music_lpf, "resonance", target_reso, dur).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	_dyn_tween.tween_property(_menu_player, "pitch_scale", target_pitch, dur).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	_dyn_tween.tween_property(_game_player, "pitch_scale", target_pitch, dur).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	var dur: float = TRANSITION_ATTACK if force_fast else TRANSITION_NORMAL
+
+	# Animate LPF
+	_dyn_tween.tween_property(_music_lpf, "cutoff_hz", target_cutoff, dur) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_dyn_tween.tween_property(_music_lpf, "resonance", target_reso, dur) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+	# Animate HPF
+	if _music_hpf != null:
+		_dyn_tween.tween_property(_music_hpf, "cutoff_hz", target_hpf_cutoff, dur) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+	# Animate Compressor
+	if _music_compressor != null:
+		_dyn_tween.tween_property(_music_compressor, "threshold", target_comp_threshold, dur) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		_dyn_tween.tween_property(_music_compressor, "ratio", target_comp_ratio, dur) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		_dyn_tween.tween_property(_music_compressor, "gain", target_comp_makeup, dur) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+	# Animate Distortion (pre_gain controls overdrive amount)
+	if _music_distortion != null:
+		_dyn_tween.tween_property(_music_distortion, "pre_gain", target_dist_level, dur) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+	# Animate Stereo Enhancement (narrower during tension)
+	if _music_stereo != null:
+		_dyn_tween.tween_property(_music_stereo, "pan_pullout", target_stereo, dur) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+	# Animate Pitch
+	_dyn_tween.tween_property(_menu_player, "pitch_scale", target_pitch, dur) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_dyn_tween.tween_property(_game_player, "pitch_scale", target_pitch, dur) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 func _resolve_dynamic_preset() -> String:
 	if _checkmate_tension_active:
