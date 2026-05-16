@@ -243,6 +243,7 @@ func _start_turn() -> void:
 	var color  := _chess.active_color
 	var state  := _chess.get_game_state()
 	var legal  := _chess.get_legal_moves(color)
+	_update_surrender_ui()
 
 	if _hud != null:
 		_hud.set_active_player(color)
@@ -280,6 +281,24 @@ func _start_turn() -> void:
 		if game_ui.has_method("show_ai_thinking"):
 			game_ui.show_ai_thinking()
 	ctrl.request_move(_chess, legal)
+
+func is_human_turn() -> bool:
+	if _chess == null or _controllers.size() < 2:
+		return false
+	var color: int = _chess.active_color
+	var ctrl: PlayerController = _controllers[color] as PlayerController
+	return ctrl != null and not ctrl.is_ai
+
+func can_surrender() -> bool:
+	if _game_over_shown or _chess == null:
+		return false
+	if _is_player_vs_ai:
+		return is_human_turn()
+	return true
+
+func _update_surrender_ui() -> void:
+	if _ui != null and _ui.has_method("set_surrender_available"):
+		_ui.call("set_surrender_available", can_surrender())
 
 # ── Checkmate animation ────────────────────────────────────────────────────
 func _animate_checkmate_end(loser_color: int) -> void:
@@ -329,7 +348,7 @@ func _on_time_out(loser_color: int) -> void:
 
 ## Forfeit: the current active player loses.
 func surrender() -> void:
-	if _game_over_shown or _chess == null:
+	if not can_surrender():
 		return
 	_game_over_shown = true
 	_busy = true

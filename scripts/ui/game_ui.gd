@@ -113,11 +113,24 @@ func hide_ai_thinking() -> void:
 		_ai_status_container.visible = false
 
 func _on_surrender_pressed() -> void:
+	if _game == null or not _game.can_surrender():
+		return
 	_surrender_panel.visible = true
 
 func _on_surrender_confirmed() -> void:
+	if _game == null or not _game.can_surrender():
+		_surrender_panel.visible = false
+		return
 	_surrender_panel.visible = false
 	_game.surrender()
+
+func set_surrender_available(available: bool) -> void:
+	if _surrender_btn == null:
+		return
+	_surrender_btn.visible = available
+	_surrender_btn.disabled = not available
+	if not available and _surrender_panel != null:
+		_surrender_panel.visible = false
 
 func _on_promotion_needed(sq: Vector2i, color: int) -> void:
 	_pending_promo_sq    = sq

@@ -13,6 +13,7 @@ extends Control
 # Name panel
 @onready var _p1_edit:   LineEdit    = $NamePanel/VBox/P1Row/LineEdit
 @onready var _p1_list:   ItemList    = $NamePanel/VBox/P1Row/ItemList
+@onready var _p1_label:  Label       = $NamePanel/VBox/P1Row/Label
 @onready var _p2_edit:   LineEdit    = $NamePanel/VBox/P2Row/LineEdit
 @onready var _p2_list:   ItemList    = $NamePanel/VBox/P2Row/ItemList
 @onready var _p2_label:  Label       = $NamePanel/VBox/P2Row/Label
@@ -37,6 +38,9 @@ var _sfx_vol_label:     Label         = null
 var _name_ai_row:       HBoxContainer = null
 var _name_ai_label:     Label         = null
 var _name_ai_slider:    HSlider       = null
+var _name_color_row:    HBoxContainer = null
+var _name_color_label:  Label         = null
+var _name_color_opt:    OptionButton  = null
 
 # ──────────────────────────────────────────────────────────────────────────
 func _ready() -> void:
@@ -53,6 +57,7 @@ func _ready() -> void:
 	_time_opt.select(3)   # default: 10 min
 	_stats_vbox = get_node_or_null("StatsPanel/VBox/ScrollContainer/VBox") as VBoxContainer
 	_setup_name_ai_controls()
+	_setup_name_color_controls()
 	_setup_settings_extra()
 	_setup_font_sizes()
 	_apply_roblox_theme()
@@ -92,10 +97,13 @@ func _start_name_entry(mode: String) -> void:
 	_p2_label.visible = (mode == "pvp")
 	_p2_edit.visible  = (mode == "pvp")
 	_p2_list.visible  = (mode == "pvp")
+	_p1_label.text = "White player:" if mode == "pvp" else "Your name:"
 	if _name_ai_row:
 		_name_ai_row.visible = (mode == "pvai")
 		if mode == "pvai":
 			_on_name_ai_strength_changed(_name_ai_slider.value)
+	if _name_color_row:
+		_name_color_row.visible = (mode == "pvai")
 	_show_panel(_name_panel)
 
 func _populate_name_lists() -> void:
@@ -145,6 +153,9 @@ func _on_start_pressed() -> void:
 
 	var strength := int(_name_ai_slider.value) if _name_ai_slider else 2
 	var time_ms: int = _time_opt.get_item_id(_time_opt.selected)
+	var player_color: int = ChessEnums.PieceColor.WHITE
+	if _mode == "pvai" and _name_color_opt != null:
+		player_color = int(_name_color_opt.get_selected_id())
 	hide()   # prevent one-frame overlap when game scene loads
 	var game_scene_pack := load("res://scenes/game.tscn") as PackedScene
 	if game_scene_pack == null:
@@ -156,7 +167,15 @@ func _on_start_pressed() -> void:
 		push_error("MainMenu: game scene root is not GameController")
 		return
 	get_tree().root.add_child(game_scene)
-	game_scene.setup(p1, p2, false, _mode == "pvai", strength, time_ms)
+	if _mode == "pvai":
+		var human_name := p1
+		var ai_name := "AI"
+		if player_color == ChessEnums.PieceColor.WHITE:
+			game_scene.setup(human_name, ai_name, false, true, strength, time_ms)
+		else:
+			game_scene.setup(ai_name, human_name, true, false, strength, time_ms)
+	else:
+		game_scene.setup(p1, p2, false, false, strength, time_ms)
 	game_scene.start_game()
 	queue_free()
 
@@ -251,6 +270,47 @@ func _setup_name_ai_controls() -> void:
 	_name_ai_slider.value_changed.connect(_on_name_ai_strength_changed)
 	_on_name_ai_strength_changed(_name_ai_slider.value)
 	_name_ai_row.visible = false
+
+func _setup_name_color_controls() -> void:
+	var vbox := _name_panel.get_node_or_null("VBox") as VBoxContainer
+	if vbox == null:
+		return
+
+	_name_color_row = HBoxContainer.new()
+	_name_color_row.name = "AIColorRow"
+	_name_color_label = Label.new()
+	_name_color_label.text = "Play as:"
+	_name_color_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_name_color_label.add_theme_font_size_override("font_size", 28)
+	_name_color_opt = OptionButton.new()
+	_name_color_opt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_name_color_opt.add_item("White", ChessEnums.PieceColor.WHITE)
+	_name_color_opt.add_item("Black", ChessEnums.PieceColor.BLACK)
+
+	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
+	var stored_color: int = ChessEnums.PieceColor.WHITE
+	if cam_cfg:
+		var c = cam_cfg.get("player_color")
+		if c != null:
+			stored_color = int(c)
+	if stored_color == ChessEnums.PieceColor.BLACK:
+		_name_color_opt.select(1)
+	else:
+		_name_color_opt.select(0)
+
+	_name_color_row.add_child(_name_color_label)
+	_name_color_row.add_child(_name_color_opt)
+	vbox.add_child(_name_color_row)
+	_name_color_opt.item_selected.connect(_on_player_color_selected)
+	_name_color_row.visible = false
+
+func _on_player_color_selected(index: int) -> void:
+	if _name_color_opt == null:
+		return
+	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
+	if cam_cfg:
+		cam_cfg.set("player_color", _name_color_opt.get_item_id(index))
+		cam_cfg.save_config()
 
 func _on_pan_sens_changed(value: float) -> void:
 	_pan_sens_label.text = "Pan Sensitivity: %d" % int(value)
