@@ -1,0 +1,99 @@
+# GitHub Actions CI for Godot C++ GDExtension (dukes_ai)
+# Builds dukes_ai_native for Windows, macOS, Linux, and Android
+# Exports Godot project with correct native library for each platform
+
+name: Build & Export Native AI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-matrix:
+    name: Build dukes_ai_native (${{ matrix.platform }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        platform: [windows, macos, linux, android]
+        include:
+          - platform: windows
+            os: windows-latest
+          - platform: macos
+            os: macos-latest
+          - platform: linux
+            os: ubuntu-latest
+          - platform: android
+            os: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install SCons
+        run: pip install scons
+
+      - name: Install dependencies (Linux/Android)
+        if: matrix.platform == 'linux' || matrix.platform == 'android'
+        run: sudo apt-get update && sudo apt-get install -y build-essential pkg-config
+
+      - name: Build dukes_ai_native
+        run: |
+          cd native/dukes_ai
+          if [ "${{ matrix.platform }}" = "windows" ]; then
+            scons platform=windows target=template_release
+          elif [ "${{ matrix.platform }}" = "macos" ]; then
+            scons platform=macos target=template_release
+          elif [ "${{ matrix.platform }}" = "linux" ]; then
+            scons platform=linux target=template_release
+          elif [ "${{ matrix.platform }}" = "android" ]; then
+            scons platform=android target=template_release
+          fi
+
+      - name: Upload dukes_ai_native artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dukes_ai_native-${{ matrix.platform }}
+          path: native/dukes_ai/bin/*
+
+  export-godot:
+    name: Export Godot Project
+    needs: build-matrix
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Download all dukes_ai_native artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: native/dukes_ai/bin/
+
+      - name: Set up Godot
+        uses: firebelley/setup-godot@v2
+        with:
+          version: 4.2.2
+          export-templates: true
+
+      - name: Export for all platforms
+        run: |
+          mkdir -p export
+          godot --headless --export-release "Windows Desktop" export/game-windows.exe
+          godot --headless --export-release "Linux/X11" export/game-linux.x86_64
+          godot --headless --export-release "macOS" export/game-macos.zip
+          godot --headless --export-release "Android" export/game-android.apk
+
+      - name: Upload exported builds
+        uses: actions/upload-artifact@v4
+        with:
+          name: exported-builds
+          path: export/
