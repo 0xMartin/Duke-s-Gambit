@@ -42,6 +42,7 @@ native/dukes_ai/*.dylib
 native/dukes_ai/**/*.dylib
 native/dukes_ai/*.so
 native/dukes_ai/**/*.so
+native/dukes_ai/**/*.os
 native/dukes_ai/*.dll
 native/dukes_ai/**/*.dll
 native/dukes_ai/build/
