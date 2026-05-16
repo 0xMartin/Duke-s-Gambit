@@ -103,20 +103,52 @@ func generate_legal_moves_for_color(color: int) -> Array:
 func count_pseudo_moves(color: int) -> int:
 	return _generate_pseudo_legal_moves_for_color(color).size()
 
-func make_move(mv: ChessMove) -> void:
-	_history.append({
-		"board": board.duplicate(),
-		"piece_bb": piece_bb.duplicate(),
-		"active_color": active_color,
-		"castling_rights": castling_rights,
-		"en_passant_index": en_passant_index,
-		"halfmove_clock": halfmove_clock,
-		"fullmove_number": fullmove_number,
-	})
 
+# Delta-based make_move/unmake_move for fast search
+func make_move(mv: ChessMove) -> void:
 	var from_idx: int = _sq_to_index(mv.from_sq.x, mv.from_sq.y)
 	var to_idx: int = _sq_to_index(mv.to_sq.x, mv.to_sq.y)
 	var moving_code: int = board[from_idx]
+	var captured_code: int = board[to_idx]
+	var prev_en_passant := en_passant_index
+	var prev_castling := castling_rights
+	var prev_halfmove := halfmove_clock
+	var prev_fullmove := fullmove_number
+
+	var rook_from := -1
+	var rook_to := -1
+	var rook_code := 0
+
+	# Special for en passant
+	var ep_capture_idx := -1
+	if mv.move_type == ChessEnums.MoveType.EN_PASSANT:
+		ep_capture_idx = _sq_to_index(mv.to_sq.x, mv.from_sq.y)
+
+	# Special for castling
+	if mv.move_type == ChessEnums.MoveType.CASTLING_KINGSIDE:
+		rook_from = _sq_to_index(0, mv.from_sq.y)
+		rook_to = _sq_to_index(2, mv.from_sq.y)
+		rook_code = board[rook_from]
+	elif mv.move_type == ChessEnums.MoveType.CASTLING_QUEENSIDE:
+		rook_from = _sq_to_index(7, mv.from_sq.y)
+		rook_to = _sq_to_index(4, mv.from_sq.y)
+		rook_code = board[rook_from]
+
+	_history.append({
+		"from_idx": from_idx,
+		"to_idx": to_idx,
+		"moving_code": moving_code,
+		"captured_code": captured_code,
+		"prev_en_passant": prev_en_passant,
+		"prev_castling": prev_castling,
+		"prev_halfmove": prev_halfmove,
+		"prev_fullmove": prev_fullmove,
+		"rook_from": rook_from,
+		"rook_to": rook_to,
+		"rook_code": rook_code,
+		"ep_capture_idx": ep_capture_idx,
+		"ep_capture_code": ep_capture_idx >= 0 ? board[ep_capture_idx] : 0,
+	})
 
 	# Halfmove clock reset on pawn move or capture.
 	if mv.piece_type == ChessEnums.PieceType.PAWN or mv.is_capture():
@@ -134,10 +166,8 @@ func make_move(mv: ChessMove) -> void:
 
 	# Handle captures.
 	if mv.move_type == ChessEnums.MoveType.EN_PASSANT:
-		var cap_row: int = mv.from_sq.y
-		var cap_idx: int = _sq_to_index(mv.to_sq.x, cap_row)
-		_clear_square(cap_idx)
-	elif board[to_idx] != 0:
+		_clear_square(ep_capture_idx)
+	elif captured_code != 0:
 		_clear_square(to_idx)
 
 	# Place moved/promoted piece.
@@ -147,20 +177,9 @@ func make_move(mv: ChessMove) -> void:
 	_set_square(to_idx, placed_code)
 
 	# Castling rook movement.
-	if mv.move_type == ChessEnums.MoveType.CASTLING_KINGSIDE:
-		var row: int = mv.from_sq.y
-		var rook_from: int = _sq_to_index(0, row)
-		var rook_to: int = _sq_to_index(2, row)
-		var rook_code: int = board[rook_from]
+	if mv.move_type == ChessEnums.MoveType.CASTLING_KINGSIDE or mv.move_type == ChessEnums.MoveType.CASTLING_QUEENSIDE:
 		_clear_square(rook_from)
 		_set_square(rook_to, rook_code)
-	elif mv.move_type == ChessEnums.MoveType.CASTLING_QUEENSIDE:
-		var row_q: int = mv.from_sq.y
-		var rook_from_q: int = _sq_to_index(7, row_q)
-		var rook_to_q: int = _sq_to_index(4, row_q)
-		var rook_code_q: int = board[rook_from_q]
-		_clear_square(rook_from_q)
-		_set_square(rook_to_q, rook_code_q)
 
 	_update_castling_rights(mv)
 	if active_color == BLACK:
@@ -171,13 +190,28 @@ func unmake_move() -> void:
 	if _history.is_empty():
 		return
 	var st: Dictionary = _history.pop_back()
-	board = st["board"]
-	piece_bb = st["piece_bb"]
-	active_color = st["active_color"]
-	castling_rights = st["castling_rights"]
-	en_passant_index = st["en_passant_index"]
-	halfmove_clock = st["halfmove_clock"]
-	fullmove_number = st["fullmove_number"]
+
+	# Restore meta
+	active_color = 1 - active_color
+	castling_rights = st["prev_castling"]
+	en_passant_index = st["prev_en_passant"]
+	halfmove_clock = st["prev_halfmove"]
+	fullmove_number = st["prev_fullmove"]
+
+	# Undo castling rook
+	if st["rook_from"] != -1:
+		_clear_square(st["rook_to"])
+		_set_square(st["rook_from"], st["rook_code"])
+
+	# Undo move
+	_clear_square(st["to_idx"])
+	_set_square(st["from_idx"], st["moving_code"])
+
+	# Undo capture
+	if st["ep_capture_idx"] != -1:
+		_set_square(st["ep_capture_idx"], st["ep_capture_code"])
+	elif st["captured_code"] != 0:
+		_set_square(st["to_idx"], st["captured_code"])
 
 func is_in_check(color: int) -> bool:
 	var king_code := W_KING if color == WHITE else B_KING

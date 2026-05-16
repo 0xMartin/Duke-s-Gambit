@@ -6,10 +6,10 @@ extends PlayerController
 
 # Difficulty modes with search depth and time limit
 enum Difficulty {
-	EASY    = 1,   # 2 plies, 0.5s time limit
-	MEDIUM  = 2,   # 4 plies, 2.0s time limit  
-	HARD    = 3,   # 6 plies, 3.0s time limit
-	EXTREME = 4,   # 8 plies, 5.0s time limit
+	CASUAL = 1,      # 4 plies
+	CHALLENGER = 2,  # 8 plies
+	MASTER = 3,      # 12 plies
+	GRANDMASTER = 4, # 15 plies
 }
 
 var engine: ChessAIEngine = null
@@ -32,27 +32,23 @@ func request_move(board: ChessBoardState, legal_moves: Array) -> void:
 		return
 	
 	# Get difficulty parameters
-	var search_depth := 2
-	var time_limit_ms := 500
-	
+	var search_depth := 4
+	var time_limit_ms := 2000
 	match difficulty:
-		Difficulty.EASY:
-			search_depth = 2
-			time_limit_ms = 500
-		Difficulty.MEDIUM:
+		Difficulty.CASUAL:
 			search_depth = 4
 			time_limit_ms = 2000
-		Difficulty.HARD:
-			search_depth = 6
-			time_limit_ms = 3000
-		Difficulty.EXTREME:
+		Difficulty.CHALLENGER:
 			search_depth = 8
-			time_limit_ms = 5000
-	
-	# Small delay so UI can show "AI is thinking..."
+			time_limit_ms = 4000
+		Difficulty.MASTER:
+			search_depth = 12
+			time_limit_ms = 8000
+		Difficulty.GRANDMASTER:
+			search_depth = 15
+			time_limit_ms = 12000
+
 	var t := Engine.get_main_loop() as SceneTree
-	if t:
-		await t.create_timer(0.3).timeout
 
 	_search_in_progress = true
 	_search_result = null
