@@ -1,3 +1,5 @@
+# Duke's Gambit: Battle for Java Code
+
 - Duke Chess 3D peaces: https://github.com/openjdk/duke (edited in blender and animated using mixamo.com)
 - chess icons from: https://commons.wikimedia.org/wiki/Category:SVG_chess_pieces
 - hit vfx: https://binbun3d.itch.io/hit-fx
@@ -24,6 +26,12 @@ https://opengameart.org/content/jump-landing-sound
 https://freesound.org/people/magnuswaker/sounds/524956/
 
 todo:
+- nove budovy:
+JVM Server Rack
+Firewall / Závorky jako bariéra
+Archiválie / Knihovny
+floppy disky
+
 - historie tahu ve hre (po leve strane)
 - globalni velepseni UI
 

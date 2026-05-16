@@ -16,6 +16,28 @@ static uint64_t now_ms() {
 	return Time::get_singleton()->get_ticks_msec();
 }
 
+// Move ordering: captures (MVV-LVA) > killer > history heuristic > quiet
+static void order_moves_with_context(std::vector<Move> &moves, const SearchContext &ctx, int depth) {
+	int killer_from = -1, killer_to = -1;
+	auto kit = ctx.killer_moves.find(depth);
+	if (kit != ctx.killer_moves.end()) {
+		killer_from = kit->second.from;
+		killer_to = kit->second.to;
+	}
+	std::sort(moves.begin(), moves.end(), [&](const Move &a, const Move &b) {
+		auto score = [&](const Move &mv) -> int {
+			if (mv.is_capture()) {
+				return 10000 + PIECE_VALUES[mv.captured_type] * 10 - PIECE_VALUES[mv.piece_type];
+			}
+			if (mv.from == killer_from && mv.to == killer_to) {
+				return 9000;
+			}
+			return ctx.history[mv.from][mv.to];
+		};
+		return score(a) > score(b);
+	});
+}
+
 static int minimax(SearchState &state, int depth, int alpha, int beta, SearchContext &ctx) {
 	if (godot::Time::get_singleton()->get_ticks_msec() >= ctx.deadline_ms) {
 		ctx.timed_out = true;
@@ -44,42 +66,93 @@ static int minimax(SearchState &state, int depth, int alpha, int beta, SearchCon
 		}
 	}
 
-	std::vector<Move> legal = state.generate_legal_moves();
-	if (legal.empty()) {
-		if (state.is_in_check(state.active_color)) {
-			return -MATE_SCORE;
+	const bool in_check = state.is_in_check(state.active_color);
+
+	// Null move pruning: skip a turn and search at reduced depth.
+	// If the opponent can't improve even with a free move, we have a beta cutoff.
+	if (depth >= 3 && !in_check) {
+		const int base = state.active_color * 6;
+		bool has_pieces = false;
+		for (int pt : {PIECE_ROOK, PIECE_KNIGHT, PIECE_BISHOP, PIECE_QUEEN}) {
+			if (state.piece_bb[pt + base] != 0) { has_pieces = true; break; }
 		}
-		return 0;
+		if (has_pieces) {
+			const int R = (depth >= 6) ? 3 : 2;
+			const uint64_t saved_hash = state.zobrist_hash;
+			const int saved_ep = state.en_passant_index;
+			if (state.en_passant_index >= 0) {
+				state.zobrist_hash ^= ZOBRIST_EN_PASSANT[SearchState::idx_col(state.en_passant_index)];
+				state.en_passant_index = -1;
+			}
+			state.active_color = 1 - state.active_color;
+			state.zobrist_hash ^= ZOBRIST_ACTIVE_COLOR;
+			const int null_score = -minimax(state, depth - 1 - R, -beta, -(beta - 1), ctx);
+			state.active_color = 1 - state.active_color;
+			state.en_passant_index = saved_ep;
+			state.zobrist_hash = saved_hash;
+			if (!ctx.timed_out && null_score >= beta) {
+				return beta;
+			}
+		}
 	}
 
-	order_moves(legal);
-	int best_score = alpha;
-	for (const Move &mv : legal) {
-		state.make_move(mv);
-		const int score = -minimax(state, depth - 1, -beta, -best_score, ctx);
-		state.unmake_move();
+	std::vector<Move> legal = state.generate_legal_moves();
+	if (legal.empty()) {
+		return in_check ? -MATE_SCORE : 0;
+	}
 
-		best_score = std::max(best_score, score);
-		if (best_score >= beta) {
+	order_moves_with_context(legal, ctx, depth);
+
+	int best_score = -100000;
+	for (int i = 0; i < (int)legal.size(); ++i) {
+		if (godot::Time::get_singleton()->get_ticks_msec() >= ctx.deadline_ms) {
+			ctx.timed_out = true;
+			break;
+		}
+		const Move &mv = legal[i];
+		state.make_move(mv);
+		int score;
+		if (i == 0) {
+			// First move: full window search
+			score = -minimax(state, depth - 1, -beta, -alpha, ctx);
+		} else {
+			// Late move reduction: reduce depth for quiet non-critical moves
+			int new_depth = depth - 1;
+			if (!mv.is_capture() && !in_check && depth >= 3 && i >= 4) {
+				new_depth = depth - 2;
+			}
+			// PVS: null window search, then re-search if promising
+			score = -minimax(state, new_depth, -alpha - 1, -alpha, ctx);
+			if (!ctx.timed_out && score > alpha && score < beta) {
+				score = -minimax(state, depth - 1, -beta, -alpha, ctx);
+			}
+		}
+		state.unmake_move();
+		if (ctx.timed_out) break;
+
+		if (score > best_score) best_score = score;
+		if (best_score > alpha) alpha = best_score;
+		if (alpha >= beta) {
+			// Beta cutoff: update killer and history for quiet moves
 			if (!mv.is_capture()) {
 				ctx.killer_moves[depth] = mv;
+				ctx.history[mv.from][mv.to] += depth * depth;
 			}
 			break;
 		}
 	}
 
-	TTEntry store;
-	store.depth = depth;
-	store.score = best_score;
-	store.flag = TT_EXACT;
-	if (best_score <= alpha_orig) {
-		store.flag = TT_UPPER;
-	} else if (best_score >= beta) {
-		store.flag = TT_LOWER;
+	if (!ctx.timed_out && best_score > -100000) {
+		TTEntry store;
+		store.depth = depth;
+		store.score = best_score;
+		store.flag = TT_EXACT;
+		if (best_score <= alpha_orig) store.flag = TT_UPPER;
+		else if (best_score >= beta) store.flag = TT_LOWER;
+		ctx.tt[key] = store;
 	}
-	ctx.tt[key] = store;
 
-	return best_score;
+	return best_score > -100000 ? best_score : alpha_orig;
 }
 
 static SearchState parse_position(const Dictionary &position, bool &ok) {
@@ -186,41 +259,56 @@ Dictionary find_best_move_internal(Dictionary position, int32_t depth, int32_t t
 	int reached_depth = 0;
 
 	for (int current_depth = 1; current_depth <= depth; ++current_depth) {
-		if (now_ms() >= ctx.deadline_ms) {
-			break;
-		}
-		order_moves(root_moves);
+		if (now_ms() >= ctx.deadline_ms) break;
+		ctx.timed_out = false;
+
+		// Best move from previous iteration goes first
+		order_moves_with_context(root_moves, ctx, 0);
+
 		int alpha = -100000;
 		const int beta = 100000;
 		int depth_best_score = -100000;
 		Move depth_best_move = best_move;
-		bool timed_out = false;
 
-		for (const Move &mv : root_moves) {
+		for (int i = 0; i < (int)root_moves.size(); ++i) {
 			if (now_ms() >= ctx.deadline_ms) {
-				timed_out = true;
+				ctx.timed_out = true;
 				break;
 			}
+			const Move &mv = root_moves[i];
 			state.make_move(mv);
-			const int mv_score = -minimax(state, current_depth - 1, -beta, -alpha, ctx);
+			int mv_score;
+			if (i == 0) {
+				mv_score = -minimax(state, current_depth - 1, -beta, -alpha, ctx);
+			} else {
+				mv_score = -minimax(state, current_depth - 1, -alpha - 1, -alpha, ctx);
+				if (!ctx.timed_out && mv_score > alpha && mv_score < beta) {
+					mv_score = -minimax(state, current_depth - 1, -beta, -alpha, ctx);
+				}
+			}
 			state.unmake_move();
+			if (ctx.timed_out) break;
+
 			if (mv_score > depth_best_score) {
 				depth_best_score = mv_score;
 				depth_best_move = mv;
 			}
 			alpha = std::max(alpha, mv_score);
-			if (alpha >= beta) {
-				break;
-			}
 		}
 
-		if (timed_out || ctx.timed_out) {
-			break;
-		}
+		if (ctx.timed_out) break;
 
 		best_move = depth_best_move;
 		best_score = depth_best_score;
 		reached_depth = current_depth;
+
+		// Move best move to front for better ordering in next iteration
+		for (int i = 1; i < (int)root_moves.size(); ++i) {
+			if (root_moves[i].from == best_move.from && root_moves[i].to == best_move.to) {
+				std::swap(root_moves[0], root_moves[i]);
+				break;
+			}
+		}
 	}
 
 	return move_to_dict(best_move, best_score, reached_depth);

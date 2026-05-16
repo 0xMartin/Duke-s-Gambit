@@ -25,7 +25,9 @@ static int count_material(const SearchState &state) {
 }
 
 static int pst_value(int piece_type, int color, int col, int row, const SearchState &state) {
-	const int table_row = color == WHITE ? row : (7 - row);
+	// PST tables are indexed rank8→rank1 (top to bottom from white's view).
+	// Board uses row 0=rank1, row 7=rank8, so white needs (7-row), black needs row.
+	const int table_row = color == WHITE ? (7 - row) : row;
 	const int table_col = col;
 	switch (piece_type) {
 		case PIECE_PAWN: return PAWN_PST[table_row][table_col];
@@ -59,9 +61,40 @@ int evaluate_position(SearchState &state) {
 			score -= ps;
 		}
 	}
-	const int white_mob = state.count_pseudo_moves(WHITE);
-	const int black_mob = state.count_pseudo_moves(BLACK);
-	score += (white_mob - black_mob) * 2;
+	// King safety: pawn shield bonus
+	const int material = count_material(state);
+	if (material > 1200) {
+		// White king shield
+		const int wk_code = PIECE_KING; // white king = code 6
+		const int bk_code = PIECE_KING + 6; // black king = code 12
+		const int wp_code = PIECE_PAWN; // white pawn = code 1
+		const int bp_code = PIECE_PAWN + 6; // black pawn = code 7
+		int wk_idx = -1, bk_idx = -1;
+		for (int i = 0; i < 64; ++i) {
+			if (state.board[i] == wk_code) wk_idx = i;
+			else if (state.board[i] == bk_code) bk_idx = i;
+		}
+		if (wk_idx >= 0) {
+			const int kc = SearchState::idx_col(wk_idx);
+			const int kr = SearchState::idx_row(wk_idx);
+			for (int dc = -1; dc <= 1; ++dc) {
+				const int c = kc + dc;
+				if (c < 0 || c > 7) continue;
+				if (kr + 1 <= 7 && state.board[SearchState::sq_to_index(c, kr + 1)] == wp_code) score += 15;
+				else if (kr + 2 <= 7 && state.board[SearchState::sq_to_index(c, kr + 2)] == wp_code) score += 7;
+			}
+		}
+		if (bk_idx >= 0) {
+			const int kc = SearchState::idx_col(bk_idx);
+			const int kr = SearchState::idx_row(bk_idx);
+			for (int dc = -1; dc <= 1; ++dc) {
+				const int c = kc + dc;
+				if (c < 0 || c > 7) continue;
+				if (kr - 1 >= 0 && state.board[SearchState::sq_to_index(c, kr - 1)] == bp_code) score -= 15;
+				else if (kr - 2 >= 0 && state.board[SearchState::sq_to_index(c, kr - 2)] == bp_code) score -= 7;
+			}
+		}
+	}
 	return score;
 }
 
