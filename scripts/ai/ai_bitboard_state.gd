@@ -149,15 +149,15 @@ func make_move(mv: ChessMove) -> void:
 	# Castling rook movement.
 	if mv.move_type == ChessEnums.MoveType.CASTLING_KINGSIDE:
 		var row: int = mv.from_sq.y
-		var rook_from: int = _sq_to_index(7, row)
-		var rook_to: int = _sq_to_index(5, row)
+		var rook_from: int = _sq_to_index(0, row)
+		var rook_to: int = _sq_to_index(2, row)
 		var rook_code: int = board[rook_from]
 		_clear_square(rook_from)
 		_set_square(rook_to, rook_code)
 	elif mv.move_type == ChessEnums.MoveType.CASTLING_QUEENSIDE:
 		var row_q: int = mv.from_sq.y
-		var rook_from_q: int = _sq_to_index(0, row_q)
-		var rook_to_q: int = _sq_to_index(3, row_q)
+		var rook_from_q: int = _sq_to_index(7, row_q)
+		var rook_to_q: int = _sq_to_index(4, row_q)
 		var rook_code_q: int = board[rook_from_q]
 		_clear_square(rook_from_q)
 		_set_square(rook_to_q, rook_code_q)
@@ -312,20 +312,46 @@ func _king_moves(idx: int, color: int) -> Array:
 	# Castling
 	var ks_bit: int = 0 if color == WHITE else 2
 	var qs_bit: int = 1 if color == WHITE else 3
-	if ((castling_rights >> ks_bit) & 1) == 1:
-		if board[_sq_to_index(5, row)] == 0 and board[_sq_to_index(6, row)] == 0:
-			if not _is_square_attacked(_sq_to_index(col, row), 1 - color) \
-			and not _is_square_attacked(_sq_to_index(5, row), 1 - color) \
-			and not _is_square_attacked(_sq_to_index(6, row), 1 - color):
-				moves.append(ChessMove.new(Vector2i(col, row), Vector2i(6, row), ChessEnums.MoveType.CASTLING_KINGSIDE, ChessEnums.PieceType.KING, color))
-	if ((castling_rights >> qs_bit) & 1) == 1:
-		if board[_sq_to_index(1, row)] == 0 and board[_sq_to_index(2, row)] == 0 and board[_sq_to_index(3, row)] == 0:
-			if not _is_square_attacked(_sq_to_index(col, row), 1 - color) \
-			and not _is_square_attacked(_sq_to_index(3, row), 1 - color) \
-			and not _is_square_attacked(_sq_to_index(2, row), 1 - color):
-				moves.append(ChessMove.new(Vector2i(col, row), Vector2i(2, row), ChessEnums.MoveType.CASTLING_QUEENSIDE, ChessEnums.PieceType.KING, color))
+	if ((castling_rights >> ks_bit) & 1) == 1 and _can_castle_kingside(color, idx):
+		moves.append(ChessMove.new(Vector2i(col, row), Vector2i(1, row), ChessEnums.MoveType.CASTLING_KINGSIDE, ChessEnums.PieceType.KING, color))
+	if ((castling_rights >> qs_bit) & 1) == 1 and _can_castle_queenside(color, idx):
+		moves.append(ChessMove.new(Vector2i(col, row), Vector2i(5, row), ChessEnums.MoveType.CASTLING_QUEENSIDE, ChessEnums.PieceType.KING, color))
 
 	return moves
+
+func _can_castle_kingside(color: int, king_idx: int) -> bool:
+	var row: int = 0 if color == WHITE else 7
+	if king_idx != _sq_to_index(3, row):
+		return false
+	var rook_idx := _sq_to_index(0, row)
+	if board[king_idx] != _piece_code(ChessEnums.PieceType.KING, color):
+		return false
+	if board[rook_idx] != _piece_code(ChessEnums.PieceType.ROOK, color):
+		return false
+	if board[_sq_to_index(2, row)] != 0 or board[_sq_to_index(1, row)] != 0:
+		return false
+	if _is_square_attacked(king_idx, 1 - color):
+		return false
+	if _is_square_attacked(_sq_to_index(2, row), 1 - color) or _is_square_attacked(_sq_to_index(1, row), 1 - color):
+		return false
+	return true
+
+func _can_castle_queenside(color: int, king_idx: int) -> bool:
+	var row: int = 0 if color == WHITE else 7
+	if king_idx != _sq_to_index(3, row):
+		return false
+	var rook_idx := _sq_to_index(7, row)
+	if board[king_idx] != _piece_code(ChessEnums.PieceType.KING, color):
+		return false
+	if board[rook_idx] != _piece_code(ChessEnums.PieceType.ROOK, color):
+		return false
+	if board[_sq_to_index(4, row)] != 0 or board[_sq_to_index(5, row)] != 0 or board[_sq_to_index(6, row)] != 0:
+		return false
+	if _is_square_attacked(king_idx, 1 - color):
+		return false
+	if _is_square_attacked(_sq_to_index(4, row), 1 - color) or _is_square_attacked(_sq_to_index(5, row), 1 - color):
+		return false
+	return true
 
 func _is_square_attacked(idx: int, by_color: int) -> bool:
 	var col: int = idx % 8
@@ -402,10 +428,10 @@ func _update_castling_rights(mv: ChessMove) -> void:
 			castling_rights &= ~0b1100
 
 	var rook_squares: Dictionary = {
-		_sq_to_index(0, 0): 1,
-		_sq_to_index(7, 0): 0,
-		_sq_to_index(0, 7): 3,
-		_sq_to_index(7, 7): 2,
+		_sq_to_index(0, 0): 0,
+		_sq_to_index(7, 0): 1,
+		_sq_to_index(0, 7): 2,
+		_sq_to_index(7, 7): 3,
 	}
 	var from_idx: int = _sq_to_index(mv.from_sq.x, mv.from_sq.y)
 	var to_idx: int = _sq_to_index(mv.to_sq.x, mv.to_sq.y)

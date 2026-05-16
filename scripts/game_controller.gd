@@ -546,8 +546,8 @@ func _animate_move(mv: ChessMove) -> void:
 
 		ChessEnums.MoveType.CASTLING_KINGSIDE:
 			_sq_pieces[mv.to_sq] = piece
-			var rook_from := Vector2i(7, mv.from_sq.y)
-			var rook_to   := Vector2i(5, mv.from_sq.y)
+			var rook_from := Vector2i(0, mv.from_sq.y)
+			var rook_to   := Vector2i(2, mv.from_sq.y)
 			var rook: BasePiece = _sq_pieces.get(rook_from)
 			_sq_pieces.erase(rook_from)
 			if rook:
@@ -559,8 +559,8 @@ func _animate_move(mv: ChessMove) -> void:
 
 		ChessEnums.MoveType.CASTLING_QUEENSIDE:
 			_sq_pieces[mv.to_sq] = piece
-			var rook_from := Vector2i(0, mv.from_sq.y)
-			var rook_to   := Vector2i(3, mv.from_sq.y)
+			var rook_from := Vector2i(7, mv.from_sq.y)
+			var rook_to   := Vector2i(4, mv.from_sq.y)
 			var rook: BasePiece = _sq_pieces.get(rook_from)
 			_sq_pieces.erase(rook_from)
 			if rook:

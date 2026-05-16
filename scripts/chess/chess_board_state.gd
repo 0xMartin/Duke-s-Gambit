@@ -35,14 +35,14 @@ var move_history: Array = []   # Array[ChessMove]
 #	"pppppppp",
 #	"rnbqkbnr",
 const DEFAULT_START_LAYOUT: Array[String] = [
-	"RNBQKBNR",
-	"PPPPPPPP",
+	"R..QKQ.R",
+	".PP.P.P.",
 	"........",
 	"........",
 	"........",
 	"........",
-	"pppppppp",
-	"rnbqkbnr",
+	".pp.p.p.",
+	"r..qkq.r",
 ]
 
 # ── Signals (connected by GameController) ──────────────────────────────────
@@ -65,7 +65,7 @@ func _init_board() -> void:
 func setup_start_position(layout: Array[String] = DEFAULT_START_LAYOUT) -> void:
 	_init_board()
 	active_color = ChessEnums.PieceColor.WHITE
-	castling_rights = 0b1111
+	castling_rights = 0
 	en_passant_sq = Vector2i(-1, -1)
 	halfmove_clock = 0
 	fullmove_number = 1
@@ -91,6 +91,8 @@ func setup_start_position(layout: Array[String] = DEFAULT_START_LAYOUT) -> void:
 				"q": _place(col, row, ChessEnums.PieceType.QUEEN,  ChessEnums.PieceColor.WHITE)
 				"k": _place(col, row, ChessEnums.PieceType.KING,   ChessEnums.PieceColor.WHITE)
 				_: pass
+
+	castling_rights = _compute_initial_castling_rights()
 
 func _place(col: int, row: int, type: int, color: int) -> void:
 	board[col][row] = { "type": type, "color": color }
@@ -251,21 +253,71 @@ func _king_moves(sq: Vector2i, color: int) -> Array:
 	var ks_bit: int = 0 if color == ChessEnums.PieceColor.WHITE else 2  # kingside bit
 	var qs_bit: int = 1 if color == ChessEnums.PieceColor.WHITE else 3  # queenside bit
 
-	if (castling_rights >> ks_bit) & 1:
-		if is_empty(Vector2i(5, row)) and is_empty(Vector2i(6, row)):
-			if not _square_attacked(sq, color) \
-			and not _square_attacked(Vector2i(5, row), color) \
-			and not _square_attacked(Vector2i(6, row), color):
-				moves.append(ChessMove.new(sq, Vector2i(6, row), ChessEnums.MoveType.CASTLING_KINGSIDE, ChessEnums.PieceType.KING, color))
+	if ((castling_rights >> ks_bit) & 1) and _can_castle_kingside(color, sq):
+		moves.append(ChessMove.new(sq, Vector2i(1, row), ChessEnums.MoveType.CASTLING_KINGSIDE, ChessEnums.PieceType.KING, color))
 
-	if (castling_rights >> qs_bit) & 1:
-		if is_empty(Vector2i(3, row)) and is_empty(Vector2i(2, row)) and is_empty(Vector2i(1, row)):
-			if not _square_attacked(sq, color) \
-			and not _square_attacked(Vector2i(3, row), color) \
-			and not _square_attacked(Vector2i(2, row), color):
-				moves.append(ChessMove.new(sq, Vector2i(2, row), ChessEnums.MoveType.CASTLING_QUEENSIDE, ChessEnums.PieceType.KING, color))
+	if ((castling_rights >> qs_bit) & 1) and _can_castle_queenside(color, sq):
+		moves.append(ChessMove.new(sq, Vector2i(5, row), ChessEnums.MoveType.CASTLING_QUEENSIDE, ChessEnums.PieceType.KING, color))
 
 	return moves
+
+func _can_castle_kingside(color: int, king_sq: Vector2i) -> bool:
+	var row: int = 0 if color == ChessEnums.PieceColor.WHITE else 7
+	if king_sq != Vector2i(3, row):
+		return false
+	var king_piece := get_piece(king_sq)
+	if king_piece.is_empty() or king_piece["type"] != ChessEnums.PieceType.KING or king_piece["color"] != color:
+		return false
+	var rook_sq := Vector2i(0, row)
+	var rook_piece := get_piece(rook_sq)
+	if rook_piece.is_empty() or rook_piece["type"] != ChessEnums.PieceType.ROOK or rook_piece["color"] != color:
+		return false
+	if not is_empty(Vector2i(2, row)) or not is_empty(Vector2i(1, row)):
+		return false
+	if _square_attacked(king_sq, color):
+		return false
+	if _square_attacked(Vector2i(2, row), color) or _square_attacked(Vector2i(1, row), color):
+		return false
+	return true
+
+func _can_castle_queenside(color: int, king_sq: Vector2i) -> bool:
+	var row: int = 0 if color == ChessEnums.PieceColor.WHITE else 7
+	if king_sq != Vector2i(3, row):
+		return false
+	var king_piece := get_piece(king_sq)
+	if king_piece.is_empty() or king_piece["type"] != ChessEnums.PieceType.KING or king_piece["color"] != color:
+		return false
+	var rook_sq := Vector2i(7, row)
+	var rook_piece := get_piece(rook_sq)
+	if rook_piece.is_empty() or rook_piece["type"] != ChessEnums.PieceType.ROOK or rook_piece["color"] != color:
+		return false
+	if not is_empty(Vector2i(4, row)) or not is_empty(Vector2i(5, row)) or not is_empty(Vector2i(6, row)):
+		return false
+	if _square_attacked(king_sq, color):
+		return false
+	if _square_attacked(Vector2i(4, row), color) or _square_attacked(Vector2i(5, row), color):
+		return false
+	return true
+
+func _compute_initial_castling_rights() -> int:
+	var rights := 0
+	var white_king := get_piece(Vector2i(3, 0))
+	if not white_king.is_empty() and white_king["type"] == ChessEnums.PieceType.KING and white_king["color"] == ChessEnums.PieceColor.WHITE:
+		var white_rook_h := get_piece(Vector2i(0, 0))
+		if not white_rook_h.is_empty() and white_rook_h["type"] == ChessEnums.PieceType.ROOK and white_rook_h["color"] == ChessEnums.PieceColor.WHITE:
+			rights |= 0b0001
+		var white_rook_a := get_piece(Vector2i(7, 0))
+		if not white_rook_a.is_empty() and white_rook_a["type"] == ChessEnums.PieceType.ROOK and white_rook_a["color"] == ChessEnums.PieceColor.WHITE:
+			rights |= 0b0010
+	var black_king := get_piece(Vector2i(3, 7))
+	if not black_king.is_empty() and black_king["type"] == ChessEnums.PieceType.KING and black_king["color"] == ChessEnums.PieceColor.BLACK:
+		var black_rook_h := get_piece(Vector2i(0, 7))
+		if not black_rook_h.is_empty() and black_rook_h["type"] == ChessEnums.PieceType.ROOK and black_rook_h["color"] == ChessEnums.PieceColor.BLACK:
+			rights |= 0b0100
+		var black_rook_a := get_piece(Vector2i(7, 7))
+		if not black_rook_a.is_empty() and black_rook_a["type"] == ChessEnums.PieceType.ROOK and black_rook_a["color"] == ChessEnums.PieceColor.BLACK:
+			rights |= 0b1000
+	return rights
 
 # ── Check Detection ────────────────────────────────────────────────────────
 func _square_attacked(sq: Vector2i, defender_color: int) -> bool:
@@ -392,12 +444,12 @@ func _apply_move_internal(mv: ChessMove) -> void:
 	# Castling — move rook
 	if mv.move_type == ChessEnums.MoveType.CASTLING_KINGSIDE:
 		var row := mv.from_sq.y
-		board[5][row] = board[7][row]
-		board[7][row] = null
+		board[2][row] = board[0][row]
+		board[0][row] = null
 	elif mv.move_type == ChessEnums.MoveType.CASTLING_QUEENSIDE:
 		var row := mv.from_sq.y
-		board[3][row] = board[0][row]
-		board[0][row] = null
+		board[4][row] = board[7][row]
+		board[7][row] = null
 
 func _undo_move_internal(mv: ChessMove) -> void:
 	var piece: Variant = board[mv.to_sq.x][mv.to_sq.y]
@@ -422,12 +474,12 @@ func _undo_move_internal(mv: ChessMove) -> void:
 	# Undo castling rook
 	if mv.move_type == ChessEnums.MoveType.CASTLING_KINGSIDE:
 		var row := mv.from_sq.y
-		board[7][row] = board[5][row]
-		board[5][row] = null
+		board[0][row] = board[2][row]
+		board[2][row] = null
 	elif mv.move_type == ChessEnums.MoveType.CASTLING_QUEENSIDE:
 		var row := mv.from_sq.y
-		board[0][row] = board[3][row]
-		board[3][row] = null
+		board[7][row] = board[4][row]
+		board[4][row] = null
 
 	# Restore state
 	en_passant_sq = mv.prev_en_passant_sq
@@ -443,10 +495,10 @@ func _update_castling_rights(mv: ChessMove) -> void:
 			castling_rights &= ~0b1100
 	# Rook moves or captures
 	var rook_squares: Dictionary = {
-		Vector2i(0, 0): 1,  # W queenside
-		Vector2i(7, 0): 0,  # W kingside
-		Vector2i(0, 7): 3,  # B queenside
-		Vector2i(7, 7): 2,  # B kingside
+		Vector2i(0, 0): 0,  # W kingside (h1 in mirrored coords)
+		Vector2i(7, 0): 1,  # W queenside (a1 in mirrored coords)
+		Vector2i(0, 7): 2,  # B kingside
+		Vector2i(7, 7): 3,  # B queenside
 	}
 	for sq: Vector2i in rook_squares:
 		if mv.from_sq == sq or mv.to_sq == sq:
