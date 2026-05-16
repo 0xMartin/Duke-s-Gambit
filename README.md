@@ -32,7 +32,6 @@ Firewall / Závorky jako bariéra
 Archiválie / Knihovny
 floppy disky
 
-- historie tahu ve hre (po leve strane)
 - globalni velepseni UI
 
 - Server + moznost hrat online

@@ -6,10 +6,20 @@ extends Control
 
 # ── Constants ──────────────────────────────────────────────────────────────
 const ICON_SIZE  := 36
+const HISTORY_ICON_SIZE := 38
 
 ## Maps PieceType int → piece name used in the SVG filename.
 const PIECE_NAMES: Dictionary = {
 	1: "pawn", 2: "rook", 3: "knight", 4: "bishop", 5: "queen", 6: "king"
+}
+
+const PIECE_LETTERS: Dictionary = {
+	ChessEnums.PieceType.PAWN: "",
+	ChessEnums.PieceType.ROOK: "R",
+	ChessEnums.PieceType.KNIGHT: "N",
+	ChessEnums.PieceType.BISHOP: "B",
+	ChessEnums.PieceType.QUEEN: "Q",
+	ChessEnums.PieceType.KING: "K",
 }
 
 # ── Internal node refs (wired from scene) ──────────────────────────────────
@@ -19,6 +29,17 @@ var _timer_lbl:   Array = [null, null]
 var _captured_hf: Array = [null, null]  # HFlowContainer
 var _turn_ind:    Array = [null, null]  # ColorRect active stripe
 var _panel_style: Array = [null, null]  # StyleBoxFlat per player panel
+var _history_panel: PanelContainer = null
+var _history_list: VBoxContainer = null
+var _history_scroll: ScrollContainer = null
+var _history_collapse_btn: Button = null
+var _history_expand_btn: Button = null
+var _history_collapsed: bool = false
+var _history_tween: Tween = null
+var _history_ply_count: int = 0
+var _history_panel_left_expanded: float = 8.0
+var _history_panel_width: float = 300.0
+var _history_scroll_retry_count: int = 0
 
 var _active_color: int = ChessEnums.PieceColor.WHITE
 var _has_time_limit: bool = false  # true = countdown mode
@@ -42,6 +63,19 @@ func _ready() -> void:
 	_panel_style[ChessEnums.PieceColor.WHITE] = white_panel.get_theme_stylebox("panel") as StyleBoxFlat
 	_panel_style[ChessEnums.PieceColor.BLACK] = black_panel.get_theme_stylebox("panel") as StyleBoxFlat
 
+	_history_panel = get_node_or_null("../MoveHistoryPanel") as PanelContainer
+	_history_scroll = get_node_or_null("../MoveHistoryPanel/Margin/VBox/HistoryScroll") as ScrollContainer
+	_history_list = get_node_or_null("../MoveHistoryPanel/Margin/VBox/HistoryScroll/HistoryList") as VBoxContainer
+	_history_collapse_btn = get_node_or_null("../MoveHistoryPanel/Margin/VBox/Header/CollapseButton") as Button
+	_history_expand_btn = get_node_or_null("../MoveHistoryExpandButton") as Button
+	if _history_collapse_btn != null:
+		_history_collapse_btn.pressed.connect(_collapse_history)
+	if _history_expand_btn != null:
+		_history_expand_btn.pressed.connect(_expand_history)
+	_apply_history_theme()
+	reset_move_history()
+	_set_history_minimized(true, true)
+
 # ── Public API ─────────────────────────────────────────────────────────────
 
 func setup(white_name: String, white_elo: int,
@@ -58,6 +92,217 @@ func setup(white_name: String, white_elo: int,
 			child.queue_free()
 
 	set_active_player(ChessEnums.PieceColor.WHITE)
+	reset_move_history()
+
+func reset_move_history() -> void:
+	_history_ply_count = 0
+	if _history_list == null:
+		return
+	for child in _history_list.get_children():
+		child.queue_free()
+	if _history_scroll != null:
+		_history_scroll.scroll_vertical = 0
+
+func append_move_to_history(mv: ChessMove) -> void:
+	if _history_list == null:
+		return
+
+	_history_ply_count += 1
+	var move_no := int((_history_ply_count + 1) / 2)
+	var is_white_move := mv.piece_color == ChessEnums.PieceColor.WHITE
+	var turn_prefix := "%d." % move_no if is_white_move else "%d..." % move_no
+
+	var row := HBoxContainer.new()
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_theme_constant_override("separation", 12)
+
+	var turn_lbl := Label.new()
+	turn_lbl.custom_minimum_size = Vector2(72, 0)
+	turn_lbl.text = turn_prefix
+	turn_lbl.add_theme_font_size_override("font_size", 22)
+	turn_lbl.add_theme_color_override("font_color", Color(0.86, 0.86, 0.90, 1.0))
+	row.add_child(turn_lbl)
+
+	var piece_icon := _build_piece_icon(mv.piece_color, mv.piece_type, HISTORY_ICON_SIZE)
+	if piece_icon != null:
+		row.add_child(piece_icon)
+
+	if mv.is_capture():
+		var x_lbl := Label.new()
+		x_lbl.text = "x"
+		x_lbl.add_theme_font_size_override("font_size", 24)
+		x_lbl.add_theme_color_override("font_color", Color(1.0, 0.3, 0.2, 1.0))
+		row.add_child(x_lbl)
+
+		var cap_icon := _build_piece_icon(1 - mv.piece_color, mv.captured_type, HISTORY_ICON_SIZE)
+		if cap_icon != null:
+			row.add_child(cap_icon)
+
+	var move_lbl := Label.new()
+	move_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	move_lbl.text = _move_notation(mv)
+	move_lbl.add_theme_font_size_override("font_size", 22)
+	move_lbl.add_theme_color_override("font_color", Color(0.95, 0.93, 0.88, 1.0))
+	row.add_child(move_lbl)
+
+	_history_list.add_child(row)
+	_scroll_history_to_bottom()
+
+func _scroll_history_to_bottom() -> void:
+	# Deferred with a short retry so we still reach the true bottom after late layout updates.
+	_history_scroll_retry_count = 3
+	_apply_history_scroll_bottom.call_deferred()
+
+func _apply_history_scroll_bottom() -> void:
+	if _history_scroll == null:
+		return
+	var bar := _history_scroll.get_v_scroll_bar()
+	if bar == null:
+		return
+	_history_scroll.scroll_vertical = 1000000
+	if _history_scroll_retry_count > 0:
+		_history_scroll_retry_count -= 1
+		if bar.value < bar.max_value - 1.0:
+			_apply_history_scroll_bottom.call_deferred()
+
+func _piece_icon_path(color: int, piece_type: int) -> String:
+	if not PIECE_NAMES.has(piece_type):
+		return ""
+	var side := "white" if color == ChessEnums.PieceColor.WHITE else "black"
+	return "res://assets/textures/pieces/%s_%s.svg" % [side, PIECE_NAMES[piece_type]]
+
+func _build_piece_icon(color: int, piece_type: int, size: int) -> Control:
+	var path := _piece_icon_path(color, piece_type)
+	if path == "" or not ResourceLoader.exists(path):
+		return null
+
+	var frame := PanelContainer.new()
+	frame.custom_minimum_size = Vector2(size + 8, size + 8)
+	var frame_style := StyleBoxFlat.new()
+	frame_style.set_corner_radius_all(6)
+	frame_style.set_border_width_all(1)
+	if color == ChessEnums.PieceColor.BLACK:
+		frame_style.bg_color = Color(0.92, 0.92, 0.96, 0.92)
+		frame_style.border_color = Color(0.20, 0.20, 0.24, 0.65)
+	else:
+		frame_style.bg_color = Color(0.14, 0.16, 0.24, 0.92)
+		frame_style.border_color = Color(0.90, 0.90, 0.95, 0.45)
+	frame.add_theme_stylebox_override("panel", frame_style)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 3)
+	margin.add_theme_constant_override("margin_top", 3)
+	margin.add_theme_constant_override("margin_right", 3)
+	margin.add_theme_constant_override("margin_bottom", 3)
+	frame.add_child(margin)
+
+	var icon := TextureRect.new()
+	icon.texture = load(path) as Texture2D
+	icon.custom_minimum_size = Vector2(size, size)
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	margin.add_child(icon)
+	return frame
+
+func _move_notation(mv: ChessMove) -> String:
+	match mv.move_type:
+		ChessEnums.MoveType.CASTLING_KINGSIDE:
+			return "O-O"
+		ChessEnums.MoveType.CASTLING_QUEENSIDE:
+			return "O-O-O"
+		_:
+			pass
+
+	var piece_letter: String = String(PIECE_LETTERS.get(mv.piece_type, ""))
+	var from_file := String.chr(97 + mv.from_sq.x)
+	var capture_mark := "x" if mv.is_capture() else ""
+	var to_sq := _sq_to_notation(mv.to_sq)
+
+	if mv.piece_type == ChessEnums.PieceType.PAWN and mv.is_capture():
+		piece_letter = from_file
+
+	var notation := "%s%s%s" % [piece_letter, capture_mark, to_sq]
+	if mv.move_type == ChessEnums.MoveType.PROMOTION or mv.move_type == ChessEnums.MoveType.PROMOTION_CAPTURE:
+		notation += "=" + String(PIECE_LETTERS.get(mv.promotion_type, "Q"))
+	if mv.move_type == ChessEnums.MoveType.EN_PASSANT:
+		notation += " e.p."
+	return notation
+
+func _sq_to_notation(sq: Vector2i) -> String:
+	return "%s%d" % [String.chr(97 + sq.x), sq.y + 1]
+
+func _apply_history_theme() -> void:
+	if _history_panel != null:
+		var panel_style := StyleBoxFlat.new()
+		panel_style.bg_color = Color(0.03, 0.04, 0.09, 0.88)
+		panel_style.border_color = Color(0.72, 0.58, 0.16, 0.85)
+		panel_style.set_border_width_all(2)
+		panel_style.set_corner_radius_all(10)
+		_history_panel.add_theme_stylebox_override("panel", panel_style)
+		var title_lbl := _history_panel.get_node_or_null("Margin/VBox/Header/Title") as Label
+		if title_lbl != null:
+			title_lbl.add_theme_font_size_override("font_size", 24)
+
+	if _history_collapse_btn != null:
+		_history_collapse_btn.text = "◀"
+		_history_collapse_btn.custom_minimum_size = Vector2(34, 28)
+
+	if _history_expand_btn != null:
+		_history_expand_btn.text = "▶"
+		_history_expand_btn.visible = false
+		_history_expand_btn.custom_minimum_size = Vector2(26, 84)
+
+	if _history_panel != null:
+		_history_panel_left_expanded = _history_panel.offset_left
+		_history_panel_width = _history_panel.offset_right - _history_panel.offset_left
+
+func _collapse_history() -> void:
+	_set_history_minimized(true)
+
+func _expand_history() -> void:
+	_set_history_minimized(false)
+
+func _set_history_minimized(minimized: bool, instant: bool = false) -> void:
+	if _history_panel == null:
+		return
+	if _history_collapsed == minimized and not instant:
+		return
+
+	_history_collapsed = minimized
+	if _history_tween:
+		_history_tween.kill()
+		_history_tween = null
+
+	if minimized:
+		if _history_expand_btn != null:
+			_history_expand_btn.visible = true
+		if instant:
+			_history_panel.offset_left = -_history_panel_width - 12.0
+			_history_panel.offset_right = -12.0
+			_history_panel.visible = false
+			return
+		_history_panel.visible = true
+		_history_tween = create_tween()
+		_history_tween.tween_property(_history_panel, "offset_left", -_history_panel_width - 12.0, 0.20)
+		_history_tween.parallel().tween_property(_history_panel, "offset_right", -12.0, 0.20)
+		_history_tween.finished.connect(func() -> void:
+			if _history_collapsed and _history_panel != null:
+				_history_panel.visible = false
+		)
+		return
+
+	# Expanded state
+	_history_panel.visible = true
+	if _history_expand_btn != null:
+		_history_expand_btn.visible = false
+	if instant:
+		_history_panel.offset_left = _history_panel_left_expanded
+		_history_panel.offset_right = _history_panel_left_expanded + _history_panel_width
+		return
+	_history_tween = create_tween()
+	_history_tween.tween_property(_history_panel, "offset_left", _history_panel_left_expanded, 0.20)
+	_history_tween.parallel().tween_property(_history_panel, "offset_right", _history_panel_left_expanded + _history_panel_width, 0.20)
+	_history_tween.finished.connect(_scroll_history_to_bottom)
 
 func set_active_player(color: int) -> void:
 	_active_color = color
@@ -108,15 +353,7 @@ func refresh_captured(capturing_color: int, captured_types: Array) -> void:
 	var opponent_str: String = "black" if capturing_color == ChessEnums.PieceColor.WHITE \
 							   else "white"
 	for piece_type: int in captured_types:
-		if not PIECE_NAMES.has(piece_type):
-			continue
-		var path: String = "res://assets/textures/pieces/%s_%s.svg" \
-						   % [opponent_str, PIECE_NAMES[piece_type]]
-		if not ResourceLoader.exists(path):
-			continue
-		var icon := TextureRect.new()
-		icon.texture = load(path) as Texture2D
-		icon.custom_minimum_size = Vector2(ICON_SIZE, ICON_SIZE)
-		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		icon.expand_mode  = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
-		container.add_child(icon)
+		var color := ChessEnums.PieceColor.BLACK if opponent_str == "black" else ChessEnums.PieceColor.WHITE
+		var icon := _build_piece_icon(color, piece_type, ICON_SIZE)
+		if icon != null:
+			container.add_child(icon)

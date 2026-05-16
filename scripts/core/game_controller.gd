@@ -196,6 +196,8 @@ func start_game() -> void:
 			_player_names[ChessEnums.PieceColor.BLACK], _player_elos[ChessEnums.PieceColor.BLACK],
 			_time_control_ms > 0
 		)
+		if _hud.has_method("reset_move_history"):
+			_hud.call("reset_move_history")
 	_start_turn()
 
 func _human_player_color() -> int:
@@ -572,6 +574,8 @@ func _on_move_chosen(mv: ChessMove) -> void:
 
 	await _animate_move(mv)
 	_board.highlight_last_move(mv.from_sq, mv.to_sq)
+	if _hud != null and _hud.has_method("append_move_to_history"):
+		_hud.call("append_move_to_history", mv)
 	_busy = false
 
 	# After a kill-cam capture, hold the view for 2 s so the player can appreciate the moment.
