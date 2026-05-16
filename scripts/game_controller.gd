@@ -54,6 +54,10 @@ var _time_remaining_ms: Array = [0, 0]  # [white, black]
 var _game_over_shown:   bool = false
 var _sfx_select: AudioStreamPlayer = null
 
+# Promotion impact (same assets as BasePiece death effect)
+const _PROMO_VFX_IMPACT_SCENE: PackedScene = preload("res://assets/BinbunVFX_Vol2/StylizedHitFX/effects/big_impact/vfx_big_impact_02.tscn")
+const _PROMO_SFX_SPELL: AudioStream = preload("res://assets/sounds/spell.mp3")
+
 # Signals
 signal game_over(winner_color: int, reason: int)   # reason = ChessEnums.GameState
 signal promotion_needed(sq: Vector2i, color: int)
@@ -520,11 +524,34 @@ func _animate_move(mv: ChessMove) -> void:
 		_swap_promoted_piece(piece, mv)
 
 func _swap_promoted_piece(old_piece: BasePiece, mv: ChessMove) -> void:
+	_spawn_promotion_impact(_board.sq_to_world(mv.to_sq))
 	old_piece.queue_free()
 	_sq_pieces.erase(mv.to_sq)
 	var new_piece := _spawn_piece(mv.to_sq, mv.promotion_type, mv.piece_color)
 	if new_piece:
 		new_piece.global_position = _board.sq_to_world(mv.to_sq)
+
+func _spawn_promotion_impact(world_pos: Vector3) -> void:
+	# Same effect as death impact; scaled up by 20% for promotion emphasis.
+	var vfx: Node3D = _PROMO_VFX_IMPACT_SCENE.instantiate() as Node3D
+	get_tree().root.add_child(vfx)
+	vfx.global_position = world_pos + Vector3(0, 0.5, 0)
+	vfx.scale = vfx.scale * 1.2
+	vfx.set("one_shot", true)
+	if vfx.has_method("play"):
+		vfx.call("play")
+	get_tree().create_timer(4.0).timeout.connect(func() -> void:
+		if is_instance_valid(vfx):
+			vfx.queue_free())
+
+	# Same spell SFX as death impact; root-level so it survives piece swap.
+	var tmp := AudioStreamPlayer.new()
+	tmp.bus = "SFX"
+	get_tree().root.add_child(tmp)
+	tmp.stream = _PROMO_SFX_SPELL
+	tmp.volume_db = -6.0
+	tmp.finished.connect(tmp.queue_free)
+	tmp.play()
 
 # ── Pawn promotion UI ──────────────────────────────────────────────────────
 func _on_promotion_required(sq: Vector2i, color: int) -> void:
