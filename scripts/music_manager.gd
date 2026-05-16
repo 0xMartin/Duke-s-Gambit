@@ -138,11 +138,12 @@ func _ensure_bus(bus_name: String) -> void:
 		AudioServer.set_bus_name(idx, bus_name)
 
 func _pct_to_db(pct: int) -> float:
-		if pct <= 0:
-			return -80.0 # úplné ztlumení
-		var linear: float = float(pct) / 100.0
-		var db: float = linear_to_db(linear)
-		# Omezit minimum na -40 dB (tiché, ale ne úplně ztlumené)
-		if db < -40.0:
-			db = -40.0
-		return db
+	# Keep 0% fully muted; 100% is unity gain (0 dB).
+	if pct <= 0:
+		return -80.0
+
+	# Perceptual curve: spreads useful changes across the full slider range,
+	# so 20-100% is not "all the same" and low values are less jumpy.
+	var t: float = clamp(float(pct) / 100.0, 0.0, 1.0)
+	var perceptual: float = pow(t, 2.2)
+	return linear_to_db(perceptual)
