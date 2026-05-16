@@ -54,4 +54,5 @@ camera_zoom_out={
 
 [rendering]
 
+renderer/rendering_method="mobile"
 environment/defaults/default_clear_color=Color(0.08, 0.08, 0.12, 1)
