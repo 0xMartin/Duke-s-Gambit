@@ -98,7 +98,7 @@ corner_radius_bottom_right = 42
 corner_radius_bottom_left = 42
 
 [sub_resource type="Curve" id="Curve_kvpfn"]
-_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.220339, 0.46033704), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.188862, 0.17180437), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
 point_count = 3
 
 [sub_resource type="CurveTexture" id="CurveTexture_kvpfn"]
@@ -160,23 +160,56 @@ albedo_texture = SubResource("GradientTexture2D_dinhu")
 material = SubResource("StandardMaterial3D_kvuet")
 size = Vector2(0.15, 0.15)
 
+[sub_resource type="Curve" id="Curve_dinhu"]
+_data = [Vector2(0, 0), 0.0, 3.3448691, 0, 1, Vector2(0.2542373, 0.8503905), 0.0, 0.0, 0, 0, Vector2(1, 0.40957665), -0.5910913, 0.0, 1, 0]
+point_count = 3
+
+[sub_resource type="CurveTexture" id="CurveTexture_kvuet"]
+curve = SubResource("Curve_dinhu")
+
+[sub_resource type="Gradient" id="Gradient_trtic"]
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_ir15t"]
+gradient = SubResource("Gradient_trtic")
+
+[sub_resource type="Curve" id="Curve_ca42v"]
+_data = [Vector2(0.24455208, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="CurveTexture_rysoc"]
+curve = SubResource("Curve_ca42v")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_dinhu"]
+lifetime_randomness = 0.21
+emission_shape_scale = Vector3(1, 0.5, 1)
+emission_shape = 3
+emission_box_extents = Vector3(1, 1, 1)
+direction = Vector3(0, 1, 0)
+spread = 30.0
+initial_velocity_min = 0.5
+initial_velocity_max = 1.0
+gravity = Vector3(0, 0, 0)
+scale_curve = SubResource("CurveTexture_rysoc")
+color = Color(0.3801375, 0.16915777, 0.028219251, 1)
+color_initial_ramp = SubResource("GradientTexture1D_ir15t")
+alpha_curve = SubResource("CurveTexture_kvuet")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_trtic"]
+transparency = 1
+vertex_color_use_as_albedo = true
+
+[sub_resource type="QuadMesh" id="QuadMesh_ir15t"]
+material = SubResource("StandardMaterial3D_trtic")
+size = Vector2(0.5, 0.5)
+
 [node name="GameScene" type="Node3D" unique_id=345240271]
 script = ExtResource("1")
-
-[node name="Terrain" parent="." unique_id=121026107 instance=ExtResource("7")]
-transform = Transform3D(0.45, 0, 0, 0, 0.45, 0, 0, 0, 0.45, 0.005435705, -0.50431836, -0.00023984909)
-
-[node name="Board" parent="." unique_id=1969348578 instance=ExtResource("2")]
-
-[node name="OrbitCamera" parent="." unique_id=1004584700 instance=ExtResource("3")]
-
-[node name="Pieces" type="Node3D" parent="." unique_id=1526320121]
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=269389637]
 environment = SubResource("Env1")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=218313874]
-transform = Transform3D(0.707, -0.5, 0.5, 0, 0.707, 0.707, -0.707, -0.5, 0.5, 0, 8, 0)
+transform = Transform3D(0.70710677, -0.5000378, 0.49996227, 0, 0.7070534, 0.70716023, -0.70710677, -0.5000378, 0.49996227, 0, 8, 0)
 light_energy = 0.6
 shadow_enabled = true
 
@@ -549,17 +582,26 @@ size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 36
 text = "Knight"
 
+[node name="Terrain" parent="." unique_id=121026107 instance=ExtResource("7")]
+transform = Transform3D(0.45, 0, 0, 0, 0.45, 0, 0, 0, 0.45, 0.005435705, -0.50431836, -0.00023984909)
+
+[node name="Board" parent="." unique_id=1969348578 instance=ExtResource("2")]
+
+[node name="OrbitCamera" parent="." unique_id=1004584700 instance=ExtResource("3")]
+
+[node name="Pieces" type="Node3D" parent="." unique_id=1526320121]
+
 [node name="BlackFlag" parent="." unique_id=1452135619 instance=ExtResource("10_vtaks")]
 transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, -5.6745462, 4.2154307, 7.202332)
 
 [node name="WhiteFlag" parent="." unique_id=1144272281 instance=ExtResource("11_kvpfn")]
 transform = Transform3D(-1, -8.742278e-08, 3.821371e-15, 0, -4.371139e-08, -1, 8.742278e-08, -1, 4.371139e-08, 5.6743207, 4.5280175, -7.202)
 
-[node name="CPUParticles3D" type="GPUParticles3D" parent="." unique_id=344429125]
+[node name="DustParticles" type="GPUParticles3D" parent="." unique_id=344429125]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.4352119, 0)
 cast_shadow = 0
 visibility_range_fade_mode = 1
-amount = 250
+amount = 200
 lifetime = 8.0
 randomness = 0.26
 fixed_fps = 0
@@ -567,3 +609,35 @@ visibility_aabb = AABB(-4, -4, -4, 80, 80, 80)
 transform_align = 1
 process_material = SubResource("ParticleProcessMaterial_kvpfn")
 draw_pass_1 = SubResource("QuadMesh_trtic")
+
+[node name="CupParticles1" type="GPUParticles3D" parent="." unique_id=645091759]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11.187263, 1.2404153, -1.4640417)
+amount = 15
+lifetime = 5.0
+transform_align = 1
+process_material = SubResource("ParticleProcessMaterial_dinhu")
+draw_pass_1 = SubResource("QuadMesh_ir15t")
+
+[node name="CupParticles2" type="GPUParticles3D" parent="." unique_id=2109526035]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.938821, 1.2696118, 6.323589)
+amount = 15
+lifetime = 5.0
+transform_align = 1
+process_material = SubResource("ParticleProcessMaterial_dinhu")
+draw_pass_1 = SubResource("QuadMesh_ir15t")
+
+[node name="CupParticles3" type="GPUParticles3D" parent="." unique_id=1418757217]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17.534225, 1.8061094, -6.2001767)
+amount = 30
+lifetime = 5.0
+transform_align = 1
+process_material = SubResource("ParticleProcessMaterial_dinhu")
+draw_pass_1 = SubResource("QuadMesh_ir15t")
+
+[node name="CupParticles4" type="GPUParticles3D" parent="." unique_id=1511731194]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26.409893, 3.1188111, 17.583021)
+amount = 30
+lifetime = 5.0
+transform_align = 1
+process_material = SubResource("ParticleProcessMaterial_dinhu")
+draw_pass_1 = SubResource("QuadMesh_ir15t")
