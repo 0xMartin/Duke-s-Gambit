@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://orbitcamera"]
 
-[ext_resource type="Script" uid="uid://dyn4rdlbirp4" path="res://scripts/orbit_camera.gd" id="1"]
+[ext_resource type="Script" uid="uid://dyn4rdlbirp4" path="res://scripts/camera/orbit_camera.gd" id="1"]
 
 [node name="OrbitCamera" type="Node3D" unique_id=1327931684]
 script = ExtResource("1")

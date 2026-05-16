@@ -18,9 +18,9 @@ config/icon="res://icon.svg"
 
 [autoload]
 
-SaveManager="*res://scripts/save_manager.gd"
-CameraConfig="*res://scripts/camera_config.gd"
-MusicManager="*res://scripts/music_manager.gd"
+SaveManager="*res://scripts/systems/save_manager.gd"
+CameraConfig="*res://scripts/camera/camera_config.gd"
+MusicManager="*res://scripts/systems/music_manager.gd"
 
 [display]
 

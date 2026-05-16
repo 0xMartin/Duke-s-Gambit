@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://game"]
 
-[ext_resource type="Script" uid="uid://cmjhqvwxae7oq" path="res://scripts/game_controller.gd" id="1"]
+[ext_resource type="Script" uid="uid://cmjhqvwxae7oq" path="res://scripts/core/game_controller.gd" id="1"]
 [ext_resource type="PackedScene" uid="uid://board" path="res://scenes/board.tscn" id="2"]
 [ext_resource type="PackedScene" uid="uid://orbitcamera" path="res://scenes/orbit_camera.tscn" id="3"]
 [ext_resource type="Script" uid="uid://c0ovcwq6s7tyi" path="res://scripts/ui/game_ui.gd" id="4"]
