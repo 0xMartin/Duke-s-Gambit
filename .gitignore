@@ -31,4 +31,4 @@ exports/
 saves/
 
 # SCons build files
-.sconsign.dblite
+native/dukes_ai/.sconsign.dblite
