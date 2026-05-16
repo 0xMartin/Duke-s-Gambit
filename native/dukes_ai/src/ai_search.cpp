@@ -265,38 +265,73 @@ Dictionary find_best_move_internal(Dictionary position, int32_t depth, int32_t t
 		// Best move from previous iteration goes first
 		order_moves_with_context(root_moves, ctx, 0);
 
-		int alpha = -100000;
-		const int beta = 100000;
+		auto search_root_with_window = [&](int alpha, int beta, int &out_score, Move &out_move) {
+			int local_alpha = alpha;
+			int local_best_score = -100000;
+			Move local_best_move = root_moves[0];
+			for (int i = 0; i < (int)root_moves.size(); ++i) {
+				if (now_ms() >= ctx.deadline_ms) {
+					ctx.timed_out = true;
+					break;
+				}
+				const Move &mv = root_moves[i];
+				state.make_move(mv);
+				int mv_score;
+				if (i == 0) {
+					mv_score = -minimax(state, current_depth - 1, -beta, -local_alpha, ctx);
+				} else {
+					mv_score = -minimax(state, current_depth - 1, -local_alpha - 1, -local_alpha, ctx);
+					if (!ctx.timed_out && mv_score > local_alpha && mv_score < beta) {
+						mv_score = -minimax(state, current_depth - 1, -beta, -local_alpha, ctx);
+					}
+				}
+				state.unmake_move();
+				if (ctx.timed_out) {
+					break;
+				}
+
+				if (mv_score > local_best_score) {
+					local_best_score = mv_score;
+					local_best_move = mv;
+				}
+				if (mv_score > local_alpha) {
+					local_alpha = mv_score;
+				}
+			}
+			out_score = local_best_score;
+			out_move = local_best_move;
+		};
+
 		int depth_best_score = -100000;
 		Move depth_best_move = best_move;
 
-		for (int i = 0; i < (int)root_moves.size(); ++i) {
-			if (now_ms() >= ctx.deadline_ms) {
-				ctx.timed_out = true;
+		if (current_depth == 1) {
+			search_root_with_window(-100000, 100000, depth_best_score, depth_best_move);
+		} else {
+			int guess = best_score;
+			int alpha = guess - 40;
+			int beta = guess + 40;
+			int delta = 40;
+			while (true) {
+				search_root_with_window(alpha, beta, depth_best_score, depth_best_move);
+				if (ctx.timed_out) {
+					break;
+				}
+				if (depth_best_score <= alpha) {
+					delta = std::min(delta * 2, 50000);
+					alpha = std::max(-100000, alpha - delta);
+					continue;
+				}
+				if (depth_best_score >= beta) {
+					delta = std::min(delta * 2, 50000);
+					beta = std::min(100000, beta + delta);
+					continue;
+				}
 				break;
 			}
-			const Move &mv = root_moves[i];
-			state.make_move(mv);
-			int mv_score;
-			if (i == 0) {
-				mv_score = -minimax(state, current_depth - 1, -beta, -alpha, ctx);
-			} else {
-				mv_score = -minimax(state, current_depth - 1, -alpha - 1, -alpha, ctx);
-				if (!ctx.timed_out && mv_score > alpha && mv_score < beta) {
-					mv_score = -minimax(state, current_depth - 1, -beta, -alpha, ctx);
-				}
-			}
-			state.unmake_move();
-			if (ctx.timed_out) break;
-
-			if (mv_score > depth_best_score) {
-				depth_best_score = mv_score;
-				depth_best_move = mv;
-			}
-			alpha = std::max(alpha, mv_score);
 		}
 
-		if (ctx.timed_out) break;
+		if (ctx.timed_out || depth_best_score <= -100000) break;
 
 		best_move = depth_best_move;
 		best_score = depth_best_score;

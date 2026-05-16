@@ -122,31 +122,49 @@ int quiescence(SearchState &state, int alpha, int beta, SearchContext &ctx, int 
 		const int eval = evaluate_position(state);
 		return state.active_color == WHITE ? eval : -eval;
 	}
-	
-	const int stand_pat = evaluate_position(state);
-	const int negamax_stand = state.active_color == WHITE ? stand_pat : -stand_pat;
-	if (negamax_stand >= beta) {
-		return beta;
-	}
-	if (alpha < negamax_stand) {
-		alpha = negamax_stand;
-	}
-	
-	std::vector<Move> legal = state.generate_legal_moves();
-	std::vector<Move> captures;
-	for (const Move &mv : legal) {
-		if (mv.is_capture()) {
-			captures.push_back(mv);
+
+	const bool in_check = state.is_in_check(state.active_color);
+	int best_value = -100000;
+
+	// Standing pat is only valid when not in check.
+	if (!in_check) {
+		const int stand_pat = evaluate_position(state);
+		const int negamax_stand = state.active_color == WHITE ? stand_pat : -stand_pat;
+		best_value = negamax_stand;
+		if (negamax_stand >= beta) {
+			return beta;
+		}
+		if (alpha < negamax_stand) {
+			alpha = negamax_stand;
 		}
 	}
-	
-	if (captures.empty()) {
-		return negamax_stand;
+
+	std::vector<Move> legal = state.generate_legal_moves();
+	if (legal.empty()) {
+		if (in_check) {
+			return -MATE_SCORE;
+		}
+		return best_value;
 	}
-	
-	order_moves(captures);
-	
-	for (const Move &mv : captures) {
+
+	std::vector<Move> qmoves;
+	if (in_check) {
+		// In check, all legal evasions must be searched.
+		qmoves = std::move(legal);
+	} else {
+		for (const Move &mv : legal) {
+			if (mv.is_capture()) {
+				qmoves.push_back(mv);
+			}
+		}
+		if (qmoves.empty()) {
+			return best_value;
+		}
+	}
+
+	order_moves(qmoves);
+
+	for (const Move &mv : qmoves) {
 		state.make_move(mv);
 		const int score = -quiescence(state, -beta, -alpha, ctx, depth - 1);
 		state.unmake_move();
@@ -154,12 +172,15 @@ int quiescence(SearchState &state, int alpha, int beta, SearchContext &ctx, int 
 		if (score >= beta) {
 			return beta;
 		}
+		if (score > best_value) {
+			best_value = score;
+		}
 		if (score > alpha) {
 			alpha = score;
 		}
 	}
 	
-	return alpha;
+	return best_value;
 }
 
 } // namespace dukes_ai
