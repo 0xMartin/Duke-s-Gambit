@@ -17,10 +17,12 @@ func _ready() -> void:
 	_suggest_panel.z_as_relative = false
 	_suggest_panel.z_index = 5000
 	_suggest_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	_suggest_panel.size = Vector2.ZERO
 	_line_edit.text_changed.connect(_on_text_changed)
 	_line_edit.focus_entered.connect(_on_focus_entered)
 	_line_edit.focus_exited.connect(_on_focus_exited)
 	_update_suggest_panel_position()
+	set_process_unhandled_input(true)
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_RESIZED:
@@ -54,7 +56,8 @@ func _on_text_changed(new_text: String) -> void:
 	emit_signal("value_changed", new_text)
 
 func _on_focus_entered() -> void:
-	_refresh_suggestions()
+	# Do not auto-open suggestions just because the input gained focus.
+	_hide_suggestions()
 
 func _on_focus_exited() -> void:
 	# Keep list open when focus moves to suggestion buttons.
@@ -70,6 +73,9 @@ func _hide_if_no_child_has_focus() -> void:
 
 func _refresh_suggestions() -> void:
 	if not _line_edit.has_focus() or _profiles_sorted.is_empty():
+		_hide_suggestions()
+		return
+	if _line_edit.text.strip_edges().is_empty():
 		_hide_suggestions()
 		return
 
@@ -102,22 +108,21 @@ func _refresh_suggestions() -> void:
 		btn.pressed.connect(func() -> void: _choose_suggestion(player_name))
 		_suggest_box.add_child(btn)
 
-	# Dynamically set suggestion panel height to fit items, up to a max
-	await get_tree().process_frame # Wait for buttons to be added and sized
-	var item_count = _suggest_box.get_child_count()
-	var item_height = 0
+	# Dynamically set suggestion panel height to fit current content (up to 8 items).
+	await get_tree().process_frame
+	var item_count := _suggest_box.get_child_count()
+	var item_height := 32.0
 	if item_count > 0:
-		item_height = _suggest_box.get_child(0).size.y
-	var max_visible = 8
-	var max_height = item_height * max_visible
-	var scroll = _suggest_panel.get_node("Scroll")
+		item_height = maxf(item_height, (_suggest_box.get_child(0) as Control).get_combined_minimum_size().y)
+	var max_visible := 8
+	var max_height := item_height * float(max_visible)
+	var content_height := (_suggest_box as Control).get_combined_minimum_size().y
+	var target_height := minf(content_height, max_height)
+	var scroll := _suggest_panel.get_node_or_null("Scroll") as ScrollContainer
 	if scroll:
-		if item_count > max_visible:
-			scroll.custom_minimum_size = Vector2(0, max_height)
-			_suggest_panel.custom_minimum_size = Vector2(_suggest_panel.custom_minimum_size.x, max_height)
-		else:
-			scroll.custom_minimum_size = Vector2(0, 0)
-			_suggest_panel.custom_minimum_size = Vector2(_suggest_panel.custom_minimum_size.x, 0)
+		scroll.custom_minimum_size = Vector2(0.0, target_height)
+	_suggest_panel.custom_minimum_size = Vector2(_line_edit.get_global_rect().size.x, target_height)
+	_suggest_panel.size = Vector2(_line_edit.get_global_rect().size.x, target_height)
 
 	_update_suggest_panel_position()
 	_suggest_panel.visible = true
@@ -131,7 +136,7 @@ func _choose_suggestion(player_name: String) -> void:
 
 func _matching_profiles(query: String) -> Array[Dictionary]:
 	if query.strip_edges().is_empty():
-		return _profiles_sorted
+		return []
 	var q := query.to_lower()
 	var prefix: Array[Dictionary] = []
 	var contains: Array[Dictionary] = []
@@ -150,7 +155,25 @@ func _update_suggest_panel_position() -> void:
 		return
 	var r := _line_edit.get_global_rect()
 	_suggest_panel.global_position = Vector2(r.position.x, r.position.y + r.size.y + 2.0)
-	_suggest_panel.custom_minimum_size = Vector2(r.size.x, 0.0)
+	var current_height := maxf(_suggest_panel.size.y, _suggest_panel.custom_minimum_size.y)
+	_suggest_panel.custom_minimum_size = Vector2(r.size.x, current_height)
+	_suggest_panel.size = Vector2(r.size.x, current_height)
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not _suggest_panel.visible:
+		return
+	if event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		if mb.button_index != MOUSE_BUTTON_LEFT or not mb.pressed:
+			return
+		var mouse_pos := get_viewport().get_mouse_position()
+		var in_input := _line_edit.get_global_rect().has_point(mouse_pos)
+		var in_suggest := _suggest_panel.get_global_rect().has_point(mouse_pos)
+		if not in_input and not in_suggest:
+			_hide_suggestions()
+			_line_edit.release_focus()
 
 func _hide_suggestions() -> void:
 	_suggest_panel.visible = false
+	_suggest_panel.custom_minimum_size = Vector2(_suggest_panel.custom_minimum_size.x, 0.0)
+	_suggest_panel.size = Vector2(_suggest_panel.size.x, 0.0)
