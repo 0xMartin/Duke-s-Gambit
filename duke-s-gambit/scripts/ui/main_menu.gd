@@ -11,13 +11,12 @@ extends Control
 @onready var _settings_panel: Control = $SettingsPanel
 
 # Name panel
-@onready var _p1_edit:   LineEdit    = $NamePanel/VBox/P1Row/LineEdit
-@onready var _p1_list:   ItemList    = $NamePanel/VBox/P1Row/ItemList
+@onready var _p1_input:  Node = $NamePanel/VBox/P1Row/Input
 @onready var _p1_label:  Label       = $NamePanel/VBox/P1Row/Label
-@onready var _p2_edit:   LineEdit    = $NamePanel/VBox/P2Row/LineEdit
-@onready var _p2_list:   ItemList    = $NamePanel/VBox/P2Row/ItemList
+@onready var _p2_input:  Node = $NamePanel/VBox/P2Row/Input
 @onready var _p2_label:  Label       = $NamePanel/VBox/P2Row/Label
 @onready var _time_opt:  OptionButton = $NamePanel/VBox/TimeControlRow/TimeOption
+@onready var _start_btn: Button = $NamePanel/VBox/StartBtn
 
 # Settings
 @onready var _settings_ai_row:    Control  = $SettingsPanel/VBox/AIStrengthRow
@@ -41,6 +40,8 @@ var _name_ai_slider:    HSlider       = null
 var _name_color_row:    HBoxContainer = null
 var _name_color_label:  Label         = null
 var _name_color_opt:    OptionButton  = null
+var _profiles_sorted:   Array[Dictionary] = []
+var _name_validation_label: Label = null
 
 # ──────────────────────────────────────────────────────────────────────────
 func _ready() -> void:
@@ -82,8 +83,10 @@ func _setup_signals() -> void:
 	_tilt_sens_slider.value_changed.connect(_on_tilt_sens_changed)
 	_kill_cam_check.toggled.connect(_on_kill_cam_toggled)
 
-	_p1_list.item_selected.connect(_on_p1_list_selected)
-	_p2_list.item_selected.connect(_on_p2_list_selected)
+	if _p1_input != null and _p1_input.has_signal("value_changed"):
+		_p1_input.connect("value_changed", func(_t: String) -> void: _update_name_dialog_validation())
+	if _p2_input != null and _p2_input.has_signal("value_changed"):
+		_p2_input.connect("value_changed", func(_t: String) -> void: _update_name_dialog_validation())
 
 # ── Panel navigation ───────────────────────────────────────────────────────
 func _show_panel(panel: Control) -> void:
@@ -95,8 +98,8 @@ func _start_name_entry(mode: String) -> void:
 	_mode = mode
 	_populate_name_lists()
 	_p2_label.visible = (mode == "pvp")
-	_p2_edit.visible  = (mode == "pvp")
-	_p2_list.visible  = (mode == "pvp")
+	_p2_input.visible = (mode == "pvp")
+	_nick_set_enabled(_p2_input, mode == "pvp")
 	_p1_label.text = "White player:" if mode == "pvp" else "Your name:"
 	if _name_ai_row:
 		_name_ai_row.visible = (mode == "pvai")
@@ -104,23 +107,23 @@ func _start_name_entry(mode: String) -> void:
 			_on_name_ai_strength_changed(_name_ai_slider.value)
 	if _name_color_row:
 		_name_color_row.visible = (mode == "pvai")
+	_setup_name_validation_label()
+	_update_name_dialog_validation()
 	_show_panel(_name_panel)
 
 func _populate_name_lists() -> void:
-	_p1_list.clear()
-	_p2_list.clear()
+	_profiles_sorted.clear()
 	if _save == null:
 		return
-	var profiles: Array[Dictionary] = []
 	for n in _save.get_all_player_names():
 		var profile: Dictionary = _save.get_player(n)
 		var profile_name: String = str(profile["name"])
 		# Reserved AI aliases should never be selectable as human player profiles.
 		if _is_ai_reserved_name(profile_name):
 			continue
-		profiles.append(profile)
+		_profiles_sorted.append(profile)
 
-	profiles.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+	_profiles_sorted.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
 		var a_games: int = int(a.get("games_played", 0))
 		var b_games: int = int(b.get("games_played", 0))
 		if a_games != b_games:
@@ -132,67 +135,36 @@ func _populate_name_lists() -> void:
 		return str(a.get("name", "")) < str(b.get("name", ""))
 	)
 
-	for profile in profiles:
-		_add_profile_to_lists(profile)
-
-	# Auto-select random players (different ones for P1 and P2)
-	var count: int = _p1_list.get_item_count()
+	var count: int = _profiles_sorted.size()
 	if count == 0:
+		_nick_set_profiles(_p1_input, [])
+		_nick_set_profiles(_p2_input, [])
+		_nick_set_value(_p1_input, "")
+		_nick_set_value(_p2_input, "")
 		return
-	var idx1: int = randi() % count
-	_p1_list.select(idx1)
-	_on_p1_list_selected(idx1)
-	if _mode == "pvp" and count > 1:
-		var idx2: int = idx1
-		while idx2 == idx1:
-			idx2 = randi() % count
-		_p2_list.select(idx2)
-		_on_p2_list_selected(idx2)
-	elif _mode == "pvp":
-		_p2_list.select(0)
-		_on_p2_list_selected(0)
 
-func _add_profile_to_lists(profile: Dictionary) -> void:
-	var profile_name: String = str(profile.get("name", ""))
-	var elo: int = int(profile.get("elo", 1000))
-	var display: String = "%s (ELO %d)" % [profile_name, elo]
+	_nick_set_profiles(_p1_input, _profiles_sorted)
+	_nick_set_profiles(_p2_input, _profiles_sorted)
 
-	_p1_list.add_item(display)
-	var p1_idx: int = _p1_list.get_item_count() - 1
-	_p1_list.set_item_metadata(p1_idx, profile_name)
+	# Prefill from most active players (already sorted desc by games played)
+	_nick_set_value(_p1_input, str(_profiles_sorted[0].get("name", "")))
+	if _mode == "pvp":
+		if count > 1:
+			_nick_set_value(_p2_input, str(_profiles_sorted[1].get("name", "")))
+		else:
+			_nick_set_value(_p2_input, str(_profiles_sorted[0].get("name", "")))
+	else:
+		_nick_set_value(_p2_input, "")
 
-	_p2_list.add_item(display)
-	var p2_idx: int = _p2_list.get_item_count() - 1
-	_p2_list.set_item_metadata(p2_idx, profile_name)
-
-func _on_p1_list_selected(idx: int) -> void:
-	_p1_edit.text = _name_from_item(_p1_list, idx)
-
-func _on_p2_list_selected(idx: int) -> void:
-	_p2_edit.text = _name_from_item(_p2_list, idx)
-
-func _name_from_item(list: ItemList, idx: int) -> String:
-	var meta: Variant = list.get_item_metadata(idx)
-	if meta is String:
-		return meta as String
-	return list.get_item_text(idx)
+	_update_name_dialog_validation()
 
 func _on_start_pressed() -> void:
-	var p1 := _p1_edit.text.strip_edges()
-	var p2 := _p2_edit.text.strip_edges() if _mode == "pvp" else "AI"
+	_update_name_dialog_validation()
+	if _start_btn != null and _start_btn.disabled:
+		return
 
-	# Prevent players from naming themselves as AI aliases in both PvP and PvAI.
-	if _is_ai_reserved_name(p1):
-		p1 = "White Player"
-		_p1_edit.text = p1
-	if _mode == "pvp" and _is_ai_reserved_name(p2):
-		p2 = "Black Player"
-		_p2_edit.text = p2
-
-	if p1.is_empty():
-		p1 = "White Player"
-	if p2.is_empty() and _mode == "pvp":
-		p2 = "Black Player"
+	var p1: String = _nick_get_value(_p1_input)
+	var p2: String = _nick_get_value(_p2_input) if _mode == "pvp" else "AI"
 
 	if _save:
 		if not _save.player_exists(p1):
@@ -228,9 +200,70 @@ func _on_start_pressed() -> void:
 	game_scene.start_game()
 	queue_free()
 
+func _setup_name_validation_label() -> void:
+	if _name_validation_label != null:
+		return
+	var vbox := _name_panel.get_node_or_null("VBox") as VBoxContainer
+	if vbox == null:
+		return
+	_name_validation_label = Label.new()
+	_name_validation_label.name = "ValidationLabel"
+	_name_validation_label.visible = false
+	_name_validation_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_name_validation_label.add_theme_font_size_override("font_size", 22)
+	_name_validation_label.add_theme_color_override("font_color", Color(1.0, 0.35, 0.30, 1.0))
+	_name_validation_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	var start_idx := _start_btn.get_index()
+	vbox.add_child(_name_validation_label)
+	vbox.move_child(_name_validation_label, start_idx)
+
+func _update_name_dialog_validation() -> void:
+	var err := _name_dialog_error()
+	if _start_btn != null:
+		_start_btn.disabled = err != ""
+	if _name_validation_label == null:
+		return
+	_name_validation_label.text = err
+	_name_validation_label.visible = err != ""
+
+func _name_dialog_error() -> String:
+	var p1: String = _nick_get_value(_p1_input)
+	if p1.is_empty():
+		return "Vypln jmeno bileho hrace."
+	if _is_ai_reserved_name(p1):
+		return "Nickname 'AI/Computer/Bot' neni povoleny pro lidskeho hrace."
+
+	if _mode == "pvp":
+		var p2: String = _nick_get_value(_p2_input)
+		if p2.is_empty():
+			return "Vypln jmeno cerneho hrace."
+		if _is_ai_reserved_name(p2):
+			return "Nickname 'AI/Computer/Bot' neni povoleny pro lidskeho hrace."
+		if p1.to_lower() == p2.to_lower():
+			return "Vybrani hraci musi mit odlisne jmeno."
+
+	return ""
+
 func _is_ai_reserved_name(candidate_name: String) -> bool:
 	var normalized := candidate_name.strip_edges().to_lower()
 	return normalized == "ai" or normalized == "computer" or normalized == "bot"
+
+func _nick_set_profiles(input_node: Node, profiles: Array[Dictionary]) -> void:
+	if input_node != null and input_node.has_method("set_profiles"):
+		input_node.call("set_profiles", profiles)
+
+func _nick_set_value(input_node: Node, value: String) -> void:
+	if input_node != null and input_node.has_method("set_value"):
+		input_node.call("set_value", value)
+
+func _nick_get_value(input_node: Node) -> String:
+	if input_node != null and input_node.has_method("get_value"):
+		return str(input_node.call("get_value"))
+	return ""
+
+func _nick_set_enabled(input_node: Node, enabled: bool) -> void:
+	if input_node != null and input_node.has_method("set_enabled"):
+		input_node.call("set_enabled", enabled)
 
 # ── Stats ──────────────────────────────────────────────────────────────────
 func _show_stats() -> void:

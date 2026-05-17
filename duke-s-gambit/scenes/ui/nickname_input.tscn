@@ -1,0 +1,48 @@
+[gd_scene format=3 uid="uid://c4hw36xh8k7cs"]
+
+[ext_resource type="Script" uid="uid://c0xp4xj7s8s8n" path="res://scripts/ui/nickname_input.gd" id="1_nick"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_nick_panel"]
+bg_color = Color(0.08, 0.09, 0.16, 0.96)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.78, 0.6, 0.15, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[node name="NicknameInput" type="Control" unique_id=1998565396]
+layout_mode = 3
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 40.0
+grow_horizontal = 2
+script = ExtResource("1_nick")
+
+[node name="LineEdit" type="LineEdit" parent="." unique_id=1169277408]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 40.0
+grow_horizontal = 2
+placeholder_text = "New name..."
+
+[node name="SuggestPanel" type="PanelContainer" parent="." unique_id=1743844505]
+visible = false
+layout_mode = 0
+offset_top = 42.0
+offset_right = 300.0
+offset_bottom = 250.0
+mouse_filter = 1
+theme_override_styles/panel = SubResource("StyleBoxFlat_nick_panel")
+
+[node name="Scroll" type="ScrollContainer" parent="SuggestPanel" unique_id=653469557]
+custom_minimum_size = Vector2(0, 220)
+layout_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="SuggestPanel/Scroll" unique_id=1387380675]
+layout_mode = 2
+theme_override_constants/separation = 2

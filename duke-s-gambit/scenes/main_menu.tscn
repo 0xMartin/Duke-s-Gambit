@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://mainmenu"]
 
 [ext_resource type="Script" uid="uid://s16ti15dmnl1" path="res://scripts/ui/main_menu.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/ui/nickname_input.tscn" id="2_nick"]
 
 [node name="MainMenu" type="Control" unique_id=969542434]
 layout_mode = 3
@@ -75,14 +76,10 @@ layout_mode = 2
 layout_mode = 2
 text = "White player:"
 
-[node name="LineEdit" type="LineEdit" parent="NamePanel/VBox/P1Row" unique_id=1478746576]
+[node name="Input" parent="NamePanel/VBox/P1Row" unique_id=1478746576 instance=ExtResource("2_nick")]
+custom_minimum_size = Vector2(300, 40)
 layout_mode = 2
 size_flags_horizontal = 3
-placeholder_text = "New name..."
-
-[node name="ItemList" type="ItemList" parent="NamePanel/VBox/P1Row" unique_id=1345835132]
-custom_minimum_size = Vector2(160, 80)
-layout_mode = 2
 
 [node name="P2Row" type="HBoxContainer" parent="NamePanel/VBox" unique_id=1750407663]
 layout_mode = 2
@@ -91,14 +88,10 @@ layout_mode = 2
 layout_mode = 2
 text = "Black player:"
 
-[node name="LineEdit" type="LineEdit" parent="NamePanel/VBox/P2Row" unique_id=797808769]
+[node name="Input" parent="NamePanel/VBox/P2Row" unique_id=797808769 instance=ExtResource("2_nick")]
+custom_minimum_size = Vector2(300, 40)
 layout_mode = 2
 size_flags_horizontal = 3
-placeholder_text = "New name..."
-
-[node name="ItemList" type="ItemList" parent="NamePanel/VBox/P2Row" unique_id=377405334]
-custom_minimum_size = Vector2(160, 80)
-layout_mode = 2
 
 [node name="TimeControlRow" type="HBoxContainer" parent="NamePanel/VBox" unique_id=103173449]
 layout_mode = 2
