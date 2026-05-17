@@ -82,8 +82,8 @@ func _setup_signals() -> void:
 	_tilt_sens_slider.value_changed.connect(_on_tilt_sens_changed)
 	_kill_cam_check.toggled.connect(_on_kill_cam_toggled)
 
-	_p1_list.item_selected.connect(func(idx): _p1_edit.text = _p1_list.get_item_text(idx))
-	_p2_list.item_selected.connect(func(idx): _p2_edit.text = _p2_list.get_item_text(idx))
+	_p1_list.item_selected.connect(_on_p1_list_selected)
+	_p2_list.item_selected.connect(_on_p2_list_selected)
 
 # ── Panel navigation ───────────────────────────────────────────────────────
 func _show_panel(panel: Control) -> void:
@@ -111,29 +111,71 @@ func _populate_name_lists() -> void:
 	_p2_list.clear()
 	if _save == null:
 		return
+	var profiles: Array[Dictionary] = []
 	for n in _save.get_all_player_names():
-		var profile_name: String = str(_save.get_player(n)["name"])
+		var profile: Dictionary = _save.get_player(n)
+		var profile_name: String = str(profile["name"])
 		# Reserved AI aliases should never be selectable as human player profiles.
 		if _is_ai_reserved_name(profile_name):
 			continue
-		_p1_list.add_item(profile_name)
-		_p2_list.add_item(profile_name)
+		profiles.append(profile)
+
+	profiles.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		var a_games: int = int(a.get("games_played", 0))
+		var b_games: int = int(b.get("games_played", 0))
+		if a_games != b_games:
+			return a_games > b_games
+		var a_elo: int = int(a.get("elo", 1000))
+		var b_elo: int = int(b.get("elo", 1000))
+		if a_elo != b_elo:
+			return a_elo > b_elo
+		return str(a.get("name", "")) < str(b.get("name", ""))
+	)
+
+	for profile in profiles:
+		_add_profile_to_lists(profile)
+
 	# Auto-select random players (different ones for P1 and P2)
 	var count: int = _p1_list.get_item_count()
 	if count == 0:
 		return
 	var idx1: int = randi() % count
 	_p1_list.select(idx1)
-	_p1_edit.text = _p1_list.get_item_text(idx1)
+	_on_p1_list_selected(idx1)
 	if _mode == "pvp" and count > 1:
 		var idx2: int = idx1
 		while idx2 == idx1:
 			idx2 = randi() % count
 		_p2_list.select(idx2)
-		_p2_edit.text = _p2_list.get_item_text(idx2)
+		_on_p2_list_selected(idx2)
 	elif _mode == "pvp":
 		_p2_list.select(0)
-		_p2_edit.text = _p2_list.get_item_text(0)
+		_on_p2_list_selected(0)
+
+func _add_profile_to_lists(profile: Dictionary) -> void:
+	var profile_name: String = str(profile.get("name", ""))
+	var elo: int = int(profile.get("elo", 1000))
+	var display: String = "%s (ELO %d)" % [profile_name, elo]
+
+	_p1_list.add_item(display)
+	var p1_idx: int = _p1_list.get_item_count() - 1
+	_p1_list.set_item_metadata(p1_idx, profile_name)
+
+	_p2_list.add_item(display)
+	var p2_idx: int = _p2_list.get_item_count() - 1
+	_p2_list.set_item_metadata(p2_idx, profile_name)
+
+func _on_p1_list_selected(idx: int) -> void:
+	_p1_edit.text = _name_from_item(_p1_list, idx)
+
+func _on_p2_list_selected(idx: int) -> void:
+	_p2_edit.text = _name_from_item(_p2_list, idx)
+
+func _name_from_item(list: ItemList, idx: int) -> String:
+	var meta: Variant = list.get_item_metadata(idx)
+	if meta is String:
+		return meta as String
+	return list.get_item_text(idx)
 
 func _on_start_pressed() -> void:
 	var p1 := _p1_edit.text.strip_edges()
@@ -207,7 +249,7 @@ func _populate_stats() -> void:
 	table.add_theme_constant_override("h_separation", 18)
 	table.add_theme_constant_override("v_separation", 8)
 
-	for title in ["Player", "ELO", "W", "L", "D", "Avg Move", "Games"]:
+	for title in ["Player", "ELO", "Wins", "Losses", "Draws", "Avg Move", "Games"]:
 		table.add_child(_make_stats_cell(title, true, HORIZONTAL_ALIGNMENT_LEFT))
 
 	for key: String in _save.get_all_player_names():
