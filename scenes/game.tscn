@@ -242,72 +242,6 @@ grow_vertical = 2
 mouse_filter = 2
 theme_override_constants/separation = 0
 
-[node name="MoveHistoryPanel" type="PanelContainer" parent="UI"]
-custom_minimum_size = Vector2(380, 320)
-layout_mode = 1
-anchors_preset = 3
-anchor_left = 0.0
-anchor_right = 0.0
-anchor_top = 1.0
-anchor_bottom = 1.0
-offset_left = 8.0
-offset_top = -334.0
-offset_right = 388.0
-offset_bottom = -14.0
-grow_vertical = 2
-
-[node name="Margin" type="MarginContainer" parent="UI/MoveHistoryPanel"]
-layout_mode = 2
-theme_override_constants/margin_left = 8
-theme_override_constants/margin_top = 8
-theme_override_constants/margin_right = 8
-theme_override_constants/margin_bottom = 8
-
-[node name="VBox" type="VBoxContainer" parent="UI/MoveHistoryPanel/Margin"]
-layout_mode = 2
-theme_override_constants/separation = 8
-
-[node name="Header" type="HBoxContainer" parent="UI/MoveHistoryPanel/Margin/VBox"]
-layout_mode = 2
-
-[node name="Title" type="Label" parent="UI/MoveHistoryPanel/Margin/VBox/Header"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.95, 0.9, 0.65, 1)
-theme_override_font_sizes/font_size = 18
-text = "Move History"
-
-[node name="CollapseButton" type="Button" parent="UI/MoveHistoryPanel/Margin/VBox/Header"]
-custom_minimum_size = Vector2(30, 24)
-layout_mode = 2
-text = "◀"
-
-[node name="HistoryScroll" type="ScrollContainer" parent="UI/MoveHistoryPanel/Margin/VBox"]
-custom_minimum_size = Vector2(0, 120)
-layout_mode = 2
-size_flags_vertical = 3
-
-[node name="HistoryList" type="VBoxContainer" parent="UI/MoveHistoryPanel/Margin/VBox/HistoryScroll"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 6
-
-[node name="MoveHistoryExpandButton" type="Button" parent="UI"]
-visible = false
-custom_minimum_size = Vector2(26, 84)
-layout_mode = 1
-anchors_preset = 3
-anchor_left = 0.0
-anchor_right = 0.0
-anchor_top = 1.0
-anchor_bottom = 1.0
-offset_left = 4.0
-offset_top = -200.0
-offset_right = 30.0
-offset_bottom = -116.0
-grow_vertical = 2
-text = "▶"
-
 [node name="WhitePanel" type="PanelContainer" parent="UI/HUD/TopBar" unique_id=1639280010]
 layout_mode = 2
 mouse_filter = 2
@@ -468,6 +402,70 @@ mouse_filter = 2
 texture = ExtResource("9")
 expand_mode = 1
 stretch_mode = 6
+
+[node name="MoveHistoryPanel" type="PanelContainer" parent="UI" unique_id=1426172844]
+custom_minimum_size = Vector2(380, 320)
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = -334.0
+offset_right = 388.0
+offset_bottom = -14.0
+grow_horizontal = 0
+grow_vertical = 2
+
+[node name="Margin" type="MarginContainer" parent="UI/MoveHistoryPanel" unique_id=554857996]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="VBox" type="VBoxContainer" parent="UI/MoveHistoryPanel/Margin" unique_id=192817535]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Header" type="HBoxContainer" parent="UI/MoveHistoryPanel/Margin/VBox" unique_id=1634836110]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="UI/MoveHistoryPanel/Margin/VBox/Header" unique_id=6561106]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.95, 0.9, 0.65, 1)
+theme_override_font_sizes/font_size = 18
+text = "Move History"
+
+[node name="CollapseButton" type="Button" parent="UI/MoveHistoryPanel/Margin/VBox/Header" unique_id=904342247]
+custom_minimum_size = Vector2(30, 24)
+layout_mode = 2
+text = "◀"
+
+[node name="HistoryScroll" type="ScrollContainer" parent="UI/MoveHistoryPanel/Margin/VBox" unique_id=651528752]
+custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="HistoryList" type="VBoxContainer" parent="UI/MoveHistoryPanel/Margin/VBox/HistoryScroll" unique_id=2085093791]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="MoveHistoryExpandButton" type="Button" parent="UI" unique_id=946903513]
+visible = false
+custom_minimum_size = Vector2(26, 84)
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 4.0
+offset_top = -200.0
+offset_right = 30.0
+offset_bottom = -116.0
+grow_horizontal = 0
+grow_vertical = 2
+text = "▶"
 
 [node name="AIThinkingLabel" type="Label" parent="UI" unique_id=337434124]
 visible = false
@@ -648,7 +646,7 @@ size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 36
 text = "Knight"
 
-[node name="Terrain" parent="." unique_id=893150857 instance=ExtResource("7")]
+[node name="Terrain" parent="." unique_id=289631957 instance=ExtResource("7")]
 transform = Transform3D(0.45, 0, 0, 0, 0.45, 0, 0, 0, 0.45, 0.005435705, -0.50431836, -0.00023984909)
 
 [node name="Board" parent="." unique_id=1969348578 instance=ExtResource("2")]

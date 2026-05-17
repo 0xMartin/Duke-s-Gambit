@@ -35,3 +35,7 @@ floppy disky
 - globalni velepseni UI
 
 - Server + moznost hrat online
+
+
+> [!NOTE]
+> __Disclaimer:__ This is an open-source, non-commercial fan game made for satirical and educational purposes. "Java" is a trademark of Oracle Corporation. This project is not affiliated with, endorsed, or sponsored by Oracle.
