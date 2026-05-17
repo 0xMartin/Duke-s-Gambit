@@ -98,7 +98,7 @@ corner_radius_bottom_right = 42
 corner_radius_bottom_left = 42
 
 [sub_resource type="Curve" id="Curve_kvpfn"]
-_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.20096853, 0.24393755), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.22492403, 0.24857438), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
 point_count = 3
 
 [sub_resource type="CurveTexture" id="CurveTexture_kvpfn"]
@@ -128,8 +128,8 @@ angle_max = 666.4
 velocity_pivot = Vector3(2, 0, 0)
 direction = Vector3(0, 0, 0)
 spread = 180.0
-initial_velocity_min = 0.02
-initial_velocity_max = 0.19999999
+initial_velocity_min = 0.049999997
+initial_velocity_max = 0.25
 angular_velocity_min = -122.000015
 angular_velocity_max = 121.999985
 orbit_velocity_min = -2.0
@@ -646,7 +646,7 @@ size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 36
 text = "Knight"
 
-[node name="Terrain" parent="." unique_id=187848947 instance=ExtResource("7")]
+[node name="Terrain" parent="." unique_id=1836034114 instance=ExtResource("7")]
 transform = Transform3D(0.45, 0, 0, 0, 0.45, 0, 0, 0, 0.45, 0.005435705, -0.50431836, -0.00023984909)
 
 [node name="Board" parent="." unique_id=1969348578 instance=ExtResource("2")]
@@ -665,7 +665,7 @@ transform = Transform3D(-1, -8.742278e-08, 3.821371e-15, 0, -4.371139e-08, -1, 8
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.4352119, 0)
 cast_shadow = 0
 visibility_range_fade_mode = 1
-amount = 200
+amount = 190
 lifetime = 8.0
 randomness = 0.26
 fixed_fps = 0
