@@ -31,18 +31,18 @@ exports/
 saves/
 
 # Duke's AI native build artifacts
-native/dukes_ai/.sconsign.dblite
-native/dukes_ai/.scons-option-cache
-native/dukes_ai/bin/
-native/dukes_ai/*.o
-native/dukes_ai/**/*.o
-native/dukes_ai/*.a
-native/dukes_ai/**/*.a
-native/dukes_ai/*.dylib
-native/dukes_ai/**/*.dylib
-native/dukes_ai/*.so
-native/dukes_ai/**/*.so
-native/dukes_ai/**/*.os
-native/dukes_ai/*.dll
-native/dukes_ai/**/*.dll
-native/dukes_ai/build/
+duke-s-gambit/native/dukes_ai/.sconsign.dblite
+duke-s-gambit/native/dukes_ai/.scons-option-cache
+duke-s-gambit/native/dukes_ai/bin/
+duke-s-gambit/native/dukes_ai/*.o
+duke-s-gambit/native/dukes_ai/**/*.o
+duke-s-gambit/native/dukes_ai/*.a
+duke-s-gambit/native/dukes_ai/**/*.a
+duke-s-gambit/native/dukes_ai/*.dylib
+duke-s-gambit/native/dukes_ai/**/*.dylib
+duke-s-gambit/native/dukes_ai/*.so
+duke-s-gambit/native/dukes_ai/**/*.so
+duke-s-gambit/native/dukes_ai/**/*.os
+duke-s-gambit/native/dukes_ai/*.dll
+duke-s-gambit/native/dukes_ai/**/*.dll
+duke-s-gambit/native/dukes_ai/build/
