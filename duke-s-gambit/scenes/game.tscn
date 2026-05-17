@@ -9,6 +9,8 @@
 [ext_resource type="PackedScene" uid="uid://ddoai7gywl243" path="res://assets/word/terrain.blend" id="7"]
 [ext_resource type="Texture2D" uid="uid://ih0bn2if7eyb" path="res://assets/textures/pieces/white_pawn.svg" id="8"]
 [ext_resource type="Texture2D" uid="uid://bj1851l6k55lq" path="res://assets/textures/pieces/black_pawn.svg" id="9"]
+[ext_resource type="PackedScene" uid="uid://ddfwbcc0rrn1m" path="res://scenes/effects/fire.tscn" id="10_dinhu"]
+[ext_resource type="Script" uid="uid://ds1b1u8eofgp2" path="res://scripts/systems/material_pressure_fx.gd" id="10_mlq8w"]
 [ext_resource type="PackedScene" uid="uid://blackflag" path="res://scenes/effects/black_flag.tscn" id="10_vtaks"]
 [ext_resource type="PackedScene" uid="uid://whiteflag" path="res://scenes/effects/white_flag.tscn" id="11_kvpfn"]
 
@@ -210,7 +212,7 @@ environment = SubResource("Env1")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=218313874]
 transform = Transform3D(0.70710677, -0.5000378, 0.49996227, 0, 0.7070534, 0.70716023, -0.70710677, -0.5000378, 0.49996227, 0, 8, 0)
-light_energy = 0.5
+light_energy = 0.6
 shadow_enabled = true
 
 [node name="UI" type="Control" parent="." unique_id=1898942881]
@@ -646,26 +648,25 @@ size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 36
 text = "Knight"
 
-[node name="Terrain" parent="." unique_id=1836034114 instance=ExtResource("7")]
-transform = Transform3D(0.45, 0, 0, 0, 0.45, 0, 0, 0, 0.45, 0.005435705, -0.50431836, -0.00023984909)
-
 [node name="Board" parent="." unique_id=1969348578 instance=ExtResource("2")]
-
-[node name="OrbitCamera" parent="." unique_id=1004584700 instance=ExtResource("3")]
 
 [node name="Pieces" type="Node3D" parent="." unique_id=1526320121]
 
-[node name="BlackFlag" parent="." unique_id=1452135619 instance=ExtResource("10_vtaks")]
-transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, -5.6745462, 3.1592908, 7.202332)
+[node name="MaterialPressureFX" type="Node" parent="." unique_id=266702913]
+script = ExtResource("10_mlq8w")
 
-[node name="WhiteFlag" parent="." unique_id=1144272281 instance=ExtResource("11_kvpfn")]
-transform = Transform3D(-1, -8.742278e-08, 3.821371e-15, 0, -4.371139e-08, -1, 8.742278e-08, -1, 4.371139e-08, 5.6743207, 3.342095, -7.202)
+[node name="OrbitCamera" parent="." unique_id=1004584700 instance=ExtResource("3")]
 
-[node name="DustParticles" type="GPUParticles3D" parent="." unique_id=344429125]
+[node name="Terrain" parent="." unique_id=1836034114 instance=ExtResource("7")]
+transform = Transform3D(0.45, 0, 0, 0, 0.45, 0, 0, 0, 0.45, 0.005435705, -0.50431836, -0.00023984909)
+
+[node name="Particles" type="Node" parent="." unique_id=1489978123]
+
+[node name="DustParticles" type="GPUParticles3D" parent="Particles" unique_id=344429125]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.4352119, 0)
 cast_shadow = 0
 visibility_range_fade_mode = 1
-amount = 190
+amount = 160
 lifetime = 8.0
 randomness = 0.26
 fixed_fps = 0
@@ -674,7 +675,7 @@ transform_align = 1
 process_material = SubResource("ParticleProcessMaterial_kvpfn")
 draw_pass_1 = SubResource("QuadMesh_trtic")
 
-[node name="CupParticles1" type="GPUParticles3D" parent="." unique_id=645091759]
+[node name="CupParticles1" type="GPUParticles3D" parent="Particles" unique_id=645091759]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11.187263, 1.2404153, -1.4640417)
 amount = 12
 lifetime = 5.0
@@ -682,7 +683,7 @@ transform_align = 1
 process_material = SubResource("ParticleProcessMaterial_dinhu")
 draw_pass_1 = SubResource("QuadMesh_ir15t")
 
-[node name="CupParticles2" type="GPUParticles3D" parent="." unique_id=2109526035]
+[node name="CupParticles2" type="GPUParticles3D" parent="Particles" unique_id=2109526035]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.938821, 1.2696118, 6.323589)
 amount = 12
 lifetime = 5.0
@@ -690,7 +691,7 @@ transform_align = 1
 process_material = SubResource("ParticleProcessMaterial_dinhu")
 draw_pass_1 = SubResource("QuadMesh_ir15t")
 
-[node name="CupParticles3" type="GPUParticles3D" parent="." unique_id=1418757217]
+[node name="CupParticles3" type="GPUParticles3D" parent="Particles" unique_id=1418757217]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17.534225, 1.8061094, -6.2001767)
 amount = 25
 lifetime = 5.0
@@ -698,10 +699,44 @@ transform_align = 1
 process_material = SubResource("ParticleProcessMaterial_dinhu")
 draw_pass_1 = SubResource("QuadMesh_ir15t")
 
-[node name="CupParticles4" type="GPUParticles3D" parent="." unique_id=1511731194]
+[node name="CupParticles4" type="GPUParticles3D" parent="Particles" unique_id=1511731194]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26.409893, 3.1188111, 17.583021)
 amount = 20
 lifetime = 5.0
 transform_align = 1
 process_material = SubResource("ParticleProcessMaterial_dinhu")
 draw_pass_1 = SubResource("QuadMesh_ir15t")
+
+[node name="FireWhite" type="Node" parent="." unique_id=904690426]
+
+[node name="Fire1" parent="FireWhite" unique_id=842779147 instance=ExtResource("10_dinhu")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.941804, 0, -10.877873)
+visible = false
+
+[node name="Fire2" parent="FireWhite" unique_id=1086872224 instance=ExtResource("10_dinhu")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.522061, 0, -11.487326)
+visible = false
+
+[node name="Fire3" parent="FireWhite" unique_id=912523661 instance=ExtResource("10_dinhu")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0569036, -0.07085657, -11.4195795)
+visible = false
+
+[node name="FireBlack" type="Node" parent="." unique_id=1495760197]
+
+[node name="Fire1" parent="FireBlack" unique_id=1909087600 instance=ExtResource("10_dinhu")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.941804, 0, 11.869841)
+visible = false
+
+[node name="Fire2" parent="FireBlack" unique_id=869337941 instance=ExtResource("10_dinhu")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.522061, 0, 11.360058)
+visible = false
+
+[node name="Fire3" parent="FireBlack" unique_id=2028205073 instance=ExtResource("10_dinhu")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0569036, 0.29428625, 11.5117035)
+visible = false
+
+[node name="BlackFlag" parent="." unique_id=1452135619 instance=ExtResource("10_vtaks")]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, -5.6745462, 3.1592908, 7.202332)
+
+[node name="WhiteFlag" parent="." unique_id=1144272281 instance=ExtResource("11_kvpfn")]
+transform = Transform3D(-1, -8.742278e-08, 3.821371e-15, 0, -4.371139e-08, -1, 8.742278e-08, -1, 4.371139e-08, 5.6743207, 3.342095, -7.202)

@@ -20,6 +20,7 @@ extends Node3D
 @onready var _ui:      Control     = get_node(ui_root)
 @onready var _terrain: Node3D      = get_node_or_null("Terrain")
 @onready var _world_env: WorldEnvironment = get_node_or_null("WorldEnvironment")
+@onready var _material_pressure_fx: Node = get_node_or_null("MaterialPressureFX")
 
 var _hud: Node = null
 
@@ -183,6 +184,8 @@ func start_game() -> void:
 	_move_times_ms = [0, 0]
 	_captured_by = [[], []]
 	_time_remaining_ms = [_time_control_ms, _time_control_ms]
+	if _material_pressure_fx != null and _material_pressure_fx.has_method("reset_effects"):
+		_material_pressure_fx.call("reset_effects")
 	_clear_pieces()
 	_board.clear_last_move()
 	_spawn_all_pieces()
@@ -557,6 +560,8 @@ func _on_move_chosen(mv: ChessMove) -> void:
 		_captured_by[mv.piece_color].append(mv.captured_type)
 		if _hud != null:
 			_hud.refresh_captured(mv.piece_color, _captured_by[mv.piece_color])
+		if _material_pressure_fx != null and _material_pressure_fx.has_method("update_from_captured"):
+			_material_pressure_fx.call("update_from_captured", _captured_by)
 
 	# Apply to logic board BEFORE animation so board state is updated
 	_chess.make_move(mv)
