@@ -39,6 +39,11 @@ const MOVE_SPEED          := 1.0   # units/sec while walking
 const ATTACK_STOP_DIST    := 1.1   # stop this many units before target square centre
 const DEATH_FADE_DURATION := 0.5   # seconds for opacity to drop to 0
 const DEFAULT_OUTLINE_WIDTH := 0.5
+const BLEND_DEFAULT       := 0.12
+const BLEND_WALK_IDLE     := 0.16
+const BLEND_ATTACK_IDLE   := 0.22
+const BLEND_TO_ATTACK     := 0.08
+const BLEND_TO_DEATH      := 0.06
 # ── Weapon config ──────────────────────────────────────────────────────────
 const WEAPON_BONE         := "mixamorig_RightHand"
 const WEAPON_SCENE_PATH   := "res://assets/models/weapons/sword.glb"
@@ -79,6 +84,7 @@ var _after_attack_pos: Vector3 = Vector3.ZERO  # where to walk after attack
 var _dying:       bool  = false
 var _fade_timer:  float = 0.0
 var _base_alpha:  float = 1.0
+var _idle_start_randomized: bool = false
 
 # Audio runtime state
 var _sfx:             AudioStreamPlayer = null
@@ -663,13 +669,30 @@ func _play(anim_name: String) -> void:
 		return
 	if _anim.has_animation(anim_name):
 		if _anim.current_animation != anim_name:
-			_anim.play(anim_name)
-			# Randomise start position for idle so pieces don't animate in sync
-			if anim_name == anim_idle:
+			var blend := _get_transition_blend(_anim.current_animation, anim_name)
+			_anim.play(anim_name, blend)
+			# Randomise idle only once on spawn; re-randomising on every return to
+			# idle causes visible pose snapping after attack/walk.
+			if anim_name == anim_idle and not _idle_start_randomized:
+				_idle_start_randomized = true
 				var anim_len: float = _anim.get_animation(anim_name).length
 				_anim.seek(randf_range(0.0, anim_len), true)
 	else:
 		push_warning("BasePiece: animation '%s' not found on %s" % [anim_name, name])
+
+func _get_transition_blend(from_anim: String, to_anim: String) -> float:
+	if from_anim == "" or from_anim == to_anim:
+		return 0.0
+	if to_anim == anim_idle:
+		if from_anim == anim_attack:
+			return BLEND_ATTACK_IDLE
+		if from_anim == anim_walk:
+			return BLEND_WALK_IDLE
+	if to_anim == anim_attack:
+		return BLEND_TO_ATTACK
+	if to_anim == anim_death:
+		return BLEND_TO_DEATH
+	return BLEND_DEFAULT
 
 func current_anim() -> String:
 	return _anim.current_animation if _anim else ""

@@ -64,7 +64,7 @@ func _begin_jump(dest: Vector3, is_attack: bool, target: BasePiece) -> void:
 		var anim_res := _anim.get_animation(anim_jump)
 		_anim.speed_scale = 2.0
 		_jump_duration = (anim_res.length / 2.0) * JUMP_TIME_SCALE
-		_anim.play(anim_jump)
+		_anim.play(anim_jump, _get_transition_blend(_anim.current_animation, anim_jump))
 	else:
 		_jump_duration = JUMP_DURATION * JUMP_TIME_SCALE
 		push_warning("KnightPiece: jump animation '%s' not found" % anim_jump)
