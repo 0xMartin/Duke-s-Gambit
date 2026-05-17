@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://4eb34v0r26jk"
-path="res://.godot/imported/pieces-grid.png-a0779a29304a6e03dec121afb29fcf90.ctex"
+uid="uid://b32gsnl100kls"
+path="res://.godot/imported/circuit.png-b4cc457bc8d3c0cb12f40f452f5137f8.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/textures/pieces-grid.png"
-dest_files=["res://.godot/imported/pieces-grid.png-a0779a29304a6e03dec121afb29fcf90.ctex"]
+source_file="res://assets/textures/ui/circuit.png"
+dest_files=["res://.godot/imported/circuit.png-b4cc457bc8d3c0cb12f40f452f5137f8.ctex"]
 
 [params]
 

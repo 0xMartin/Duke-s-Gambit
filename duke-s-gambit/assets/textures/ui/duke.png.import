@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://csi4j74huicf5"
-path="res://.godot/imported/circuit.png-8ac7610b3e065052c5dd3e00dcf0f1c6.ctex"
+uid="uid://con2rpsbu3i2l"
+path="res://.godot/imported/duke.png-d563dc905e891123921d672308ea265f.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/textures/circuit.png"
-dest_files=["res://.godot/imported/circuit.png-8ac7610b3e065052c5dd3e00dcf0f1c6.ctex"]
+source_file="res://assets/textures/ui/duke.png"
+dest_files=["res://.godot/imported/duke.png-d563dc905e891123921d672308ea265f.ctex"]
 
 [params]
 
