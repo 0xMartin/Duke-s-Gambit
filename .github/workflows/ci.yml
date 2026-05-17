@@ -46,7 +46,7 @@ jobs:
 
       - name: Build dukes_ai_native
         run: |
-          cd native/dukes_ai
+          cd duke-s-gambit/native/dukes_ai
           if [ "${{ matrix.platform }}" = "windows" ]; then
             scons platform=windows target=template_release
           elif [ "${{ matrix.platform }}" = "macos" ]; then
@@ -61,7 +61,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dukes_ai_native-${{ matrix.platform }}
-          path: native/dukes_ai/bin/*
+          path: duke-s-gambit/native/dukes_ai/bin/*
 
   export-godot:
     name: Export Godot Project
@@ -76,7 +76,7 @@ jobs:
       - name: Download all dukes_ai_native artifacts
         uses: actions/download-artifact@v4
         with:
-          path: native/dukes_ai/bin/
+          path: duke-s-gambit/native/dukes_ai/bin/
 
       - name: Set up Godot
         uses: firebelley/setup-godot@v2

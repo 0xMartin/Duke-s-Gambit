@@ -1,4 +1,8 @@
-# Duke's Gambit: Battle for Java Code
+<img src="./doc/banner.png" alt="Game banner" width="100%">
+
+<div align="center">
+<h1> Duke's Gambit: Battle for Java Code</h1>
+</div>
 
 - Duke Chess 3D peaces: https://github.com/openjdk/duke (edited in blender and animated using mixamo.com)
 - chess icons from: https://commons.wikimedia.org/wiki/Category:SVG_chess_pieces
@@ -26,6 +30,7 @@ https://opengameart.org/content/jump-landing-sound
 https://freesound.org/people/magnuswaker/sounds/524956/
 
 todo:
+- efekt blesku + zvuk
 - globalni velepseni UI
 
 - Server + moznost hrat online

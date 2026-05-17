@@ -1,0 +1,3 @@
+[submodule "native/dukes_ai/godot-cpp"]
+	path = native/dukes_ai/godot-cpp
+	url = https://github.com/godotengine/godot-cpp.git

@@ -1,0 +1,231 @@
+[gd_scene format=3 uid="uid://mainmenu"]
+
+[ext_resource type="Script" uid="uid://s16ti15dmnl1" path="res://scripts/ui/main_menu.gd" id="1"]
+
+[node name="MainMenu" type="Control" unique_id=969542434]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1")
+
+[node name="MainPanel" type="PanelContainer" parent="." unique_id=97883763]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.3
+anchor_top = 0.22
+anchor_right = 0.7
+anchor_bottom = 0.78
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="MainPanel" unique_id=1054197032]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="MainPanel/VBox" unique_id=1194487490]
+layout_mode = 2
+text = "Duke's Gambit"
+horizontal_alignment = 1
+
+[node name="PvPBtn" type="Button" parent="MainPanel/VBox" unique_id=1470240247]
+layout_mode = 2
+text = "Player vs Player"
+
+[node name="PvAIBtn" type="Button" parent="MainPanel/VBox" unique_id=1442215935]
+layout_mode = 2
+text = "Player vs AI"
+
+[node name="StatsBtn" type="Button" parent="MainPanel/VBox" unique_id=1952988221]
+layout_mode = 2
+text = "Stats"
+
+[node name="SettingsBtn" type="Button" parent="MainPanel/VBox" unique_id=556680951]
+layout_mode = 2
+text = "Settings"
+
+[node name="QuitBtn" type="Button" parent="MainPanel/VBox" unique_id=204160667]
+layout_mode = 2
+text = "Quit"
+
+[node name="NamePanel" type="PanelContainer" parent="." unique_id=2115630850]
+visible = false
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.2
+anchor_top = 0.1
+anchor_right = 0.8
+anchor_bottom = 0.9
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="NamePanel" unique_id=538425592]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="NamePanel/VBox" unique_id=893447260]
+layout_mode = 2
+text = "Enter Player Names"
+horizontal_alignment = 1
+
+[node name="P1Row" type="HBoxContainer" parent="NamePanel/VBox" unique_id=811576821]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="NamePanel/VBox/P1Row" unique_id=1061434817]
+layout_mode = 2
+text = "White player:"
+
+[node name="LineEdit" type="LineEdit" parent="NamePanel/VBox/P1Row" unique_id=1478746576]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "New name..."
+
+[node name="ItemList" type="ItemList" parent="NamePanel/VBox/P1Row" unique_id=1345835132]
+custom_minimum_size = Vector2(160, 80)
+layout_mode = 2
+
+[node name="P2Row" type="HBoxContainer" parent="NamePanel/VBox" unique_id=1750407663]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="NamePanel/VBox/P2Row" unique_id=645351761]
+layout_mode = 2
+text = "Black player:"
+
+[node name="LineEdit" type="LineEdit" parent="NamePanel/VBox/P2Row" unique_id=797808769]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "New name..."
+
+[node name="ItemList" type="ItemList" parent="NamePanel/VBox/P2Row" unique_id=377405334]
+custom_minimum_size = Vector2(160, 80)
+layout_mode = 2
+
+[node name="TimeControlRow" type="HBoxContainer" parent="NamePanel/VBox" unique_id=103173449]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="NamePanel/VBox/TimeControlRow" unique_id=1881178311]
+layout_mode = 2
+text = "Time:"
+
+[node name="TimeOption" type="OptionButton" parent="NamePanel/VBox/TimeControlRow" unique_id=689579397]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="StartBtn" type="Button" parent="NamePanel/VBox" unique_id=1781759922]
+layout_mode = 2
+text = "Start Game"
+
+[node name="BackBtn" type="Button" parent="NamePanel/VBox" unique_id=633771698]
+layout_mode = 2
+text = "Back"
+
+[node name="StatsPanel" type="PanelContainer" parent="." unique_id=661461912]
+visible = false
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.15
+anchor_top = 0.08
+anchor_right = 0.85
+anchor_bottom = 0.92
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="StatsPanel" unique_id=887207894]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="StatsPanel/VBox" unique_id=1549087602]
+layout_mode = 2
+text = "Statistics"
+horizontal_alignment = 1
+
+[node name="ScrollContainer" type="ScrollContainer" parent="StatsPanel/VBox" unique_id=349490233]
+custom_minimum_size = Vector2(0, 300)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="VBox" type="VBoxContainer" parent="StatsPanel/VBox/ScrollContainer" unique_id=423938033]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="BackBtn" type="Button" parent="StatsPanel/VBox" unique_id=1196503376]
+layout_mode = 2
+text = "Back"
+
+[node name="SettingsPanel" type="PanelContainer" parent="." unique_id=1103937944]
+visible = false
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.2
+anchor_top = 0.05
+anchor_right = 0.8
+anchor_bottom = 0.95
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="SettingsPanel" unique_id=1707208996]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="SettingsPanel/VBox" unique_id=2128207688]
+layout_mode = 2
+text = "Settings"
+horizontal_alignment = 1
+
+[node name="AIStrengthRow" type="HBoxContainer" parent="SettingsPanel/VBox" unique_id=1866177689]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="SettingsPanel/VBox/AIStrengthRow" unique_id=1685991021]
+layout_mode = 2
+text = "AI Strength: 1"
+
+[node name="HSlider" type="HSlider" parent="SettingsPanel/VBox/AIStrengthRow" unique_id=552164629]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 1.0
+max_value = 3.0
+value = 1.0
+
+[node name="PanSensRow" type="HBoxContainer" parent="SettingsPanel/VBox" unique_id=1531540557]
+layout_mode = 2
+
+[node name="PanSensLabel" type="Label" parent="SettingsPanel/VBox/PanSensRow" unique_id=2121897254]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+text = "Pan Sensitivity: 5"
+
+[node name="PanSensSlider" type="HSlider" parent="SettingsPanel/VBox/PanSensRow" unique_id=1200927991]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 1.0
+max_value = 10.0
+value = 5.0
+
+[node name="TiltSensRow" type="HBoxContainer" parent="SettingsPanel/VBox" unique_id=1367002245]
+layout_mode = 2
+
+[node name="TiltSensLabel" type="Label" parent="SettingsPanel/VBox/TiltSensRow" unique_id=762740595]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+text = "Tilt Sensitivity: 5"
+
+[node name="TiltSensSlider" type="HSlider" parent="SettingsPanel/VBox/TiltSensRow" unique_id=1414890674]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 1.0
+max_value = 10.0
+value = 5.0
+
+[node name="KillCamRow" type="HBoxContainer" parent="SettingsPanel/VBox" unique_id=2124416438]
+layout_mode = 2
+
+[node name="KillCamLabel" type="Label" parent="SettingsPanel/VBox/KillCamRow" unique_id=369233713]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+text = "Kill Cam"
+
+[node name="KillCamCheck" type="CheckBox" parent="SettingsPanel/VBox/KillCamRow" unique_id=262230345]
+layout_mode = 2
+button_pressed = true
+
+[node name="BackBtn" type="Button" parent="SettingsPanel/VBox" unique_id=775881788]
+layout_mode = 2
+text = "Back"

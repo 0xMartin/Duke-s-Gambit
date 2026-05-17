@@ -1,0 +1,52 @@
+[gd_scene format=3 uid="uid://knight"]
+
+[ext_resource type="Script" uid="uid://cvxcslc46e17f" path="res://scripts/pieces/knight_piece.gd" id="1"]
+[ext_resource type="PackedScene" uid="uid://bcgukql3fwgqi" path="res://assets/models/knight/knight_final.fbx" id="2"]
+
+[node name="Knight" type="Node3D" unique_id=284817976]
+script = ExtResource("1")
+piece_type = 3
+use_weapon = false
+
+[node name="Model" type="Node3D" parent="." unique_id=264884497]
+
+[node name="KnightMesh" parent="Model" unique_id=1449793411 instance=ExtResource("2")]
+
+[node name="Skeleton3D" parent="Model/KnightMesh/Main" parent_id_path=PackedInt32Array(1449793411, 1857703861) index="0" unique_id=1950193735]
+bones/0/position = Vector3(0.23840854, 3.1841838, -0.35990727)
+bones/0/rotation = Quaternion(0.033542484, -0.13581748, 0.036515277, 0.9894924)
+bones/1/rotation = Quaternion(0.03586378, 0.035931855, -0.007688626, 0.998681)
+bones/2/rotation = Quaternion(0.100374, 0.0010990289, -0.0065534264, 0.9949276)
+bones/3/rotation = Quaternion(0.10037401, 0.0010990386, -0.0065534115, 0.99492764)
+bones/4/rotation = Quaternion(-0.078253426, 0.0029692193, -0.021885063, 0.99668884)
+bones/5/rotation = Quaternion(0.13078699, 0.036731962, 0.041691706, 0.9898522)
+bones/8/rotation = Quaternion(-0.63093364, -0.32256195, 0.582884, -0.39764643)
+bones/9/rotation = Quaternion(-0.018214755, -0.48836786, 0.49107078, 0.72112036)
+bones/10/rotation = Quaternion(0.058517586, 0.55910015, 0.112057015, 0.8194059)
+bones/11/rotation = Quaternion(-0.27773058, 0.055527125, 0.065638825, 0.95680416)
+bones/12/rotation = Quaternion(0.26311845, 0.080232464, 0.20467944, 0.93938166)
+bones/13/rotation = Quaternion(-0.006859642, -0.0028611077, 0.14651066, 0.98918116)
+bones/14/rotation = Quaternion(-2.0373e-05, -0.0001428948, 0.1654322, 0.9862212)
+bones/17/rotation = Quaternion(0.02815696, 0.0021800308, 0.13384229, 0.9906002)
+bones/18/rotation = Quaternion(0.14219207, -0.00010785693, -0.0100617, 0.98978794)
+bones/19/rotation = Quaternion(-3.91339e-06, 0.0002798374, 0.0026571043, 0.9999965)
+bones/22/rotation = Quaternion(0.58377224, -0.35275164, 0.64565885, 0.343367)
+bones/23/rotation = Quaternion(0.08553795, 0.36615378, 0.12838417, 0.91767764)
+bones/24/rotation = Quaternion(0.09701073, -0.5261401, -0.27210882, 0.7998265)
+bones/25/rotation = Quaternion(-0.42604226, -0.037032425, 0.016244162, 0.9037991)
+bones/26/rotation = Quaternion(0.14243498, 0.050215617, -0.2585422, 0.9541209)
+bones/27/rotation = Quaternion(0.0028087995, 0.0020057666, -0.09070883, 0.99587154)
+bones/28/rotation = Quaternion(0.00020651864, -0.0018355654, -0.101111405, 0.9948734)
+bones/31/rotation = Quaternion(0.039365225, -0.014263459, -0.10788238, 0.9932816)
+bones/32/rotation = Quaternion(0.14468332, -0.0019278082, 0.033232335, 0.98891795)
+bones/33/rotation = Quaternion(-0.00020545698, -0.005290716, -0.020258874, 0.9997807)
+bones/36/rotation = Quaternion(-0.057114292, 0.66684467, 0.7405659, -0.0601526)
+bones/37/rotation = Quaternion(-0.2553831, 0.11415522, -0.062953256, 0.95801103)
+bones/38/rotation = Quaternion(0.37492487, -0.12053664, -0.26158226, 0.8811794)
+bones/39/rotation = Quaternion(0.05674185, -0.006349724, 0.02931585, 0.9979382)
+bones/42/rotation = Quaternion(-0.34462002, -0.528495, 0.7459624, 0.21323754)
+bones/43/rotation = Quaternion(-0.033272296, 0.14249596, 0.018627884, 0.9890606)
+bones/44/rotation = Quaternion(0.8023438, 0.20880257, 0.46522698, 0.31017697)
+bones/45/rotation = Quaternion(0.15877786, 0.01278761, -0.08862698, 0.9832454)
+
+[editable path="Model/KnightMesh"]
