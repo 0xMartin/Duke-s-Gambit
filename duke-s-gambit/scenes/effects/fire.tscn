@@ -1,5 +1,7 @@
 [gd_scene format=3 uid="uid://ddfwbcc0rrn1m"]
 
+[ext_resource type="AudioStream" uid="uid://dm2vful80vqdf" path="res://assets/sounds/fire.mp3" id="1_rt0mn"]
+
 [sub_resource type="Curve" id="Curve_rt0mn"]
 _data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.24040923, 0.9265536), 0.0, 0.0, 0, 0, Vector2(1, 0.5084745), 0.0, 0.0, 0, 0]
 point_count = 3
@@ -110,3 +112,6 @@ lifetime = 2.5
 transform_align = 1
 process_material = SubResource("ParticleProcessMaterial_lv8hs")
 draw_pass_1 = SubResource("QuadMesh_0obw5")
+
+[node name="AudioStreamPlayer3D" type="AudioStreamPlayer3D" parent="." unique_id=1497799617]
+stream = ExtResource("1_rt0mn")

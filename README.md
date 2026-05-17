@@ -28,9 +28,10 @@ https://freesound.org/people/LittleRobotSoundFactory/sounds/270409/ (zatim nepou
 https://opengameart.org/content/jump-landing-sound
 - knight attack:
 https://freesound.org/people/magnuswaker/sounds/524956/
+- fire loop:
+https://freesound.org/people/PhreaKsAccount/sounds/46272/
 
 todo:
-- efekt blesku + zvuk
 - globalni velepseni UI
 
 - Server + moznost hrat online

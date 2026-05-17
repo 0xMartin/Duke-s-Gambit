@@ -9,6 +9,8 @@ const THRESHOLD_FIRE1: float = 0.20
 const THRESHOLD_FIRE2: float = 0.50
 const THRESHOLD_FIRE3: float = 0.70
 const LIGHT_TWEEN_SEC: float = 10.0
+const FIRE_AUDIO_FADE_IN_SEC: float = 1.0
+const FIRE_AUDIO_SILENT_DB: float = -40.0
 
 const PIECE_MATERIAL := {
 	ChessEnums.PieceType.PAWN: 1,
@@ -46,13 +48,17 @@ const DIRECTIONAL_BY_LEVEL := {
 @onready var _dir_light: DirectionalLight3D = get_parent().get_node_or_null("DirectionalLight3D") as DirectionalLight3D
 
 var _light_tween: Tween = null
+var _fire_audio_default_db: Dictionary = {}
+var _fire_audio_tweens: Dictionary = {}
 
 func _ready() -> void:
+	_cache_fire_audio_defaults(_fire_white)
+	_cache_fire_audio_defaults(_fire_black)
 	reset_effects()
 
 func reset_effects() -> void:
-	_set_fire_level(_fire_white, 0)
-	_set_fire_level(_fire_black, 0)
+	_set_fire_level(_fire_white, 0, true)
+	_set_fire_level(_fire_black, 0, true)
 	_set_dust_level(0)
 	_apply_lighting_level_immediate(0)
 
@@ -94,13 +100,59 @@ func _level_from_ratio(ratio: float) -> int:
 		return 1
 	return 0
 
-func _set_fire_level(root: Node, level: int) -> void:
+func _set_fire_level(root: Node, level: int, force_audio_sync: bool = false) -> void:
 	if root == null:
 		return
 	for idx in range(1, 4):
 		var fire_node := root.get_node_or_null("Fire%d" % idx) as Node3D
 		if fire_node != null:
-			fire_node.visible = idx <= level
+			var should_be_visible: bool = idx <= level
+			var changed: bool = fire_node.visible != should_be_visible
+			fire_node.visible = should_be_visible
+			if changed or force_audio_sync:
+				_set_fire_audio_state(fire_node, should_be_visible)
+
+func _cache_fire_audio_defaults(root: Node) -> void:
+	if root == null:
+		return
+	for idx in range(1, 4):
+		var fire_node := root.get_node_or_null("Fire%d" % idx) as Node3D
+		if fire_node == null:
+			continue
+		var audio := fire_node.get_node_or_null("AudioStreamPlayer3D") as AudioStreamPlayer3D
+		if audio == null:
+			continue
+		var key := str(fire_node.get_path())
+		_fire_audio_default_db[key] = audio.volume_db
+
+func _set_fire_audio_state(fire_node: Node3D, active: bool) -> void:
+	var audio := fire_node.get_node_or_null("AudioStreamPlayer3D") as AudioStreamPlayer3D
+	if audio == null:
+		return
+	var key := str(fire_node.get_path())
+	var target_db: float = float(_fire_audio_default_db.get(key, audio.volume_db))
+
+	if _fire_audio_tweens.has(key):
+		var prev_tween := _fire_audio_tweens[key] as Tween
+		if prev_tween != null:
+			prev_tween.kill()
+		_fire_audio_tweens.erase(key)
+
+	if active:
+		audio.volume_db = FIRE_AUDIO_SILENT_DB
+		if not audio.playing:
+			audio.play()
+		var tw := create_tween()
+		_fire_audio_tweens[key] = tw
+		tw.tween_property(audio, "volume_db", target_db, FIRE_AUDIO_FADE_IN_SEC) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		tw.finished.connect(func() -> void:
+			if _fire_audio_tweens.get(key) == tw:
+				_fire_audio_tweens.erase(key)
+		)
+	else:
+		audio.stop()
+		audio.volume_db = target_db
 
 func _set_dust_level(level: int) -> void:
 	if _dust == null:
