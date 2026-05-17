@@ -92,8 +92,32 @@ func _refresh_suggestions() -> void:
 		btn.focus_mode = Control.FOCUS_NONE
 		btn.flat = true
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		# Copy font and color from LineEdit
+		var font = _line_edit.get_theme_font("font")
+		if font != null:
+			btn.add_theme_font_override("font", font)
+		var font_color = _line_edit.get_theme_color("font_color")
+		if font_color != null:
+			btn.add_theme_color_override("font_color", font_color)
 		btn.pressed.connect(func() -> void: _choose_suggestion(player_name))
 		_suggest_box.add_child(btn)
+
+	# Dynamically set suggestion panel height to fit items, up to a max
+	await get_tree().process_frame # Wait for buttons to be added and sized
+	var item_count = _suggest_box.get_child_count()
+	var item_height = 0
+	if item_count > 0:
+		item_height = _suggest_box.get_child(0).size.y
+	var max_visible = 8
+	var max_height = item_height * max_visible
+	var scroll = _suggest_panel.get_node("Scroll")
+	if scroll:
+		if item_count > max_visible:
+			scroll.custom_minimum_size = Vector2(0, max_height)
+			_suggest_panel.custom_minimum_size = Vector2(_suggest_panel.custom_minimum_size.x, max_height)
+		else:
+			scroll.custom_minimum_size = Vector2(0, 0)
+			_suggest_panel.custom_minimum_size = Vector2(_suggest_panel.custom_minimum_size.x, 0)
 
 	_update_suggest_panel_position()
 	_suggest_panel.visible = true

@@ -39,8 +39,8 @@ offset_bottom = 250.0
 mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_nick_panel")
 
+
 [node name="Scroll" type="ScrollContainer" parent="SuggestPanel" unique_id=653469557]
-custom_minimum_size = Vector2(0, 220)
 layout_mode = 2
 
 [node name="VBox" type="VBoxContainer" parent="SuggestPanel/Scroll" unique_id=1387380675]
