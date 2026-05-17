@@ -26,10 +26,6 @@ https://opengameart.org/content/jump-landing-sound
 https://freesound.org/people/magnuswaker/sounds/524956/
 
 todo:
-- nove budovy:
-Firewall / Závorky jako bariéra
-Archiválie / Knihovny
-ww
 - globalni velepseni UI
 
 - Server + moznost hrat online
