@@ -1,6 +1,39 @@
 [gd_scene format=3 uid="uid://c4hw36xh8k7cs"]
 
 [ext_resource type="Script" uid="uid://c0xp4xj7s8s8n" path="res://scripts/ui/nickname_input.gd" id="1_nick"]
+[ext_resource type="FontFile" uid="uid://bn1f5cgy4rauy" path="res://assets/fonts/Montserrat-Regular.ttf" id="2_p2ndv"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_p2ndv"]
+content_margin_left = 22.0
+content_margin_top = 8.0
+content_margin_right = 22.0
+content_margin_bottom = 8.0
+bg_color = Color(0.1, 0.1, 0.1, 0.6)
+border_width_bottom = 2
+border_color = Color(0, 0, 0, 0.6)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+corner_detail = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_vr4ur"]
+content_margin_left = 22.0
+content_margin_top = 8.0
+content_margin_right = 22.0
+content_margin_bottom = 8.0
+bg_color = Color(0.1, 0.1, 0.1, 0.6)
+border_width_left = 5
+border_width_top = 5
+border_width_right = 5
+border_width_bottom = 5
+border_color = Color(1, 1, 1, 0.6)
+border_blend = true
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+corner_detail = 5
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_nick_panel"]
 bg_color = Color(0.08, 0.09, 0.16, 0.96)
@@ -28,6 +61,10 @@ anchors_preset = 10
 anchor_right = 1.0
 offset_bottom = 40.0
 grow_horizontal = 2
+theme_override_fonts/font = ExtResource("2_p2ndv")
+theme_override_font_sizes/font_size = 30
+theme_override_styles/normal = SubResource("StyleBoxFlat_p2ndv")
+theme_override_styles/focus = SubResource("StyleBoxFlat_vr4ur")
 placeholder_text = "New name..."
 
 [node name="SuggestPanel" type="PanelContainer" parent="." unique_id=1743844505]
@@ -38,7 +75,6 @@ offset_right = 300.0
 offset_bottom = 250.0
 mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_nick_panel")
-
 
 [node name="Scroll" type="ScrollContainer" parent="SuggestPanel" unique_id=653469557]
 layout_mode = 2

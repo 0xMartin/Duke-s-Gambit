@@ -17,6 +17,9 @@
 [ext_resource type="Texture2D" uid="uid://uvf7mxoq5q70" path="res://assets/textures/pieces/white_knight.svg" id="14_a8gd2"]
 [ext_resource type="Texture2D" uid="uid://dpa8nghhm2jva" path="res://assets/textures/pieces/white_bishop.svg" id="14_j7ex8"]
 [ext_resource type="Texture2D" uid="uid://ih0bn2if7eyb" path="res://assets/textures/pieces/white_pawn.svg" id="15_a8gd2"]
+[ext_resource type="Theme" uid="uid://bmjxmhngpsc2k" path="res://themes/menu_label.tres" id="16_a8gd2"]
+[ext_resource type="Theme" uid="uid://2s5uoyj2dryf" path="res://themes/menu_section_title.tres" id="16_hstxw"]
+[ext_resource type="Theme" uid="uid://b5h30lei0eemm" path="res://themes/option_button.tres" id="19_8egab"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_icon_float"]
 shader = ExtResource("7_iconfloat")
@@ -86,7 +89,7 @@ offset_bottom = 0.19998169
 theme_override_colors/font_color = Color(0.5650548, 0.91723067, 0.9613783, 1)
 theme_override_constants/outline_size = 41
 theme_override_fonts/font = ExtResource("3_wu84c")
-theme_override_font_sizes/font_size = 120
+theme_override_font_sizes/font_size = 110
 text = "Duke's Gambit"
 vertical_alignment = 1
 metadata/_edit_use_anchors_ = true
@@ -133,6 +136,7 @@ theme = ExtResource("9_5dd4i")
 metadata/_edit_use_anchors_ = true
 
 [node name="MainVBox" type="VBoxContainer" parent="MainPanel" unique_id=1054197032]
+visible = false
 layout_mode = 2
 size_flags_horizontal = 0
 theme_override_constants/separation = 25
@@ -178,18 +182,22 @@ visible = false
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+theme_override_constants/separation = 25
 
 [node name="TitleLabel" type="Label" parent="MainPanel/PvPVBox" unique_id=893447260]
 layout_mode = 2
+theme = ExtResource("16_hstxw")
 text = "Player vs Player"
 horizontal_alignment = 1
 
 [node name="P1Row" type="HBoxContainer" parent="MainPanel/PvPVBox" unique_id=811576821]
 layout_mode = 2
+theme_override_constants/separation = 40
 
 [node name="Label" type="Label" parent="MainPanel/PvPVBox/P1Row" unique_id=1061434817]
 layout_mode = 2
-text = "White player:"
+theme = ExtResource("16_a8gd2")
+text = "White player"
 
 [node name="Input" parent="MainPanel/PvPVBox/P1Row" unique_id=1478746576 instance=ExtResource("2_nick")]
 custom_minimum_size = Vector2(300, 40)
@@ -198,10 +206,12 @@ size_flags_horizontal = 3
 
 [node name="P2Row" type="HBoxContainer" parent="MainPanel/PvPVBox" unique_id=1750407663]
 layout_mode = 2
+theme_override_constants/separation = 40
 
 [node name="Label" type="Label" parent="MainPanel/PvPVBox/P2Row" unique_id=645351761]
 layout_mode = 2
-text = "Black player:"
+theme = ExtResource("16_a8gd2")
+text = "Black player"
 
 [node name="Input" parent="MainPanel/PvPVBox/P2Row" unique_id=797808769 instance=ExtResource("2_nick")]
 custom_minimum_size = Vector2(300, 40)
@@ -210,18 +220,23 @@ size_flags_horizontal = 3
 
 [node name="TimeControlRow" type="HBoxContainer" parent="MainPanel/PvPVBox" unique_id=103173449]
 layout_mode = 2
+theme_override_constants/separation = 40
 
 [node name="Label" type="Label" parent="MainPanel/PvPVBox/TimeControlRow" unique_id=1881178311]
 layout_mode = 2
-text = "Time:"
+theme = ExtResource("16_a8gd2")
+text = "Time"
 
 [node name="TimeOption" type="OptionButton" parent="MainPanel/PvPVBox/TimeControlRow" unique_id=689579397]
 layout_mode = 2
 size_flags_horizontal = 3
+theme = ExtResource("19_8egab")
 
 [node name="ValidationLabel" type="Label" parent="MainPanel/PvPVBox" unique_id=1555125030]
 visible = false
 layout_mode = 2
+theme = ExtResource("16_a8gd2")
+theme_override_colors/font_color = Color(0.87695664, 1.973361e-06, 0.4555217, 1)
 horizontal_alignment = 1
 autowrap_mode = 3
 
@@ -242,45 +257,55 @@ visible = false
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+theme_override_constants/separation = 25
 
 [node name="TitleLabel" type="Label" parent="MainPanel/PvAIVBox" unique_id=1738268734]
 layout_mode = 2
+theme = ExtResource("16_hstxw")
 text = "Player vs AI"
 horizontal_alignment = 1
 
 [node name="PlayerRow" type="HBoxContainer" parent="MainPanel/PvAIVBox" unique_id=1882615930]
 layout_mode = 2
+theme_override_constants/separation = 40
 
 [node name="Label" type="Label" parent="MainPanel/PvAIVBox/PlayerRow" unique_id=267424275]
 layout_mode = 2
-text = "Your name:"
+theme = ExtResource("16_a8gd2")
+text = "Your name"
 
 [node name="Input" parent="MainPanel/PvAIVBox/PlayerRow" unique_id=860193888 instance=ExtResource("2_nick")]
 custom_minimum_size = Vector2(300, 40)
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="AIRow" type="HBoxContainer" parent="MainPanel/PvAIVBox" unique_id=307647544]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="MainPanel/PvAIVBox/AIRow" unique_id=1157681204]
-layout_mode = 2
-text = "Opponent:"
-
-[node name="Value" type="Label" parent="MainPanel/PvAIVBox/AIRow" unique_id=1883108106]
-layout_mode = 2
-text = "AI"
-
 [node name="TimeControlRow" type="HBoxContainer" parent="MainPanel/PvAIVBox" unique_id=1395384204]
 layout_mode = 2
+theme_override_constants/separation = 40
 
 [node name="Label" type="Label" parent="MainPanel/PvAIVBox/TimeControlRow" unique_id=649444643]
 layout_mode = 2
-text = "Time:"
+theme = ExtResource("16_a8gd2")
+text = "Time"
 
 [node name="TimeOption" type="OptionButton" parent="MainPanel/PvAIVBox/TimeControlRow" unique_id=1281437693]
 layout_mode = 2
 size_flags_horizontal = 3
+theme = ExtResource("19_8egab")
+
+[node name="ColorRow" type="HBoxContainer" parent="MainPanel/PvAIVBox" unique_id=591610039]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="Label" type="Label" parent="MainPanel/PvAIVBox/ColorRow" unique_id=269180451]
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+text = "Play as"
+
+[node name="ColorOption" type="OptionButton" parent="MainPanel/PvAIVBox/ColorRow" unique_id=809045142]
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("19_8egab")
 
 [node name="AIStrengthRow" type="HBoxContainer" parent="MainPanel/PvAIVBox" unique_id=211568512]
 layout_mode = 2
@@ -288,7 +313,8 @@ layout_mode = 2
 [node name="Label" type="Label" parent="MainPanel/PvAIVBox/AIStrengthRow" unique_id=537064021]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "AI Difficulty: Challenger (depth 8)"
+theme = ExtResource("16_a8gd2")
+text = "AI Difficulty:  Challenger (depth 8)"
 
 [node name="Slider" type="HSlider" parent="MainPanel/PvAIVBox/AIStrengthRow" unique_id=1791610626]
 layout_mode = 2
@@ -297,21 +323,11 @@ min_value = 1.0
 max_value = 3.0
 value = 2.0
 
-[node name="ColorRow" type="HBoxContainer" parent="MainPanel/PvAIVBox" unique_id=591610039]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="MainPanel/PvAIVBox/ColorRow" unique_id=269180451]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Play as:"
-
-[node name="ColorOption" type="OptionButton" parent="MainPanel/PvAIVBox/ColorRow" unique_id=809045142]
-layout_mode = 2
-size_flags_horizontal = 3
-
 [node name="ValidationLabel" type="Label" parent="MainPanel/PvAIVBox" unique_id=1756880313]
 visible = false
 layout_mode = 2
+theme = ExtResource("16_a8gd2")
+theme_override_colors/font_color = Color(0.7254902, 0, 0.37254903, 1)
 horizontal_alignment = 1
 autowrap_mode = 3
 
@@ -330,9 +346,11 @@ visible = false
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+theme_override_constants/separation = 25
 
 [node name="Title" type="Label" parent="MainPanel/StatsVBox" unique_id=1549087602]
 layout_mode = 2
+theme = ExtResource("16_hstxw")
 text = "Statistics"
 horizontal_alignment = 1
 
@@ -355,32 +373,78 @@ visible = false
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+theme_override_constants/separation = 25
 
 [node name="Title" type="Label" parent="MainPanel/SettingsVBox" unique_id=2128207688]
 layout_mode = 2
+theme = ExtResource("16_hstxw")
 text = "Settings"
 horizontal_alignment = 1
 
-[node name="AIStrengthRow" type="HBoxContainer" parent="MainPanel/SettingsVBox" unique_id=1866177689]
+[node name="MusicVolRow" type="HBoxContainer" parent="MainPanel/SettingsVBox" unique_id=20073938]
 layout_mode = 2
+theme_override_constants/separation = 40
 
-[node name="Label" type="Label" parent="MainPanel/SettingsVBox/AIStrengthRow" unique_id=1685991021]
-layout_mode = 2
-text = "AI Strength: 1"
-
-[node name="HSlider" type="HSlider" parent="MainPanel/SettingsVBox/AIStrengthRow" unique_id=552164629]
+[node name="MusicVolLabel" type="Label" parent="MainPanel/SettingsVBox/MusicVolRow" unique_id=2044876493]
 layout_mode = 2
 size_flags_horizontal = 3
-min_value = 1.0
-max_value = 3.0
-value = 1.0
+theme = ExtResource("16_a8gd2")
+text = "Music Volume: 50%"
+
+[node name="MusicVolSlider" type="HSlider" parent="MainPanel/SettingsVBox/MusicVolRow" unique_id=848671361]
+layout_mode = 2
+size_flags_horizontal = 3
+value = 50.0
+
+[node name="SFXVolRow" type="HBoxContainer" parent="MainPanel/SettingsVBox" unique_id=1838517052]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="SFXVolLabel" type="Label" parent="MainPanel/SettingsVBox/SFXVolRow" unique_id=1171189584]
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("16_a8gd2")
+text = "SFX Volume: 100%"
+
+[node name="SFXVolSlider" type="HSlider" parent="MainPanel/SettingsVBox/SFXVolRow" unique_id=1578007712]
+layout_mode = 2
+size_flags_horizontal = 3
+value = 100.0
+
+[node name="FacePlayerRow" type="HBoxContainer" parent="MainPanel/SettingsVBox" unique_id=2050643938]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="FacePlayerLabel" type="Label" parent="MainPanel/SettingsVBox/FacePlayerRow" unique_id=962295887]
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+text = "Auto-rotate camera after move"
+
+[node name="FacePlayerCheck" type="CheckBox" parent="MainPanel/SettingsVBox/FacePlayerRow" unique_id=847821193]
+layout_mode = 2
+
+[node name="KillCamRow" type="HBoxContainer" parent="MainPanel/SettingsVBox" unique_id=2124416438]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="KillCamLabel" type="Label" parent="MainPanel/SettingsVBox/KillCamRow" unique_id=369233713]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+text = "Kill Cam"
+
+[node name="KillCamCheck" type="CheckBox" parent="MainPanel/SettingsVBox/KillCamRow" unique_id=262230345]
+layout_mode = 2
+button_pressed = true
 
 [node name="PanSensRow" type="HBoxContainer" parent="MainPanel/SettingsVBox" unique_id=1531540557]
 layout_mode = 2
+theme_override_constants/separation = 40
 
 [node name="PanSensLabel" type="Label" parent="MainPanel/SettingsVBox/PanSensRow" unique_id=2121897254]
 custom_minimum_size = Vector2(160, 0)
 layout_mode = 2
+theme = ExtResource("16_a8gd2")
 text = "Pan Sensitivity: 5"
 
 [node name="PanSensSlider" type="HSlider" parent="MainPanel/SettingsVBox/PanSensRow" unique_id=1200927991]
@@ -392,10 +456,12 @@ value = 5.0
 
 [node name="TiltSensRow" type="HBoxContainer" parent="MainPanel/SettingsVBox" unique_id=1367002245]
 layout_mode = 2
+theme_override_constants/separation = 40
 
 [node name="TiltSensLabel" type="Label" parent="MainPanel/SettingsVBox/TiltSensRow" unique_id=762740595]
 custom_minimum_size = Vector2(160, 0)
 layout_mode = 2
+theme = ExtResource("16_a8gd2")
 text = "Tilt Sensitivity: 5"
 
 [node name="TiltSensSlider" type="HSlider" parent="MainPanel/SettingsVBox/TiltSensRow" unique_id=1414890674]
@@ -404,55 +470,6 @@ size_flags_horizontal = 3
 min_value = 1.0
 max_value = 10.0
 value = 5.0
-
-[node name="KillCamRow" type="HBoxContainer" parent="MainPanel/SettingsVBox" unique_id=2124416438]
-layout_mode = 2
-
-[node name="KillCamLabel" type="Label" parent="MainPanel/SettingsVBox/KillCamRow" unique_id=369233713]
-custom_minimum_size = Vector2(160, 0)
-layout_mode = 2
-text = "Kill Cam"
-
-[node name="KillCamCheck" type="CheckBox" parent="MainPanel/SettingsVBox/KillCamRow" unique_id=262230345]
-layout_mode = 2
-button_pressed = true
-
-[node name="FacePlayerRow" type="HBoxContainer" parent="MainPanel/SettingsVBox" unique_id=2050643938]
-layout_mode = 2
-
-[node name="FacePlayerLabel" type="Label" parent="MainPanel/SettingsVBox/FacePlayerRow" unique_id=962295887]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Auto-rotate camera after move"
-
-[node name="FacePlayerCheck" type="CheckBox" parent="MainPanel/SettingsVBox/FacePlayerRow" unique_id=847821193]
-layout_mode = 2
-
-[node name="MusicVolRow" type="HBoxContainer" parent="MainPanel/SettingsVBox" unique_id=20073938]
-layout_mode = 2
-
-[node name="MusicVolLabel" type="Label" parent="MainPanel/SettingsVBox/MusicVolRow" unique_id=2044876493]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Music Volume: 50%"
-
-[node name="MusicVolSlider" type="HSlider" parent="MainPanel/SettingsVBox/MusicVolRow" unique_id=848671361]
-layout_mode = 2
-size_flags_horizontal = 3
-value = 50.0
-
-[node name="SFXVolRow" type="HBoxContainer" parent="MainPanel/SettingsVBox" unique_id=1838517052]
-layout_mode = 2
-
-[node name="SFXVolLabel" type="Label" parent="MainPanel/SettingsVBox/SFXVolRow" unique_id=1171189584]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "SFX Volume: 100%"
-
-[node name="SFXVolSlider" type="HSlider" parent="MainPanel/SettingsVBox/SFXVolRow" unique_id=1578007712]
-layout_mode = 2
-size_flags_horizontal = 3
-value = 100.0
 
 [node name="BackBtn" type="Button" parent="MainPanel/SettingsVBox" unique_id=775881788]
 layout_mode = 2

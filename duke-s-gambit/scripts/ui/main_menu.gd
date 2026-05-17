@@ -246,12 +246,12 @@ func _pvp_dialog_error() -> String:
 	if p1.is_empty():
 		return "Enter the white player's name"
 	if _is_ai_reserved_name(p1):
-		return "Nickname 'AI/Computer/Bot' is not allowed for a human player"
+		return "Nickname 'AI' is not allowed for a human player"
 	var p2: String = _nick_get_value(_pvp_p2_input)
 	if p2.is_empty():
 		return "Enter the black player's name"
 	if _is_ai_reserved_name(p2):
-		return "Nickname 'AI/Computer/Bot' is not allowed for a human player"
+		return "Nickname 'AI' is not allowed for a human player"
 	if p1.to_lower() == p2.to_lower():
 		return "Selected players must have different names"
 	return ""
@@ -261,7 +261,7 @@ func _pvai_dialog_error() -> String:
 	if p1.is_empty():
 		return "Enter your name"
 	if _is_ai_reserved_name(p1):
-		return "Nickname 'AI/Computer/Bot' is not allowed for a human player"
+		return "Nickname 'AI' is not allowed for a human player"
 	return ""
 
 func _is_ai_reserved_name(candidate_name: String) -> bool:
