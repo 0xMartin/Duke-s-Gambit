@@ -646,7 +646,7 @@ size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 36
 text = "Knight"
 
-[node name="Terrain" parent="." unique_id=2798126 instance=ExtResource("7")]
+[node name="Terrain" parent="." unique_id=2085348534 instance=ExtResource("7")]
 transform = Transform3D(0.45, 0, 0, 0, 0.45, 0, 0, 0, 0.45, 0.005435705, -0.50431836, -0.00023984909)
 
 [node name="Board" parent="." unique_id=1969348578 instance=ExtResource("2")]

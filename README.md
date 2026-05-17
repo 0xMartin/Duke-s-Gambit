@@ -27,11 +27,9 @@ https://freesound.org/people/magnuswaker/sounds/524956/
 
 todo:
 - nove budovy:
-JVM Server Rack
 Firewall / Závorky jako bariéra
 Archiválie / Knihovny
-floppy disky
-
+ww
 - globalni velepseni UI
 
 - Server + moznost hrat online
