@@ -4,6 +4,9 @@
 <h1> Duke's Gambit: Battle for Java Code</h1>
 </div>
 
+> [!NOTE]
+> __Disclaimer:__ This is an open-source, non-commercial fan game made for satirical and educational purposes. "Java" is a trademark of Oracle Corporation. This project is not affiliated with, endorsed, or sponsored by Oracle.
+
 - Duke Chess 3D peaces: https://github.com/openjdk/duke (edited in blender and animated using mixamo.com)
 - chess icons from: https://commons.wikimedia.org/wiki/Category:SVG_chess_pieces
 - hit vfx: https://binbun3d.itch.io/hit-fx
@@ -35,7 +38,3 @@ todo:
 - globalni velepseni UI
 
 - Server + moznost hrat online
-
-
-> [!NOTE]
-> __Disclaimer:__ This is an open-source, non-commercial fan game made for satirical and educational purposes. "Java" is a trademark of Oracle Corporation. This project is not affiliated with, endorsed, or sponsored by Oracle.
