@@ -8,16 +8,18 @@
 [ext_resource type="Texture2D" uid="uid://b32gsnl100kls" path="res://assets/textures/ui/circuit.png" id="4_8ln24"]
 [ext_resource type="Texture2D" uid="uid://mcvy52eqkp8l" path="res://assets/textures/ui/pieces-grid.png" id="5_rtw2f"]
 [ext_resource type="Shader" uid="uid://c86ns8cq6mtk5" path="res://shaders/main_menu_bg_scroll.gdshader" id="6_bgscroll"]
-[ext_resource type="Shader" path="res://shaders/main_menu_icon_float.gdshader" id="7_iconfloat"]
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_bg_scroll"]
-shader = ExtResource("6_bgscroll")
-shader_parameter/scroll_speed = Vector2(-0.015, 0.0225)
+[ext_resource type="Shader" uid="uid://cnl3nhpantuow" path="res://shaders/main_menu_icon_float.gdshader" id="7_iconfloat"]
+[ext_resource type="Theme" uid="uid://j3mrolm0j70w" path="res://themes/transparent_panel.tres" id="9_5dd4i"]
+[ext_resource type="Theme" uid="uid://njtiunbj4mnm" path="res://themes/menu_button.tres" id="10_lgwnu"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_icon_float"]
 shader = ExtResource("7_iconfloat")
 shader_parameter/float_amplitude = 10.0
 shader_parameter/float_speed = 2.4
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_bg_scroll"]
+shader = ExtResource("6_bgscroll")
+shader_parameter/scroll_speed = Vector2(-0.015, 0.0225)
 
 [node name="MainMenu" type="Control" unique_id=969542434]
 layout_mode = 3
@@ -29,6 +31,7 @@ grow_vertical = 2
 script = ExtResource("1")
 
 [node name="DukeIcon" type="TextureRect" parent="." unique_id=429281023]
+texture_filter = 4
 material = SubResource("ShaderMaterial_icon_float")
 layout_mode = 1
 anchors_preset = -1
@@ -38,7 +41,6 @@ anchor_bottom = 1.0
 offset_right = -0.64001465
 offset_bottom = -0.23999023
 texture = ExtResource("3_bqqt6")
-texture_filter = 4
 expand_mode = 1
 stretch_mode = 5
 metadata/_edit_use_anchors_ = true
@@ -68,9 +70,9 @@ z_index = 10
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.49985415
-anchor_top = 0.15
+anchor_top = 0.108629666
 anchor_right = 0.9620834
-anchor_bottom = 0.35
+anchor_bottom = 0.2627778
 offset_left = 0.2800293
 offset_top = -0.32003784
 offset_right = -0.20007324
@@ -99,6 +101,7 @@ metadata/_edit_lock_ = true
 
 [node name="Bg" type="TextureRect" parent="." unique_id=1741113824]
 z_index = -1
+texture_filter = 4
 material = SubResource("ShaderMaterial_bg_scroll")
 layout_mode = 1
 anchors_preset = 15
@@ -107,7 +110,6 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 texture = ExtResource("5_rtw2f")
-texture_filter = 4
 stretch_mode = 1
 metadata/_edit_lock_ = true
 
@@ -115,36 +117,50 @@ metadata/_edit_lock_ = true
 z_index = 10
 layout_mode = 1
 anchors_preset = -1
-anchor_left = 0.54114586
-anchor_top = 0.54351854
+anchor_left = 0.5
+anchor_top = 0.28055555
 anchor_right = 0.9546875
 anchor_bottom = 0.8925926
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("9_5dd4i")
 metadata/_edit_use_anchors_ = true
 
 [node name="VBox" type="VBoxContainer" parent="MainPanel" unique_id=1054197032]
 layout_mode = 2
+size_flags_horizontal = 0
+theme_override_constants/separation = 25
+alignment = 1
 
 [node name="PvPBtn" type="Button" parent="MainPanel/VBox" unique_id=1470240247]
 layout_mode = 2
+theme = ExtResource("10_lgwnu")
 text = "Player vs Player"
+alignment = 0
 
 [node name="PvAIBtn" type="Button" parent="MainPanel/VBox" unique_id=1442215935]
 layout_mode = 2
+theme = ExtResource("10_lgwnu")
 text = "Player vs AI"
+alignment = 0
 
 [node name="StatsBtn" type="Button" parent="MainPanel/VBox" unique_id=1952988221]
 layout_mode = 2
+theme = ExtResource("10_lgwnu")
 text = "Stats"
+alignment = 0
 
 [node name="SettingsBtn" type="Button" parent="MainPanel/VBox" unique_id=556680951]
 layout_mode = 2
+theme = ExtResource("10_lgwnu")
 text = "Settings"
+alignment = 0
 
 [node name="QuitBtn" type="Button" parent="MainPanel/VBox" unique_id=204160667]
 layout_mode = 2
+theme = ExtResource("10_lgwnu")
 text = "Quit"
+alignment = 0
 
 [node name="PvPPanel" type="PanelContainer" parent="." unique_id=2115630850]
 visible = false
