@@ -22,11 +22,11 @@ sky_material = SubResource("SkyMat1")
 background_mode = 2
 sky = SubResource("Sky1")
 ambient_light_source = 2
-ambient_light_color = Color(0.95, 0.92, 0.88, 1)
-ambient_light_energy = 0.5
+ambient_light_color = Color(0.79607844, 0.8666667, 1, 1)
+ambient_light_energy = 0.6
 fog_enabled = true
 fog_mode = 1
-fog_light_color = Color(0.34331775, 0.58549196, 0.6975872, 1)
+fog_light_color = Color(0.34509805, 0.58431375, 0.69803923, 1)
 fog_light_energy = 1.7
 fog_sun_scatter = 0.48
 fog_density = 0.9826
@@ -210,7 +210,7 @@ environment = SubResource("Env1")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=218313874]
 transform = Transform3D(0.70710677, -0.5000378, 0.49996227, 0, 0.7070534, 0.70716023, -0.70710677, -0.5000378, 0.49996227, 0, 8, 0)
-light_energy = 0.6
+light_energy = 0.5
 shadow_enabled = true
 
 [node name="UI" type="Control" parent="." unique_id=1898942881]
@@ -646,7 +646,7 @@ size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 36
 text = "Knight"
 
-[node name="Terrain" parent="." unique_id=2085348534 instance=ExtResource("7")]
+[node name="Terrain" parent="." unique_id=1680561438 instance=ExtResource("7")]
 transform = Transform3D(0.45, 0, 0, 0, 0.45, 0, 0, 0, 0.45, 0.005435705, -0.50431836, -0.00023984909)
 
 [node name="Board" parent="." unique_id=1969348578 instance=ExtResource("2")]
