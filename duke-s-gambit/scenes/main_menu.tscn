@@ -3,10 +3,10 @@
 [ext_resource type="Script" uid="uid://s16ti15dmnl1" path="res://scripts/ui/main_menu.gd" id="1"]
 [ext_resource type="PackedScene" uid="uid://c4hw36xh8k7cs" path="res://scenes/ui/nickname_input.tscn" id="2_nick"]
 [ext_resource type="Texture2D" uid="uid://con2rpsbu3i2l" path="res://assets/textures/ui/duke.png" id="3_bqqt6"]
+[ext_resource type="FontFile" uid="uid://bn1f5cgy4rauy" path="res://assets/fonts/Montserrat-Regular.ttf" id="3_oa1go"]
 [ext_resource type="FontFile" uid="uid://b5wwdlpmaoo1t" path="res://assets/fonts/Montserrat-Bold.ttf" id="3_wu84c"]
 [ext_resource type="Texture2D" uid="uid://b32gsnl100kls" path="res://assets/textures/ui/circuit.png" id="4_8ln24"]
-
-[sub_resource type="ImageTexture" id="ImageTexture_wu84c"]
+[ext_resource type="Texture2D" uid="uid://mcvy52eqkp8l" path="res://assets/textures/ui/pieces-grid.png" id="5_rtw2f"]
 
 [node name="MainMenu" type="Control" unique_id=969542434]
 layout_mode = 3
@@ -29,6 +29,26 @@ texture = ExtResource("3_bqqt6")
 expand_mode = 1
 stretch_mode = 5
 metadata/_edit_use_anchors_ = true
+metadata/_edit_lock_ = true
+
+[node name="Version" type="Label" parent="." unique_id=435606877]
+z_index = 10
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.020833334
+anchor_top = 0.8715926
+anchor_right = 0.41200003
+anchor_bottom = 0.99981487
+offset_top = -0.32000732
+offset_right = -0.040039063
+offset_bottom = 0.2000122
+theme_override_colors/font_color = Color(0.5650548, 0.91723067, 0.9613783, 1)
+theme_override_constants/outline_size = 10
+theme_override_fonts/font = ExtResource("3_oa1go")
+theme_override_font_sizes/font_size = 22
+text = "Created by: 0xM4R71N  |  Version: 1.0.0"
+vertical_alignment = 1
+metadata/_edit_use_anchors_ = true
 
 [node name="Title" type="Label" parent="." unique_id=1194487490]
 z_index = 10
@@ -36,14 +56,16 @@ layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.49985415
 anchor_top = 0.15
-anchor_right = 0.9547917
+anchor_right = 0.9620834
 anchor_bottom = 0.35
 offset_left = 0.2800293
 offset_top = -0.32003784
 offset_right = -0.20007324
 offset_bottom = 0.19998169
+theme_override_colors/font_color = Color(0.5650548, 0.91723067, 0.9613783, 1)
+theme_override_constants/outline_size = 41
 theme_override_fonts/font = ExtResource("3_wu84c")
-theme_override_font_sizes/font_size = 100
+theme_override_font_sizes/font_size = 120
 text = "Duke's Gambit"
 vertical_alignment = 1
 metadata/_edit_use_anchors_ = true
@@ -60,6 +82,7 @@ texture = ExtResource("4_8ln24")
 expand_mode = 4
 stretch_mode = 4
 metadata/_edit_use_anchors_ = true
+metadata/_edit_lock_ = true
 
 [node name="Bg" type="TextureRect" parent="." unique_id=1741113824]
 z_index = -1
@@ -69,8 +92,9 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-texture = SubResource("ImageTexture_wu84c")
+texture = ExtResource("5_rtw2f")
 stretch_mode = 1
+metadata/_edit_lock_ = true
 
 [node name="MainPanel" type="PanelContainer" parent="." unique_id=97883763]
 z_index = 10
