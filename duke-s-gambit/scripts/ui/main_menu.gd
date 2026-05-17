@@ -200,17 +200,40 @@ func _populate_stats() -> void:
 		child.queue_free()
 	if _save == null:
 		return
+
+	var table := GridContainer.new()
+	table.columns = 7
+	table.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	table.add_theme_constant_override("h_separation", 18)
+	table.add_theme_constant_override("v_separation", 8)
+
+	for title in ["Player", "ELO", "W", "L", "D", "Avg Move", "Games"]:
+		table.add_child(_make_stats_cell(title, true, HORIZONTAL_ALIGNMENT_LEFT))
+
 	for key: String in _save.get_all_player_names():
 		var p: Dictionary = _save.get_player(key)
 		var avg_ms: float = _save.average_move_time_ms(key)
 		var avg_s: String = "%.1fs" % (avg_ms / 1000.0) if avg_ms > 0 else "-"
-		var lbl := Label.new()
-		lbl.text = "%s  |  ELO: %d  |  W:%d L:%d D:%d  |  Avg move: %s  |  Games: %d" % [
-			p["name"], p["elo"],
-			p["wins"], p["losses"], p["draws"],
-			avg_s, p["games_played"]
-		]
-		_stats_vbox.add_child(lbl)
+		table.add_child(_make_stats_cell(str(p["name"]), false, HORIZONTAL_ALIGNMENT_LEFT))
+		table.add_child(_make_stats_cell(str(p["elo"])))
+		table.add_child(_make_stats_cell(str(p["wins"])))
+		table.add_child(_make_stats_cell(str(p["losses"])))
+		table.add_child(_make_stats_cell(str(p["draws"])))
+		table.add_child(_make_stats_cell(avg_s))
+		table.add_child(_make_stats_cell(str(p["games_played"])))
+
+	_stats_vbox.add_child(table)
+
+func _make_stats_cell(text: String, is_header: bool = false,
+		align: HorizontalAlignment = HORIZONTAL_ALIGNMENT_CENTER) -> Label:
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.horizontal_alignment = align
+	lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	lbl.add_theme_font_size_override("font_size", 24 if is_header else 22)
+	lbl.add_theme_color_override("font_color",
+		Color(1.0, 0.85, 0.2, 1.0) if is_header else Color(0.93, 0.93, 0.90, 1.0))
+	return lbl
 
 # ── Settings ───────────────────────────────────────────────────────────────
 func _show_settings() -> void:

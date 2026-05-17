@@ -724,6 +724,10 @@ func _show_game_over(winner_color: int, reason: String) -> void:
 	var loser_lbl := panel.get_node_or_null("VBox/LoserLabel") as Label
 	var reason_lbl := panel.get_node_or_null("VBox/ReasonLabel") as Label
 	var stats_lbl := panel.get_node_or_null("VBox/StatsLabel") as Label
+	var stats_time_title := panel.get_node_or_null("VBox/StatsTimeTitle") as Label
+	var stats_time_value := panel.get_node_or_null("VBox/StatsTimeValue") as Label
+	var stats_avg_title := panel.get_node_or_null("VBox/StatsAvgTitle") as Label
+	var stats_avg_value := panel.get_node_or_null("VBox/StatsAvgValue") as Label
 
 	if winner_color == -1:
 		if title_lbl:
@@ -745,31 +749,75 @@ func _show_game_over(winner_color: int, reason: String) -> void:
 	if reason_lbl:
 		reason_lbl.text = reason
 
-	if stats_lbl:
-		# Compute time remaining/elapsed for both players
-		var white_time: String = ""
-		var black_time: String = ""
-		if _time_control_ms > 0:
-			white_time = _format_time(_time_remaining_ms[ChessEnums.PieceColor.WHITE])
-			black_time = _format_time(_time_remaining_ms[ChessEnums.PieceColor.BLACK])
-		else:
-			white_time = _format_time(_move_times_ms[ChessEnums.PieceColor.WHITE])
-			black_time = _format_time(_move_times_ms[ChessEnums.PieceColor.BLACK])
+	if stats_time_title == null or stats_time_value == null \
+	or stats_avg_title == null or stats_avg_value == null:
+		var vbox := panel.get_node_or_null("VBox") as VBoxContainer
+		if vbox != null:
+			if stats_time_title == null:
+				stats_time_title = Label.new()
+				stats_time_title.name = "StatsTimeTitle"
+				stats_time_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+				stats_time_title.add_theme_font_size_override("font_size", 20)
+				stats_time_title.add_theme_color_override("font_color", Color(0.85, 0.75, 0.4, 1.0))
+				vbox.add_child(stats_time_title)
+			if stats_time_value == null:
+				stats_time_value = Label.new()
+				stats_time_value.name = "StatsTimeValue"
+				stats_time_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+				stats_time_value.add_theme_font_size_override("font_size", 18)
+				stats_time_value.add_theme_color_override("font_color", Color(0.95, 0.93, 0.88, 1.0))
+				vbox.add_child(stats_time_value)
+			if stats_avg_title == null:
+				stats_avg_title = Label.new()
+				stats_avg_title.name = "StatsAvgTitle"
+				stats_avg_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+				stats_avg_title.add_theme_font_size_override("font_size", 20)
+				stats_avg_title.add_theme_color_override("font_color", Color(0.85, 0.75, 0.4, 1.0))
+				vbox.add_child(stats_avg_title)
+			if stats_avg_value == null:
+				stats_avg_value = Label.new()
+				stats_avg_value.name = "StatsAvgValue"
+				stats_avg_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+				stats_avg_value.add_theme_font_size_override("font_size", 18)
+				stats_avg_value.add_theme_color_override("font_color", Color(0.95, 0.93, 0.88, 1.0))
+				vbox.add_child(stats_avg_value)
 
-		var white_avg_ms: float = 0.0
-		var black_avg_ms: float = 0.0
-		if _move_counts[ChessEnums.PieceColor.WHITE] > 0:
-			white_avg_ms = float(_move_times_ms[ChessEnums.PieceColor.WHITE]) / float(_move_counts[ChessEnums.PieceColor.WHITE])
-		if _move_counts[ChessEnums.PieceColor.BLACK] > 0:
-			black_avg_ms = float(_move_times_ms[ChessEnums.PieceColor.BLACK]) / float(_move_counts[ChessEnums.PieceColor.BLACK])
+	# Compute time remaining/elapsed for both players
+	var white_time: String = ""
+	var black_time: String = ""
+	if _time_control_ms > 0:
+		white_time = _format_time(_time_remaining_ms[ChessEnums.PieceColor.WHITE])
+		black_time = _format_time(_time_remaining_ms[ChessEnums.PieceColor.BLACK])
+	else:
+		white_time = _format_time(_move_times_ms[ChessEnums.PieceColor.WHITE])
+		black_time = _format_time(_move_times_ms[ChessEnums.PieceColor.BLACK])
 
-		var white_avg_s: String = "%.1f s" % (white_avg_ms / 1000.0)
-		var black_avg_s: String = "%.1f s" % (black_avg_ms / 1000.0)
+	var white_avg_ms: float = 0.0
+	var black_avg_ms: float = 0.0
+	if _move_counts[ChessEnums.PieceColor.WHITE] > 0:
+		white_avg_ms = float(_move_times_ms[ChessEnums.PieceColor.WHITE]) / float(_move_counts[ChessEnums.PieceColor.WHITE])
+	if _move_counts[ChessEnums.PieceColor.BLACK] > 0:
+		black_avg_ms = float(_move_times_ms[ChessEnums.PieceColor.BLACK]) / float(_move_counts[ChessEnums.PieceColor.BLACK])
 
-		stats_lbl.text = "%s: %s | Avg: %s\n%s: %s | Avg: %s" % [
-			_player_names[ChessEnums.PieceColor.WHITE], white_time, white_avg_s,
-			_player_names[ChessEnums.PieceColor.BLACK], black_time, black_avg_s
+	var white_avg_s: String = "%.1f s" % (white_avg_ms / 1000.0)
+	var black_avg_s: String = "%.1f s" % (black_avg_ms / 1000.0)
+
+	if stats_time_title:
+		stats_time_title.text = "Time"
+	if stats_time_value:
+		stats_time_value.text = "%s: %s\n%s: %s" % [
+			_player_names[ChessEnums.PieceColor.WHITE], white_time,
+			_player_names[ChessEnums.PieceColor.BLACK], black_time
 		]
+	if stats_avg_title:
+		stats_avg_title.text = "Average Turn"
+	if stats_avg_value:
+		stats_avg_value.text = "%s: %s\n%s: %s" % [
+			_player_names[ChessEnums.PieceColor.WHITE], white_avg_s,
+			_player_names[ChessEnums.PieceColor.BLACK], black_avg_s
+		]
+	if stats_lbl:
+		stats_lbl.visible = false
 
 
 	# Save stats
