@@ -83,7 +83,6 @@ var _after_attack_pos: Vector3 = Vector3.ZERO  # where to walk after attack
 
 var _dying:       bool  = false
 var _fade_timer:  float = 0.0
-var _base_alpha:  float = 1.0
 var _idle_start_randomized: bool = false
 
 # Audio runtime state
@@ -108,7 +107,6 @@ var _outline_material: ShaderMaterial = null
 var _outline_meshes: Array[MeshInstance3D] = []
 
 signal move_finished          # emitted when piece arrives at destination
-signal attack_sequence_done   # emitted when full attack+death sequence is done
 signal death_finished         # emitted when death animation ends (before fade/free)
 
 # ── Weapon ──────────────────────────────────────────────────────────────────────
@@ -480,8 +478,8 @@ func attack_and_move_to(target: BasePiece, final_pos: Vector3) -> void:
 func _calc_attack_stop_pos(target_world: Vector3) -> Vector3:
 	var diff := target_world - global_position
 	diff.y = 0.0
-	var len := diff.length()
-	if len <= ATTACK_STOP_DIST:
+	var dist_to_target := diff.length()
+	if dist_to_target <= ATTACK_STOP_DIST:
 		return global_position   # already within range — stay put, we'll turn in _start_attack
 	return target_world - diff.normalized() * ATTACK_STOP_DIST
 
@@ -695,7 +693,9 @@ func _get_transition_blend(from_anim: String, to_anim: String) -> float:
 	return BLEND_DEFAULT
 
 func current_anim() -> String:
-	return _anim.current_animation if _anim else ""
+	if _anim == null:
+		return ""
+	return _anim.current_animation
 
 func board_square() -> Vector2i:
 	return Vector2i.ZERO  # set by GameController after instantiation

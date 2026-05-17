@@ -112,10 +112,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			var az_rad := deg_to_rad(_azimuth)
 			var right   := Vector3(cos(az_rad),  0.0, -sin(az_rad))
 			var forward := Vector3(sin(az_rad),  0.0,  cos(az_rad))
-			var scale := distance * pan_speed
+			var pan_scale := distance * pan_speed
 			var new_pos := _pan_pivot_start \
-				+ right   * (-d.x * scale) \
-				+ forward * (-d.y * scale)
+				+ right   * (-d.x * pan_scale) \
+				+ forward * (-d.y * pan_scale)
 			new_pos.x = clamp(new_pos.x, -4.0, 4.0)
 			new_pos.z = clamp(new_pos.z, -4.0, 4.0)
 			position = new_pos
@@ -158,9 +158,9 @@ func _apply_transform() -> void:
 		# Apply camera shake as a small post-look rotation
 		if _shake_dur > 0.0:
 			var t: float = clamp(_shake_timer / _shake_dur, 0.0, 1.0)
-			var str: float = _shake_strength * (1.0 - t)
-			_cam.rotate_object_local(Vector3.RIGHT, randf_range(-str, str))
-			_cam.rotate_object_local(Vector3.UP,   randf_range(-str, str))
+			var shake_amount: float = _shake_strength * (1.0 - t)
+			_cam.rotate_object_local(Vector3.RIGHT, randf_range(-shake_amount, shake_amount))
+			_cam.rotate_object_local(Vector3.UP,   randf_range(-shake_amount, shake_amount))
 
 # ── Public API ─────────────────────────────────────────────────────────────
 ## Called by GameController after a move. Smoothly rotates to face active player,
@@ -230,11 +230,11 @@ func kill_cam(from_world: Vector3, to_world: Vector3, attacker: Node3D = null) -
 	# Attack direction in XZ plane.
 	var dir: Vector3 = (to_world - from_world)
 	dir.y = 0.0
-	var len: float = dir.length()
+	var dir_len: float = dir.length()
 
 	# Perpendicular to attack (90° CCW in XZ) → side-on cinematic angle.
 	var perp: Vector3
-	if len > 0.01:
+	if dir_len > 0.01:
 		dir  = dir.normalized()
 		perp = Vector3(-dir.z, 0.0, dir.x)
 	else:
@@ -249,7 +249,7 @@ func kill_cam(from_world: Vector3, to_world: Vector3, attacker: Node3D = null) -
 	_target_elevation = 20.0
 
 	# Distance: show both pieces clearly, scaled by their separation.
-	var separation: float = maxf(len, 1.0)
+	var separation: float = maxf(dir_len, 1.0)
 	_target_distance = clamp(separation * 2.0 + 1.5, 3.5, 7.0)
 
 ## Cinematic close-up of the losing king after checkmate.

@@ -5,6 +5,7 @@
 class_name PlayerController
 extends RefCounted
 
+@warning_ignore("unused_signal")
 signal move_chosen(move: ChessMove)
 
 var color: int = ChessEnums.PieceColor.WHITE

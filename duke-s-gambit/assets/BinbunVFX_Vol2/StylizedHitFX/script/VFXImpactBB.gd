@@ -157,7 +157,7 @@ var hit_core : GPUParticles3D:
 @export_range(-80.0, 80.0, 0.01, "suffix:dB") var volume_db : float = 0.0:
 	set(v):
 		volume_db = v
-		if audio_stream_player: audio_stream_player.volume_db
+		if audio_stream_player: audio_stream_player.volume_db = volume_db
 
 @export_range(0.1, 100.0, 0.01) var unit_size : float = 10.0:
 	set(v):

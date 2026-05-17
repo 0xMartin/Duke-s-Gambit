@@ -43,21 +43,21 @@ func save_data() -> void:
 func get_all_player_names() -> Array:
 	return players.keys()
 
-func player_exists(name: String) -> bool:
-	return players.has(name.to_lower())
+func player_exists(player_name: String) -> bool:
+	return players.has(player_name.to_lower())
 
-func get_player(name: String) -> Dictionary:
-	var key := name.to_lower()
+func get_player(player_name: String) -> Dictionary:
+	var key := player_name.to_lower()
 	if not players.has(key):
 		return {}
 	return players[key].duplicate()
 
-func create_player(name: String) -> void:
-	var key := name.to_lower()
+func create_player(player_name: String) -> void:
+	var key := player_name.to_lower()
 	if players.has(key):
 		return
 	players[key] = {
-		"name": name,
+		"name": player_name,
 		"elo": 1000,
 		"wins": 0,
 		"losses": 0,
@@ -101,12 +101,12 @@ func record_game_result(winner: String, loser: String, is_draw: bool,
 
 	save_data()
 
-func average_move_time_ms(name: String) -> float:
-	var p := get_player(name)
+func average_move_time_ms(player_name: String) -> float:
+	var p := get_player(player_name)
 	if p.is_empty() or p["total_moves"] == 0:
 		return 0.0
 	return float(p["total_move_time_ms"]) / float(p["total_moves"])
 
-func _ensure_player(name: String) -> void:
-	if not player_exists(name):
-		create_player(name)
+func _ensure_player(player_name: String) -> void:
+	if not player_exists(player_name):
+		create_player(player_name)

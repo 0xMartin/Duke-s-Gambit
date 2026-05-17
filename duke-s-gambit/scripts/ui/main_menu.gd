@@ -186,8 +186,8 @@ func _on_start_pressed() -> void:
 	game_scene.start_game()
 	queue_free()
 
-func _is_ai_reserved_name(name: String) -> bool:
-	var normalized := name.strip_edges().to_lower()
+func _is_ai_reserved_name(candidate_name: String) -> bool:
+	var normalized := candidate_name.strip_edges().to_lower()
 	return normalized == "ai" or normalized == "computer" or normalized == "bot"
 
 # ── Stats ──────────────────────────────────────────────────────────────────

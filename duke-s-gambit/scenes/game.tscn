@@ -22,11 +22,11 @@ sky_material = SubResource("SkyMat1")
 background_mode = 2
 sky = SubResource("Sky1")
 ambient_light_source = 2
-ambient_light_color = Color(0.79607844, 0.8666667, 1, 1)
-ambient_light_energy = 0.6
+ambient_light_color = Color(0.8673276, 0.8736465, 0.786995, 1)
+ambient_light_energy = 0.5
 fog_enabled = true
 fog_mode = 1
-fog_light_color = Color(0.34509805, 0.58431375, 0.69803923, 1)
+fog_light_color = Color(0.5508366, 0.5597339, 0.4666593, 1)
 fog_light_energy = 1.7
 fog_sun_scatter = 0.48
 fog_density = 0.9826
@@ -646,7 +646,7 @@ size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 36
 text = "Knight"
 
-[node name="Terrain" parent="." unique_id=1680561438 instance=ExtResource("7")]
+[node name="Terrain" parent="." unique_id=187848947 instance=ExtResource("7")]
 transform = Transform3D(0.45, 0, 0, 0, 0.45, 0, 0, 0, 0.45, 0.005435705, -0.50431836, -0.00023984909)
 
 [node name="Board" parent="." unique_id=1969348578 instance=ExtResource("2")]

@@ -380,8 +380,8 @@ func surrender() -> void:
 	_show_game_over(winner, "Surrender")
 
 func _format_time(ms: int) -> String:
-	var secs: int = ms / 1000
-	var mins: int = secs / 60
+	var secs: int = int(ms / 1000.0)
+	var mins: int = int(secs / 60.0)
 	var sec_rem: int = secs % 60
 	if mins > 0:
 		return "%d:%02d" % [mins, sec_rem]

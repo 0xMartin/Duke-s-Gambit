@@ -108,7 +108,7 @@ func append_move_to_history(mv: ChessMove) -> void:
 		return
 
 	_history_ply_count += 1
-	var move_no := int((_history_ply_count + 1) / 2)
+	var move_no := int((_history_ply_count + 1) / 2.0)
 	var is_white_move := mv.piece_color == ChessEnums.PieceColor.WHITE
 	var turn_prefix := "%d." % move_no if is_white_move else "%d..." % move_no
 
@@ -171,13 +171,13 @@ func _piece_icon_path(color: int, piece_type: int) -> String:
 	var side := "white" if color == ChessEnums.PieceColor.WHITE else "black"
 	return "res://assets/textures/pieces/%s_%s.svg" % [side, PIECE_NAMES[piece_type]]
 
-func _build_piece_icon(color: int, piece_type: int, size: int) -> Control:
+func _build_piece_icon(color: int, piece_type: int, icon_size: int) -> Control:
 	var path := _piece_icon_path(color, piece_type)
 	if path == "" or not ResourceLoader.exists(path):
 		return null
 
 	var frame := PanelContainer.new()
-	frame.custom_minimum_size = Vector2(size + 8, size + 8)
+	frame.custom_minimum_size = Vector2(icon_size + 8, icon_size + 8)
 	var frame_style := StyleBoxFlat.new()
 	frame_style.set_corner_radius_all(6)
 	frame_style.set_border_width_all(1)
@@ -198,7 +198,7 @@ func _build_piece_icon(color: int, piece_type: int, size: int) -> Control:
 
 	var icon := TextureRect.new()
 	icon.texture = load(path) as Texture2D
-	icon.custom_minimum_size = Vector2(size, size)
+	icon.custom_minimum_size = Vector2(icon_size, icon_size)
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
 	margin.add_child(icon)
@@ -332,8 +332,8 @@ func update_timer(color: int, ms: int) -> void:
 	var lbl := _timer_lbl[color] as Label
 	if _has_time_limit:
 		# Countdown: show MM:SS, red when < 30 s
-		var total_secs: int = ms / 1000
-		var mins: int = total_secs / 60
+		var total_secs: int = int(ms / 1000.0)
+		var mins: int = int(total_secs / 60.0)
 		var secs: int = total_secs % 60
 		lbl.text = "%d:%02d" % [mins, secs]
 		if ms < 30000:
@@ -341,8 +341,8 @@ func update_timer(color: int, ms: int) -> void:
 		else:
 			lbl.add_theme_color_override("font_color", Color(0.9, 0.85, 0.5))
 	else:
-		var secs: int = ms / 1000
-		var frac: int = (ms % 1000) / 100
+		var secs: int = int(ms / 1000.0)
+		var frac: int = int((ms % 1000) / 100.0)
 		lbl.text = "⏱ %d.%ds" % [secs, frac]
 
 func refresh_captured(capturing_color: int, captured_types: Array) -> void:

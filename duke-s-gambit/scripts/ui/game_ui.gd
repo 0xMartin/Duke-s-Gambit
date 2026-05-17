@@ -44,7 +44,7 @@ func _setup_surrender_btn() -> void:
 	_surrender_btn.anchor_right   = 0.5
 	_surrender_btn.anchor_top     = 0.0
 	_surrender_btn.anchor_bottom  = 0.0
-	_surrender_btn.grow_horizontal = 2  # GROW_DIRECTION_BOTH
+	_surrender_btn.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	_surrender_btn.offset_left    = -100.0
 	_surrender_btn.offset_right   =  100.0
 	_surrender_btn.offset_top     = 16.0
@@ -60,7 +60,7 @@ func _setup_ai_status() -> void:
 	_ai_status_container.anchor_right   = 0.5
 	_ai_status_container.anchor_top     = 0.0
 	_ai_status_container.anchor_bottom  = 0.0
-	_ai_status_container.grow_horizontal = 2
+	_ai_status_container.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	_ai_status_container.offset_left    = -150.0
 	_ai_status_container.offset_right   =  150.0
 	_ai_status_container.offset_top     = 64.0
