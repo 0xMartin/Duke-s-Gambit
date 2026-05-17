@@ -55,8 +55,6 @@ func _ready() -> void:
 	_stats_vbox = get_node_or_null("StatsPanel/VBox/ScrollContainer/VBox") as VBoxContainer
 	_setup_pvai_controls()
 	_setup_settings_extra()
-	_setup_font_sizes()
-	_apply_roblox_theme()
 	_connect_button_sounds()
 	if _settings_ai_row:
 		_settings_ai_row.visible = false
@@ -240,24 +238,24 @@ func _update_pvai_validation() -> void:
 func _pvp_dialog_error() -> String:
 	var p1: String = _nick_get_value(_pvp_p1_input)
 	if p1.is_empty():
-		return "Vypln jmeno bileho hrace."
+		return "Enter the white player's name"
 	if _is_ai_reserved_name(p1):
-		return "Nickname 'AI/Computer/Bot' neni povoleny pro lidskeho hrace."
+		return "Nickname 'AI/Computer/Bot' is not allowed for a human player"
 	var p2: String = _nick_get_value(_pvp_p2_input)
 	if p2.is_empty():
-		return "Vypln jmeno cerneho hrace."
+		return "Enter the black player's name"
 	if _is_ai_reserved_name(p2):
-		return "Nickname 'AI/Computer/Bot' neni povoleny pro lidskeho hrace."
+		return "Nickname 'AI/Computer/Bot' is not allowed for a human player"
 	if p1.to_lower() == p2.to_lower():
-		return "Vybrani hraci musi mit odlisne jmeno."
+		return "Selected players must have different names"
 	return ""
 
 func _pvai_dialog_error() -> String:
 	var p1: String = _nick_get_value(_pvai_player_input)
 	if p1.is_empty():
-		return "Vypln svoje jmeno."
+		return "Enter your name"
 	if _is_ai_reserved_name(p1):
-		return "Nickname 'AI/Computer/Bot' neni povoleny pro lidskeho hrace."
+		return "Nickname 'AI/Computer/Bot' is not allowed for a human player"
 	return ""
 
 func _is_ai_reserved_name(candidate_name: String) -> bool:
@@ -295,17 +293,15 @@ func _populate_stats() -> void:
 	var table := GridContainer.new()
 	table.columns = 7
 	table.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	table.add_theme_constant_override("h_separation", 18)
-	table.add_theme_constant_override("v_separation", 8)
 
 	for title in ["Player", "ELO", "Wins", "Losses", "Draws", "Avg Move", "Games"]:
-		table.add_child(_make_stats_cell(title, true, HORIZONTAL_ALIGNMENT_LEFT))
+		table.add_child(_make_stats_cell(title, HORIZONTAL_ALIGNMENT_LEFT))
 
 	for key: String in _save.get_all_player_names():
 		var p: Dictionary = _save.get_player(key)
 		var avg_ms: float = _save.average_move_time_ms(key)
 		var avg_s: String = "%.1fs" % (avg_ms / 1000.0) if avg_ms > 0 else "-"
-		table.add_child(_make_stats_cell(str(p["name"]), false, HORIZONTAL_ALIGNMENT_LEFT))
+		table.add_child(_make_stats_cell(str(p["name"]), HORIZONTAL_ALIGNMENT_LEFT))
 		table.add_child(_make_stats_cell(str(p["elo"])))
 		table.add_child(_make_stats_cell(str(p["wins"])))
 		table.add_child(_make_stats_cell(str(p["losses"])))
@@ -315,15 +311,12 @@ func _populate_stats() -> void:
 
 	_stats_vbox.add_child(table)
 
-func _make_stats_cell(text: String, is_header: bool = false,
+func _make_stats_cell(text: String,
 		align: HorizontalAlignment = HORIZONTAL_ALIGNMENT_CENTER) -> Label:
 	var lbl := Label.new()
 	lbl.text = text
 	lbl.horizontal_alignment = align
 	lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	lbl.add_theme_font_size_override("font_size", 24 if is_header else 22)
-	lbl.add_theme_color_override("font_color",
-		Color(1.0, 0.85, 0.2, 1.0) if is_header else Color(0.93, 0.93, 0.90, 1.0))
 	return lbl
 
 # ── Settings ───────────────────────────────────────────────────────────────
@@ -447,124 +440,6 @@ func _on_sfx_vol_changed(value: float) -> void:
 	if cam_cfg:
 		cam_cfg.set("sfx_volume", pct)
 		cam_cfg.save_config()
-
-func _setup_font_sizes() -> void:
-	# Title
-	var main_title := get_node_or_null("MainPanel/VBox/Title") as Label
-	if main_title:
-		main_title.add_theme_font_size_override("font_size", 72)
-	for lbl_path: String in ["PvPPanel/VBox/TitleLabel", "PvAIPanel/VBox/TitleLabel", "StatsPanel/VBox/Title",
-			"SettingsPanel/VBox/Title"]:
-		var lbl := get_node_or_null(lbl_path) as Label
-		if lbl:
-			lbl.add_theme_font_size_override("font_size", 48)
-	# Buttons
-	for btn_path: String in [
-		"MainPanel/VBox/PvPBtn", "MainPanel/VBox/PvAIBtn",
-		"MainPanel/VBox/StatsBtn", "MainPanel/VBox/SettingsBtn", "MainPanel/VBox/QuitBtn",
-		"PvPPanel/VBox/StartBtn", "PvPPanel/VBox/BackBtn",
-		"PvAIPanel/VBox/StartBtn", "PvAIPanel/VBox/BackBtn",
-		"SettingsPanel/VBox/BackBtn", "StatsPanel/VBox/BackBtn",
-	]:
-		var btn := get_node_or_null(btn_path) as Button
-		if btn:
-			btn.add_theme_font_size_override("font_size", 36)
-	# Settings labels
-	for lbl_path: String in [
-		"SettingsPanel/VBox/AIStrengthRow/Label",
-		"SettingsPanel/VBox/PanSensRow/PanSensLabel",
-		"SettingsPanel/VBox/TiltSensRow/TiltSensLabel",
-		"SettingsPanel/VBox/KillCamRow/KillCamLabel",
-		"SettingsPanel/VBox/FacePlayerRow/FacePlayerLabel",
-		"SettingsPanel/VBox/MusicVolRow/MusicVolLabel",
-		"SettingsPanel/VBox/SFXVolRow/SFXVolLabel",
-		"PvAIPanel/VBox/AIStrengthRow/Label",
-		"PvAIPanel/VBox/ColorRow/Label",
-	]:
-		var lbl := get_node_or_null(lbl_path) as Label
-		if lbl:
-			lbl.add_theme_font_size_override("font_size", 28)
-
-	for lbl_path: String in ["PvPPanel/VBox/ValidationLabel", "PvAIPanel/VBox/ValidationLabel"]:
-		var v_lbl := get_node_or_null(lbl_path) as Label
-		if v_lbl:
-			v_lbl.add_theme_font_size_override("font_size", 22)
-			v_lbl.add_theme_color_override("font_color", Color(1.0, 0.35, 0.30, 1.0))
-
-# ── Roblox-like visual theme ──────────────────────────────────────────────────
-func _make_panel_style() -> StyleBoxFlat:
-	var s := StyleBoxFlat.new()
-	s.bg_color    = Color(0.05, 0.06, 0.12, 0.93)
-	s.border_color = Color(0.82, 0.62, 0.10, 1.0)
-	s.set_border_width_all(4)
-	s.set_corner_radius_all(14)
-	s.content_margin_left   = 28
-	s.content_margin_right  = 28
-	s.content_margin_top    = 22
-	s.content_margin_bottom = 22
-	return s
-
-func _make_btn_style(bg: Color, border: Color) -> StyleBoxFlat:
-	var s := StyleBoxFlat.new()
-	s.bg_color    = bg
-	s.border_color = border
-	s.set_border_width_all(3)
-	s.set_corner_radius_all(10)
-	s.content_margin_left   = 20
-	s.content_margin_right  = 20
-	s.content_margin_top    = 10
-	s.content_margin_bottom = 10
-	return s
-
-func _apply_roblox_theme() -> void:
-	# — Panels —
-	var ps := _make_panel_style()
-	for p: Control in [_main_panel, _pvp_panel, _pvai_panel, _stats_panel, _settings_panel]:
-		p.add_theme_stylebox_override("panel", ps)
-		var vbox := p.get_node_or_null("VBox") as VBoxContainer
-		if vbox:
-			vbox.add_theme_constant_override("separation", 14)
-
-	# — Buttons —
-	var bdr_n := Color(0.68, 0.50, 0.10, 1.0)
-	var bdr_h := Color(1.00, 0.82, 0.20, 1.0)
-	for btn_path: String in [
-		"MainPanel/VBox/PvPBtn", "MainPanel/VBox/PvAIBtn",
-		"MainPanel/VBox/StatsBtn", "MainPanel/VBox/SettingsBtn", "MainPanel/VBox/QuitBtn",
-		"PvPPanel/VBox/StartBtn", "PvPPanel/VBox/BackBtn",
-		"PvAIPanel/VBox/StartBtn", "PvAIPanel/VBox/BackBtn",
-		"SettingsPanel/VBox/BackBtn", "StatsPanel/VBox/BackBtn",
-	]:
-		var btn := get_node_or_null(btn_path) as Button
-		if btn == null:
-			continue
-		btn.custom_minimum_size = Vector2(0, 56)
-		btn.add_theme_stylebox_override("normal",
-				_make_btn_style(Color(0.13, 0.15, 0.25, 1.0), bdr_n))
-		btn.add_theme_stylebox_override("hover",
-				_make_btn_style(Color(0.22, 0.26, 0.42, 1.0), bdr_h))
-		btn.add_theme_stylebox_override("pressed",
-				_make_btn_style(Color(0.07, 0.08, 0.15, 1.0), bdr_n))
-		btn.add_theme_stylebox_override("focus",
-				_make_btn_style(Color(0.13, 0.15, 0.25, 1.0), bdr_h))
-		btn.add_theme_color_override("font_color",         Color(1.0,  0.95, 0.80, 1.0))
-		btn.add_theme_color_override("font_hover_color",   Color(1.0,  0.85, 0.20, 1.0))
-		btn.add_theme_color_override("font_pressed_color", Color(0.85, 0.72, 0.30, 1.0))
-		btn.add_theme_constant_override("outline_size", 2)
-		btn.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 1.0))
-
-	# — Title labels —
-	for title_path: String in [
-		"MainPanel/VBox/Title",
-		"PvPPanel/VBox/TitleLabel", "PvAIPanel/VBox/TitleLabel",
-		"StatsPanel/VBox/Title", "SettingsPanel/VBox/Title",
-	]:
-		var lbl := get_node_or_null(title_path) as Label
-		if lbl == null:
-			continue
-		lbl.add_theme_color_override("font_color",         Color(1.0, 0.85, 0.20, 1.0))
-		lbl.add_theme_constant_override("outline_size", 4)
-		lbl.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 1.0))
 
 func _connect_button_sounds() -> void:
 	for btn_path: String in [
