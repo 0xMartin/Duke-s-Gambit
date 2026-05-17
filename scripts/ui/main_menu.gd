@@ -113,7 +113,8 @@ func _populate_name_lists() -> void:
 		return
 	for n in _save.get_all_player_names():
 		var profile_name: String = str(_save.get_player(n)["name"])
-		if _mode == "pvai" and _is_ai_reserved_name(profile_name):
+		# Reserved AI aliases should never be selectable as human player profiles.
+		if _is_ai_reserved_name(profile_name):
 			continue
 		_p1_list.add_item(profile_name)
 		_p2_list.add_item(profile_name)
@@ -137,8 +138,14 @@ func _populate_name_lists() -> void:
 func _on_start_pressed() -> void:
 	var p1 := _p1_edit.text.strip_edges()
 	var p2 := _p2_edit.text.strip_edges() if _mode == "pvp" else "AI"
-	if _mode == "pvai" and _is_ai_reserved_name(p1):
+
+	# Prevent players from naming themselves as AI aliases in both PvP and PvAI.
+	if _is_ai_reserved_name(p1):
 		p1 = "White Player"
+		_p1_edit.text = p1
+	if _mode == "pvp" and _is_ai_reserved_name(p2):
+		p2 = "Black Player"
+		_p2_edit.text = p2
 
 	if p1.is_empty():
 		p1 = "White Player"
