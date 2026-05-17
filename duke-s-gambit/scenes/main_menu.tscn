@@ -3,6 +3,10 @@
 [ext_resource type="Script" uid="uid://s16ti15dmnl1" path="res://scripts/ui/main_menu.gd" id="1"]
 [ext_resource type="PackedScene" uid="uid://c4hw36xh8k7cs" path="res://scenes/ui/nickname_input.tscn" id="2_nick"]
 [ext_resource type="Texture2D" uid="uid://con2rpsbu3i2l" path="res://assets/textures/ui/duke.png" id="3_bqqt6"]
+[ext_resource type="FontFile" uid="uid://b5wwdlpmaoo1t" path="res://assets/fonts/Montserrat-Bold.ttf" id="3_wu84c"]
+[ext_resource type="Texture2D" uid="uid://b32gsnl100kls" path="res://assets/textures/ui/circuit.png" id="4_8ln24"]
+
+[sub_resource type="ImageTexture" id="ImageTexture_wu84c"]
 
 [node name="MainMenu" type="Control" unique_id=969542434]
 layout_mode = 3
@@ -13,7 +17,63 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1")
 
+[node name="DukeIcon" type="TextureRect" parent="." unique_id=429281023]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.05
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_right = -0.64001465
+offset_bottom = -0.23999023
+texture = ExtResource("3_bqqt6")
+expand_mode = 1
+stretch_mode = 5
+metadata/_edit_use_anchors_ = true
+
+[node name="Title" type="Label" parent="." unique_id=1194487490]
+z_index = 10
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.49985415
+anchor_top = 0.15
+anchor_right = 0.9547917
+anchor_bottom = 0.35
+offset_left = 0.2800293
+offset_top = -0.32003784
+offset_right = -0.20007324
+offset_bottom = 0.19998169
+theme_override_fonts/font = ExtResource("3_wu84c")
+theme_override_font_sizes/font_size = 100
+text = "Duke's Gambit"
+vertical_alignment = 1
+metadata/_edit_use_anchors_ = true
+
+[node name="Circuit" type="TextureRect" parent="." unique_id=315268659]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.5
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_bottom = 0.040039063
+grow_horizontal = 0
+texture = ExtResource("4_8ln24")
+expand_mode = 4
+stretch_mode = 4
+metadata/_edit_use_anchors_ = true
+
+[node name="Bg" type="TextureRect" parent="." unique_id=1741113824]
+z_index = -1
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = SubResource("ImageTexture_wu84c")
+stretch_mode = 1
+
 [node name="MainPanel" type="PanelContainer" parent="." unique_id=97883763]
+z_index = 10
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.54114586
@@ -26,11 +86,6 @@ metadata/_edit_use_anchors_ = true
 
 [node name="VBox" type="VBoxContainer" parent="MainPanel" unique_id=1054197032]
 layout_mode = 2
-
-[node name="Title" type="Label" parent="MainPanel/VBox" unique_id=1194487490]
-layout_mode = 2
-text = "Duke's Gambit"
-horizontal_alignment = 1
 
 [node name="PvPBtn" type="Button" parent="MainPanel/VBox" unique_id=1470240247]
 layout_mode = 2
@@ -53,6 +108,8 @@ layout_mode = 2
 text = "Quit"
 
 [node name="PvPPanel" type="PanelContainer" parent="." unique_id=2115630850]
+visible = false
+z_index = 10
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.2
@@ -121,6 +178,7 @@ text = "Back"
 
 [node name="PvAIPanel" type="PanelContainer" parent="." unique_id=455168554]
 visible = false
+z_index = 10
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.2
@@ -215,6 +273,7 @@ text = "Back"
 
 [node name="StatsPanel" type="PanelContainer" parent="." unique_id=661461912]
 visible = false
+z_index = 10
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.15
@@ -247,6 +306,7 @@ text = "Back"
 
 [node name="SettingsPanel" type="PanelContainer" parent="." unique_id=1103937944]
 visible = false
+z_index = 10
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.2
@@ -360,16 +420,3 @@ value = 100.0
 [node name="BackBtn" type="Button" parent="SettingsPanel/VBox" unique_id=775881788]
 layout_mode = 2
 text = "Back"
-
-[node name="TextureRect" type="TextureRect" parent="." unique_id=429281023]
-layout_mode = 1
-anchors_preset = -1
-anchor_left = 0.05
-anchor_right = 0.5
-anchor_bottom = 1.0
-offset_right = -0.64001465
-offset_bottom = -0.23999023
-texture = ExtResource("3_bqqt6")
-expand_mode = 1
-stretch_mode = 5
-metadata/_edit_use_anchors_ = true
