@@ -1,9 +1,9 @@
-[gd_resource type="Theme" format=3 uid="uid://njtiunbj4mnm"]
+[gd_resource type="Theme" format=3 uid="uid://caxfi4yovmntm"]
 
-[ext_resource type="FontFile" uid="uid://b5wwdlpmaoo1t" path="res://assets/fonts/Montserrat-Bold.ttf" id="1_phej3"]
+[ext_resource type="FontFile" uid="uid://b5wwdlpmaoo1t" path="res://assets/fonts/Montserrat-Bold.ttf" id="1_dpjbf"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_phej3"]
-content_margin_left = 27.0
+content_margin_left = 40.0
 content_margin_top = 8.0
 content_margin_right = 40.0
 content_margin_bottom = 18.0
@@ -29,7 +29,7 @@ corner_radius_bottom_right = 15
 corner_radius_bottom_left = 15
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_scnqy"]
-content_margin_left = 27.0
+content_margin_left = 40.0
 content_margin_top = 8.0
 content_margin_right = 40.0
 content_margin_bottom = 18.0
@@ -42,7 +42,7 @@ corner_radius_bottom_right = 15
 corner_radius_bottom_left = 15
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_rdul7"]
-content_margin_left = 27.0
+content_margin_left = 40.0
 content_margin_top = 8.0
 content_margin_right = 40.0
 content_margin_bottom = 18.0
@@ -55,7 +55,7 @@ corner_radius_bottom_right = 15
 corner_radius_bottom_left = 15
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_lvfce"]
-content_margin_left = 27.0
+content_margin_left = 40.0
 content_margin_top = 12.0
 content_margin_right = 40.0
 content_margin_bottom = 14.0
@@ -85,8 +85,8 @@ Button/constants/align_to_largest_stylebox = 0
 Button/constants/h_separation = 4
 Button/constants/icon_max_width = 0
 Button/constants/outline_size = 15
-Button/font_sizes/font_size = 47
-Button/fonts/font = ExtResource("1_phej3")
+Button/font_sizes/font_size = 36
+Button/fonts/font = ExtResource("1_dpjbf")
 Button/styles/disabled = SubResource("StyleBoxFlat_phej3")
 Button/styles/focus = SubResource("StyleBoxFlat_wjelo")
 Button/styles/hover = SubResource("StyleBoxFlat_scnqy")

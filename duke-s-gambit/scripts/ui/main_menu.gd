@@ -6,39 +6,40 @@ extends Control
 
 # ── Node refs ──────────────────────────────────────────────────────────────
 @onready var _main_panel:     Control = $MainPanel
-@onready var _pvp_panel: Control = $PvPPanel
-@onready var _pvai_panel: Control = $PvAIPanel
-@onready var _stats_panel:    Control = $StatsPanel
-@onready var _settings_panel: Control = $SettingsPanel
+@onready var _main_menu_panel: Control = $MainPanel/MainVBox
+@onready var _pvp_panel: Control = $MainPanel/PvPVBox
+@onready var _pvai_panel: Control = $MainPanel/PvAIVBox
+@onready var _stats_panel:    Control = $MainPanel/StatsVBox
+@onready var _settings_panel: Control = $MainPanel/SettingsVBox
 
 # PvP panel
-@onready var _pvp_p1_input: Node = $PvPPanel/VBox/P1Row/Input
-@onready var _pvp_p2_input: Node = $PvPPanel/VBox/P2Row/Input
-@onready var _pvp_time_opt: OptionButton = $PvPPanel/VBox/TimeControlRow/TimeOption
-@onready var _pvp_start_btn: Button = $PvPPanel/VBox/StartBtn
-@onready var _pvp_validation_label: Label = $PvPPanel/VBox/ValidationLabel
+@onready var _pvp_p1_input: Node = $MainPanel/PvPVBox/P1Row/Input
+@onready var _pvp_p2_input: Node = $MainPanel/PvPVBox/P2Row/Input
+@onready var _pvp_time_opt: OptionButton = $MainPanel/PvPVBox/TimeControlRow/TimeOption
+@onready var _pvp_start_btn: Button = $MainPanel/PvPVBox/StartBtn
+@onready var _pvp_validation_label: Label = $MainPanel/PvPVBox/ValidationLabel
 
 # PvAI panel
-@onready var _pvai_player_input: Node = $PvAIPanel/VBox/PlayerRow/Input
-@onready var _pvai_time_opt: OptionButton = $PvAIPanel/VBox/TimeControlRow/TimeOption
-@onready var _pvai_ai_label: Label = $PvAIPanel/VBox/AIStrengthRow/Label
-@onready var _pvai_ai_slider: HSlider = $PvAIPanel/VBox/AIStrengthRow/Slider
-@onready var _pvai_color_opt: OptionButton = $PvAIPanel/VBox/ColorRow/ColorOption
-@onready var _pvai_start_btn: Button = $PvAIPanel/VBox/StartBtn
-@onready var _pvai_validation_label: Label = $PvAIPanel/VBox/ValidationLabel
+@onready var _pvai_player_input: Node = $MainPanel/PvAIVBox/PlayerRow/Input
+@onready var _pvai_time_opt: OptionButton = $MainPanel/PvAIVBox/TimeControlRow/TimeOption
+@onready var _pvai_ai_label: Label = $MainPanel/PvAIVBox/AIStrengthRow/Label
+@onready var _pvai_ai_slider: HSlider = $MainPanel/PvAIVBox/AIStrengthRow/Slider
+@onready var _pvai_color_opt: OptionButton = $MainPanel/PvAIVBox/ColorRow/ColorOption
+@onready var _pvai_start_btn: Button = $MainPanel/PvAIVBox/StartBtn
+@onready var _pvai_validation_label: Label = $MainPanel/PvAIVBox/ValidationLabel
 
 # Settings
-@onready var _settings_ai_row:    Control  = $SettingsPanel/VBox/AIStrengthRow
-@onready var _pan_sens_slider:    HSlider  = $SettingsPanel/VBox/PanSensRow/PanSensSlider
-@onready var _pan_sens_label:     Label    = $SettingsPanel/VBox/PanSensRow/PanSensLabel
-@onready var _tilt_sens_slider:   HSlider  = $SettingsPanel/VBox/TiltSensRow/TiltSensSlider
-@onready var _tilt_sens_label:    Label    = $SettingsPanel/VBox/TiltSensRow/TiltSensLabel
-@onready var _kill_cam_check:     CheckBox = $SettingsPanel/VBox/KillCamRow/KillCamCheck
-@onready var _face_player_check:  CheckBox = $SettingsPanel/VBox/FacePlayerRow/FacePlayerCheck
-@onready var _music_vol_slider:   HSlider  = $SettingsPanel/VBox/MusicVolRow/MusicVolSlider
-@onready var _music_vol_label:    Label    = $SettingsPanel/VBox/MusicVolRow/MusicVolLabel
-@onready var _sfx_vol_slider:     HSlider  = $SettingsPanel/VBox/SFXVolRow/SFXVolSlider
-@onready var _sfx_vol_label:      Label    = $SettingsPanel/VBox/SFXVolRow/SFXVolLabel
+@onready var _settings_ai_row:    Control  = $MainPanel/SettingsVBox/AIStrengthRow
+@onready var _pan_sens_slider:    HSlider  = $MainPanel/SettingsVBox/PanSensRow/PanSensSlider
+@onready var _pan_sens_label:     Label    = $MainPanel/SettingsVBox/PanSensRow/PanSensLabel
+@onready var _tilt_sens_slider:   HSlider  = $MainPanel/SettingsVBox/TiltSensRow/TiltSensSlider
+@onready var _tilt_sens_label:    Label    = $MainPanel/SettingsVBox/TiltSensRow/TiltSensLabel
+@onready var _kill_cam_check:     CheckBox = $MainPanel/SettingsVBox/KillCamRow/KillCamCheck
+@onready var _face_player_check:  CheckBox = $MainPanel/SettingsVBox/FacePlayerRow/FacePlayerCheck
+@onready var _music_vol_slider:   HSlider  = $MainPanel/SettingsVBox/MusicVolRow/MusicVolSlider
+@onready var _music_vol_label:    Label    = $MainPanel/SettingsVBox/MusicVolRow/MusicVolLabel
+@onready var _sfx_vol_slider:     HSlider  = $MainPanel/SettingsVBox/SFXVolRow/SFXVolSlider
+@onready var _sfx_vol_label:      Label    = $MainPanel/SettingsVBox/SFXVolRow/SFXVolLabel
 
 var _save: Node = null
 var _stats_vbox:        VBoxContainer = null
@@ -48,31 +49,32 @@ var _profiles_sorted:   Array[Dictionary] = []
 func _ready() -> void:
 	_save = get_node("/root/SaveManager")
 	MusicManager.play_menu_music()
-	_show_panel(_main_panel)
+	_main_panel.visible = true
 	_setup_signals()
 	_populate_time_options(_pvp_time_opt)
 	_populate_time_options(_pvai_time_opt)
-	_stats_vbox = get_node_or_null("StatsPanel/VBox/ScrollContainer/VBox") as VBoxContainer
+	_stats_vbox = get_node_or_null("MainPanel/StatsVBox/ScrollContainer/VBox") as VBoxContainer
 	_setup_pvai_controls()
 	_setup_settings_extra()
 	_connect_button_sounds()
 	if _settings_ai_row:
 		_settings_ai_row.visible = false
+	_show_panel(_main_menu_panel)
 
 func _setup_signals() -> void:
-	$MainPanel/VBox/PvPBtn.pressed.connect(_open_pvp_menu)
-	$MainPanel/VBox/PvAIBtn.pressed.connect(_open_pvai_menu)
-	$MainPanel/VBox/StatsBtn.pressed.connect( _show_stats)
-	$MainPanel/VBox/SettingsBtn.pressed.connect(_show_settings)
-	$MainPanel/VBox/QuitBtn.pressed.connect(  get_tree().quit)
+	$MainPanel/MainVBox/PvPBtn.pressed.connect(_open_pvp_menu)
+	$MainPanel/MainVBox/PvAIBtn.pressed.connect(_open_pvai_menu)
+	$MainPanel/MainVBox/StatsBtn.pressed.connect( _show_stats)
+	$MainPanel/MainVBox/SettingsBtn.pressed.connect(_show_settings)
+	$MainPanel/MainVBox/QuitBtn.pressed.connect(  get_tree().quit)
 
-	$PvPPanel/VBox/StartBtn.pressed.connect(_on_pvp_start_pressed)
-	$PvPPanel/VBox/BackBtn.pressed.connect(func(): _show_panel(_main_panel))
-	$PvAIPanel/VBox/StartBtn.pressed.connect(_on_pvai_start_pressed)
-	$PvAIPanel/VBox/BackBtn.pressed.connect(func(): _show_panel(_main_panel))
+	$MainPanel/PvPVBox/StartBtn.pressed.connect(_on_pvp_start_pressed)
+	$MainPanel/PvPVBox/BackBtn.pressed.connect(func(): _show_panel(_main_menu_panel))
+	$MainPanel/PvAIVBox/StartBtn.pressed.connect(_on_pvai_start_pressed)
+	$MainPanel/PvAIVBox/BackBtn.pressed.connect(func(): _show_panel(_main_menu_panel))
 
-	$StatsPanel/VBox/BackBtn.pressed.connect(   func(): _show_panel(_main_panel))
-	$SettingsPanel/VBox/BackBtn.pressed.connect(func(): _show_panel(_main_panel))
+	$MainPanel/StatsVBox/BackBtn.pressed.connect(   func(): _show_panel(_main_menu_panel))
+	$MainPanel/SettingsVBox/BackBtn.pressed.connect(func(): _show_panel(_main_menu_panel))
 
 	_pan_sens_slider.value_changed.connect(_on_pan_sens_changed)
 	_tilt_sens_slider.value_changed.connect(_on_tilt_sens_changed)
@@ -103,8 +105,12 @@ func _populate_time_options(option_btn: OptionButton) -> void:
 
 # ── Panel navigation ───────────────────────────────────────────────────────
 func _show_panel(panel: Control) -> void:
-	for p in [_main_panel, _pvp_panel, _pvai_panel, _stats_panel, _settings_panel]:
-		p.visible = (p == panel)
+	_main_panel.visible = true
+	_main_menu_panel.visible = (panel == _main_menu_panel)
+	_pvp_panel.visible = (panel == _pvp_panel)
+	_pvai_panel.visible = (panel == _pvai_panel)
+	_stats_panel.visible = (panel == _stats_panel)
+	_settings_panel.visible = (panel == _settings_panel)
 
 # ── Name entry ─────────────────────────────────────────────────────────────
 func _open_pvp_menu() -> void:
@@ -443,11 +449,11 @@ func _on_sfx_vol_changed(value: float) -> void:
 
 func _connect_button_sounds() -> void:
 	for btn_path: String in [
-		"MainPanel/VBox/PvPBtn", "MainPanel/VBox/PvAIBtn",
-		"MainPanel/VBox/StatsBtn", "MainPanel/VBox/SettingsBtn", "MainPanel/VBox/QuitBtn",
-		"PvPPanel/VBox/StartBtn", "PvPPanel/VBox/BackBtn",
-		"PvAIPanel/VBox/StartBtn", "PvAIPanel/VBox/BackBtn",
-		"SettingsPanel/VBox/BackBtn", "StatsPanel/VBox/BackBtn",
+		"MainPanel/MainVBox/PvPBtn", "MainPanel/MainVBox/PvAIBtn",
+		"MainPanel/MainVBox/StatsBtn", "MainPanel/MainVBox/SettingsBtn", "MainPanel/MainVBox/QuitBtn",
+		"MainPanel/PvPVBox/StartBtn", "MainPanel/PvPVBox/BackBtn",
+		"MainPanel/PvAIVBox/StartBtn", "MainPanel/PvAIVBox/BackBtn",
+		"MainPanel/SettingsVBox/BackBtn", "MainPanel/StatsVBox/BackBtn",
 	]:
 		var btn := get_node_or_null(btn_path) as Button
 		if btn:
