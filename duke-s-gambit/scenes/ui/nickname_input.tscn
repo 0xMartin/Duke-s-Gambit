@@ -22,7 +22,7 @@ content_margin_left = 22.0
 content_margin_top = 8.0
 content_margin_right = 22.0
 content_margin_bottom = 8.0
-bg_color = Color(0.1, 0.1, 0.1, 0.6)
+bg_color = Color(0.101960786, 0.101960786, 0.101960786, 0.87058824)
 border_width_left = 5
 border_width_top = 5
 border_width_right = 5
@@ -36,16 +36,17 @@ corner_radius_bottom_left = 12
 corner_detail = 5
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_nick_panel"]
-bg_color = Color(0.08, 0.09, 0.16, 0.96)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.78, 0.6, 0.15, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
+bg_color = Color(0.06469653, 0.06469653, 0.06469653, 0.87058824)
+border_width_left = 5
+border_width_top = 5
+border_width_right = 5
+border_width_bottom = 5
+border_color = Color(1, 1, 1, 0.6)
+border_blend = true
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
 
 [node name="NicknameInput" type="Control" unique_id=1998565396]
 layout_mode = 3
@@ -77,6 +78,7 @@ mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_nick_panel")
 
 [node name="Scroll" type="ScrollContainer" parent="SuggestPanel" unique_id=653469557]
+z_index = 50
 layout_mode = 2
 
 [node name="VBox" type="VBoxContainer" parent="SuggestPanel/Scroll" unique_id=1387380675]
