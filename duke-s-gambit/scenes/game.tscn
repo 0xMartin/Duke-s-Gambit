@@ -5,6 +5,7 @@
 [ext_resource type="PackedScene" uid="uid://orbitcamera" path="res://scenes/orbit_camera.tscn" id="3"]
 [ext_resource type="Script" uid="uid://c0ovcwq6s7tyi" path="res://scripts/ui/game_ui.gd" id="4"]
 [ext_resource type="Script" uid="uid://bfgfin44nf1d2" path="res://scripts/ui/hud.gd" id="5"]
+[ext_resource type="Theme" uid="uid://b141h52b7443c" path="res://themes/game_panel.tres" id="5_bt5mj"]
 [ext_resource type="Theme" uid="uid://0v4k77luosjx" path="res://themes/player_card.tres" id="5_ir15t"]
 [ext_resource type="Texture2D" uid="uid://bomo6t88iri6d" path="res://assets/textures/skybox.png" id="6"]
 [ext_resource type="Texture2D" uid="uid://bga3yqhdbecjw" path="res://assets/textures/ui/white_king.png" id="6_ssvqc"]
@@ -19,6 +20,10 @@
 [ext_resource type="PackedScene" uid="uid://blackflag" path="res://scenes/effects/black_flag.tscn" id="10_vtaks"]
 [ext_resource type="FontFile" uid="uid://bn1f5cgy4rauy" path="res://assets/fonts/Montserrat-Regular.ttf" id="11_264po"]
 [ext_resource type="PackedScene" uid="uid://whiteflag" path="res://scenes/effects/white_flag.tscn" id="11_kvpfn"]
+[ext_resource type="Texture2D" uid="uid://creg7doi502rt" path="res://assets/textures/pieces/white_queen.svg" id="12_promo_wq"]
+[ext_resource type="Texture2D" uid="uid://d1dl1lcyflqnp" path="res://assets/textures/pieces/white_rook.svg" id="13_promo_wr"]
+[ext_resource type="Texture2D" uid="uid://dpa8nghhm2jva" path="res://assets/textures/pieces/white_bishop.svg" id="14_promo_wb"]
+[ext_resource type="Texture2D" uid="uid://uvf7mxoq5q70" path="res://assets/textures/pieces/white_knight.svg" id="15_promo_wn"]
 
 [sub_resource type="PanoramaSkyMaterial" id="SkyMat1"]
 panorama = ExtResource("6")
@@ -87,20 +92,6 @@ corner_radius_bottom_left = 100
 content_margin_left = 10.0
 content_margin_right = 10.0
 bg_color = Color(0.050980393, 0.050980393, 0.050980393, 0.627451)
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bt5mj"]
-content_margin_left = 10.0
-content_margin_top = 5.0
-content_margin_right = 10.0
-content_margin_bottom = 5.0
-bg_color = Color(0.19076231, 0.19076234, 0.19076231, 0.627451)
-border_width_bottom = 10
-border_color = Color(0.050980393, 0.050980393, 0.050980393, 0.78431374)
-corner_radius_top_left = 25
-corner_radius_top_right = 25
-corner_radius_bottom_right = 25
-corner_radius_bottom_left = 25
-corner_detail = 5
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_e1j6l"]
 content_margin_left = 10.0
@@ -568,8 +559,7 @@ offset_right = 388.0
 offset_bottom = -14.0
 grow_horizontal = 0
 grow_vertical = 2
-theme = ExtResource("5_ir15t")
-theme_override_styles/panel = SubResource("StyleBoxFlat_bt5mj")
+theme = ExtResource("5_bt5mj")
 
 [node name="Margin" type="MarginContainer" parent="HUD/MoveHistoryPanel" unique_id=554857996]
 layout_mode = 2
@@ -689,6 +679,7 @@ anchor_right = 0.75
 anchor_bottom = 0.75
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("5_bt5mj")
 
 [node name="VBox" type="VBoxContainer" parent="HUD/GameOverPanel" unique_id=1923570882]
 layout_mode = 2
@@ -797,10 +788,13 @@ anchor_right = 0.65
 anchor_bottom = 0.6
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("5_bt5mj")
 
 [node name="VBox" type="VBoxContainer" parent="HUD/SurrenderConfirmPanel" unique_id=730165915]
 layout_mode = 2
+size_flags_vertical = 4
 theme_override_constants/separation = 16
+alignment = 1
 
 [node name="QuestionLabel" type="Label" parent="HUD/SurrenderConfirmPanel/VBox" unique_id=1353471840]
 layout_mode = 2
@@ -819,12 +813,14 @@ alignment = 1
 [node name="YesButton" type="Button" parent="HUD/SurrenderConfirmPanel/VBox/ButtonHBox" unique_id=59706857]
 custom_minimum_size = Vector2(120, 50)
 layout_mode = 2
+theme = ExtResource("7_trtic")
 theme_override_font_sizes/font_size = 24
 text = "Yes"
 
 [node name="NoButton" type="Button" parent="HUD/SurrenderConfirmPanel/VBox/ButtonHBox" unique_id=1619507832]
 custom_minimum_size = Vector2(120, 50)
 layout_mode = 2
+theme = ExtResource("7_trtic")
 theme_override_font_sizes/font_size = 24
 text = "No"
 
@@ -838,6 +834,7 @@ anchor_right = 0.85
 anchor_bottom = 0.62
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("5_bt5mj")
 
 [node name="VBox" type="VBoxContainer" parent="HUD/PromotionPanel" unique_id=165090484]
 layout_mode = 2
@@ -856,6 +853,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 36
 text = "Queen"
+icon = ExtResource("12_promo_wq")
 
 [node name="RookBtn" type="Button" parent="HUD/PromotionPanel/VBox/HBox" unique_id=47212626]
 custom_minimum_size = Vector2(0, 80)
@@ -863,6 +861,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 36
 text = "Rook"
+icon = ExtResource("13_promo_wr")
 
 [node name="BishopBtn" type="Button" parent="HUD/PromotionPanel/VBox/HBox" unique_id=1068299863]
 custom_minimum_size = Vector2(0, 80)
@@ -870,6 +869,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 36
 text = "Bishop"
+icon = ExtResource("14_promo_wb")
 
 [node name="KnightBtn" type="Button" parent="HUD/PromotionPanel/VBox/HBox" unique_id=1714199918]
 custom_minimum_size = Vector2(0, 80)
@@ -877,6 +877,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 36
 text = "Knight"
+icon = ExtResource("15_promo_wn")
 
 [node name="Board" parent="." unique_id=1969348578 instance=ExtResource("2")]
 
