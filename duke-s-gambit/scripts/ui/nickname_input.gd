@@ -6,6 +6,9 @@ extends Control
 
 signal value_changed(value: String)
 
+const _MAX_NICKNAME_LENGTH := 20
+const _SUGGEST_HOVER_BG := Color(0.1362522, 0.47794718, 0.545388, 1.0)
+
 @onready var _line_edit: LineEdit = $LineEdit
 @onready var _suggest_panel: PanelContainer = $SuggestPanel
 @onready var _suggest_scroll: ScrollContainer = $SuggestPanel/Scroll
@@ -21,6 +24,8 @@ func _ready() -> void:
 
 	_suggest_panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	_suggest_scroll.mouse_filter = Control.MOUSE_FILTER_PASS
+	_suggest_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_suggest_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	_suggest_scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_suggest_scroll.offset_left = 0.0
 	_suggest_scroll.offset_top = 0.0
@@ -29,6 +34,7 @@ func _ready() -> void:
 	_suggest_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_suggest_box.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	_suggest_panel.size = Vector2.ZERO
+	_line_edit.max_length = _MAX_NICKNAME_LENGTH
 	_line_edit.text_changed.connect(_on_text_changed)
 	_line_edit.focus_entered.connect(_on_focus_entered)
 	_line_edit.focus_exited.connect(_on_focus_exited)
@@ -44,7 +50,7 @@ func set_profiles(profiles_sorted: Array[Dictionary]) -> void:
 	_refresh_suggestions()
 
 func set_value(value: String) -> void:
-	_line_edit.text = value
+	_line_edit.text = value.left(_MAX_NICKNAME_LENGTH)
 	_line_edit.caret_column = _line_edit.text.length()
 	_refresh_suggestions()
 
@@ -121,6 +127,21 @@ func _refresh_suggestions() -> void:
 		var font_color = _line_edit.get_theme_color("font_color")
 		if font_color != null:
 			btn.add_theme_color_override("font_color", font_color)
+		btn.add_theme_color_override("font_hover_color", Color(0.95, 0.95, 0.95, 1.0))
+		btn.add_theme_color_override("font_pressed_color", Color(1.0, 1.0, 1.0, 1.0))
+		var hover_style := StyleBoxFlat.new()
+		hover_style.bg_color = _SUGGEST_HOVER_BG
+		hover_style.corner_radius_top_left = 10
+		hover_style.corner_radius_top_right = 10
+		hover_style.corner_radius_bottom_right = 10
+		hover_style.corner_radius_bottom_left = 10
+		hover_style.content_margin_left = 4.0
+		hover_style.content_margin_top = 4.0
+		hover_style.content_margin_right = 4.0
+		hover_style.content_margin_bottom = 4.0
+		btn.add_theme_stylebox_override("hover", hover_style)
+		btn.add_theme_stylebox_override("pressed", hover_style)
+		btn.add_theme_stylebox_override("focus", hover_style)
 		btn.custom_minimum_size = Vector2(0.0, maxf(item_height, float(font_size) + 10.0))
 		btn.pressed.connect(func() -> void: _choose_suggestion(player_name))
 		_suggest_box.add_child(btn)
@@ -141,7 +162,7 @@ func _refresh_suggestions() -> void:
 	_suggest_panel.visible = true
 
 func _choose_suggestion(player_name: String) -> void:
-	_line_edit.text = player_name
+	_line_edit.text = player_name.left(_MAX_NICKNAME_LENGTH)
 	_line_edit.caret_column = _line_edit.text.length()
 	_hide_suggestions()
 	emit_signal("value_changed", _line_edit.text)
