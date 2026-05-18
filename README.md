@@ -42,5 +42,6 @@ todo:
 - splash screen
 - nejake zvirata ve hre
 - animace na konci jak vybuchne / zachne horet server
+- lepsi AI (muze tahnout 2x dele nez ted)
 
 - Server + moznost hrat online

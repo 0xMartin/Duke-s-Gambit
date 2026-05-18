@@ -22,8 +22,8 @@ extends Control
 # PvAI panel
 @onready var _pvai_player_input: Node = $MainPanel/PvAIVBox/PlayerRow/Input
 @onready var _pvai_time_opt: OptionButton = $MainPanel/PvAIVBox/TimeControlRow/TimeOption
-@onready var _pvai_ai_label: Label = $MainPanel/PvAIVBox/AIStrengthRow/Label
-@onready var _pvai_ai_slider: HSlider = $MainPanel/PvAIVBox/AIStrengthRow/Slider
+@onready var _pvai_ai_label: Label = $MainPanel/PvAIVBox/AIStrengthRow/AIDifficultyLabel
+@onready var _pvai_ai_option: OptionButton = $MainPanel/PvAIVBox/AIStrengthRow/AIDifficultyOption
 @onready var _pvai_color_opt: OptionButton = $MainPanel/PvAIVBox/ColorRow/ColorOption
 @onready var _pvai_start_btn: Button = $MainPanel/PvAIVBox/StartBtn
 @onready var _pvai_validation_label: Label = $MainPanel/PvAIVBox/ValidationLabel
@@ -82,7 +82,7 @@ func _setup_signals() -> void:
 	_face_player_check.toggled.connect(_on_face_player_toggled)
 	_music_vol_slider.value_changed.connect(_on_music_vol_changed)
 	_sfx_vol_slider.value_changed.connect(_on_sfx_vol_changed)
-	_pvai_ai_slider.value_changed.connect(_on_name_ai_strength_changed)
+	_pvai_ai_option.item_selected.connect(_on_ai_difficulty_selected)
 	_pvai_color_opt.item_selected.connect(_on_player_color_selected)
 
 	if _pvp_p1_input != null and _pvp_p1_input.has_signal("value_changed"):
@@ -200,7 +200,7 @@ func _on_pvai_start_pressed() -> void:
 	if _save and not _save.player_exists(player_name):
 		_save.create_player(player_name)
 
-	var strength := int(_pvai_ai_slider.value)
+	var strength := int(_pvai_ai_option.get_selected_id())
 	var time_ms: int = _pvai_time_opt.get_item_id(_pvai_time_opt.selected)
 	var player_color: int = int(_pvai_color_opt.get_selected_id())
 	if player_color == ChessEnums.PieceColor.WHITE:
@@ -347,15 +347,11 @@ func _show_settings() -> void:
 			_sfx_vol_label.text = "SFX Volume: %d%%" % sv
 	_show_panel(_settings_panel)
 
-func _on_name_ai_strength_changed(value: float) -> void:
-	var diff_idx := clampi(int(value), 1, 3)
-	var difficulty_names := ["", "Casual", "Challenger", "Master"]
-	var difficulty_depths := [0, 4, 8, 12]
-	if _pvai_ai_label:
-		_pvai_ai_label.text = "AI Difficulty: %s (depth %d)" % [difficulty_names[diff_idx], difficulty_depths[diff_idx]]
+
+func _on_ai_difficulty_selected(index: int) -> void:
 	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
 	if cam_cfg:
-		cam_cfg.set("ai_strength", diff_idx)
+		cam_cfg.set("ai_strength", index + 1)
 		cam_cfg.save_config()
 
 func _setup_pvai_controls() -> void:
@@ -365,8 +361,13 @@ func _setup_pvai_controls() -> void:
 		var ai_strength_val = cam_cfg.get("ai_strength")
 		if ai_strength_val != null:
 			init_ai = clampi(int(ai_strength_val), 1, 3)
-	_pvai_ai_slider.value = init_ai
-	_on_name_ai_strength_changed(_pvai_ai_slider.value)
+
+	_pvai_ai_option.clear()
+	_pvai_ai_option.add_item("Casual", 1)
+	_pvai_ai_option.add_item("Challenger", 2)
+	_pvai_ai_option.add_item("Master", 3)
+	_pvai_ai_option.select(init_ai - 1)
+	_on_ai_difficulty_selected(init_ai - 1)
 
 	_pvai_color_opt.clear()
 	_pvai_color_opt.add_item("White", ChessEnums.PieceColor.WHITE)

@@ -30,6 +30,8 @@ shader_parameter/float_speed = 2.4
 shader = ExtResource("6_bgscroll")
 shader_parameter/scroll_speed = Vector2(-0.015, 0.0225)
 
+[sub_resource type="Theme" id="Theme_8egab"]
+
 [node name="MainMenu" type="Control" unique_id=969542434]
 layout_mode = 3
 anchors_preset = 15
@@ -195,6 +197,7 @@ layout_mode = 2
 theme_override_constants/separation = 40
 
 [node name="Label" type="Label" parent="MainPanel/PvPVBox/P1Row" unique_id=1061434817]
+custom_minimum_size = Vector2(320, 0)
 layout_mode = 2
 theme = ExtResource("16_a8gd2")
 text = "White player"
@@ -209,6 +212,7 @@ layout_mode = 2
 theme_override_constants/separation = 40
 
 [node name="Label" type="Label" parent="MainPanel/PvPVBox/P2Row" unique_id=645351761]
+custom_minimum_size = Vector2(320, 0)
 layout_mode = 2
 theme = ExtResource("16_a8gd2")
 text = "Black player"
@@ -223,6 +227,7 @@ layout_mode = 2
 theme_override_constants/separation = 40
 
 [node name="Label" type="Label" parent="MainPanel/PvPVBox/TimeControlRow" unique_id=1881178311]
+custom_minimum_size = Vector2(320, 0)
 layout_mode = 2
 theme = ExtResource("16_a8gd2")
 text = "Time"
@@ -270,6 +275,7 @@ layout_mode = 2
 theme_override_constants/separation = 40
 
 [node name="Label" type="Label" parent="MainPanel/PvAIVBox/PlayerRow" unique_id=267424275]
+custom_minimum_size = Vector2(320, 0)
 layout_mode = 2
 theme = ExtResource("16_a8gd2")
 text = "Your name"
@@ -284,6 +290,7 @@ layout_mode = 2
 theme_override_constants/separation = 40
 
 [node name="Label" type="Label" parent="MainPanel/PvAIVBox/TimeControlRow" unique_id=649444643]
+custom_minimum_size = Vector2(320, 0)
 layout_mode = 2
 theme = ExtResource("16_a8gd2")
 text = "Time"
@@ -298,6 +305,7 @@ layout_mode = 2
 theme_override_constants/separation = 40
 
 [node name="Label" type="Label" parent="MainPanel/PvAIVBox/ColorRow" unique_id=269180451]
+custom_minimum_size = Vector2(320, 0)
 layout_mode = 2
 theme = ExtResource("16_a8gd2")
 text = "Play as"
@@ -309,19 +317,18 @@ theme = ExtResource("19_8egab")
 
 [node name="AIStrengthRow" type="HBoxContainer" parent="MainPanel/PvAIVBox" unique_id=211568512]
 layout_mode = 2
+theme_override_constants/separation = 40
 
-[node name="Label" type="Label" parent="MainPanel/PvAIVBox/AIStrengthRow" unique_id=537064021]
+[node name="AIDifficultyLabel" type="Label" parent="MainPanel/PvAIVBox/AIStrengthRow" unique_id=537064021]
+custom_minimum_size = Vector2(320, 0)
 layout_mode = 2
-size_flags_horizontal = 3
 theme = ExtResource("16_a8gd2")
-text = "AI Difficulty:  Challenger (depth 8)"
+text = "AI Difficulty"
 
-[node name="Slider" type="HSlider" parent="MainPanel/PvAIVBox/AIStrengthRow" unique_id=1791610626]
+[node name="AIDifficultyOption" type="OptionButton" parent="MainPanel/PvAIVBox/AIStrengthRow" unique_id=1791610626]
 layout_mode = 2
 size_flags_horizontal = 3
-min_value = 1.0
-max_value = 3.0
-value = 2.0
+theme = ExtResource("19_8egab")
 
 [node name="ValidationLabel" type="Label" parent="MainPanel/PvAIVBox" unique_id=1756880313]
 visible = false
@@ -369,7 +376,6 @@ theme = ExtResource("12_flqon")
 text = "Back"
 
 [node name="SettingsVBox" type="VBoxContainer" parent="MainPanel" unique_id=1103937944]
-visible = false
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -435,6 +441,7 @@ text = "Kill Cam"
 
 [node name="KillCamCheck" type="CheckBox" parent="MainPanel/SettingsVBox/KillCamRow" unique_id=262230345]
 layout_mode = 2
+theme = SubResource("Theme_8egab")
 button_pressed = true
 
 [node name="PanSensRow" type="HBoxContainer" parent="MainPanel/SettingsVBox" unique_id=1531540557]
