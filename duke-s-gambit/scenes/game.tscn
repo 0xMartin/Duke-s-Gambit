@@ -55,10 +55,10 @@ content_margin_top = 2.0
 content_margin_right = 4.0
 content_margin_bottom = 2.0
 bg_color = Color(0.050980393, 0.050980393, 0.050980393, 0.47058824)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
+corner_radius_top_left = 100
+corner_radius_top_right = 100
+corner_radius_bottom_right = 100
+corner_radius_bottom_left = 100
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_37s47"]
 content_margin_left = 20.0
@@ -77,10 +77,10 @@ content_margin_top = 2.0
 content_margin_right = 4.0
 content_margin_bottom = 2.0
 bg_color = Color(0.050980393, 0.050980393, 0.050980393, 0.47058824)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
+corner_radius_top_left = 100
+corner_radius_top_right = 100
+corner_radius_bottom_right = 100
+corner_radius_bottom_left = 100
 
 [sub_resource type="StyleBoxFlat" id="HudAvatarBlack"]
 content_margin_left = 10.0
@@ -398,12 +398,22 @@ layout_mode = 2
 mouse_filter = 2
 theme_override_styles/panel = SubResource("HudCaptureWhite")
 
-[node name="CapturedFlow" type="HFlowContainer" parent="UI/HUD/TopBar/WhitePanel/MainHBox/InfoVBox/CapturedPanel" unique_id=1387663260]
+[node name="CapturedFlow" type="ScrollContainer" parent="UI/HUD/TopBar/WhitePanel/MainHBox/InfoVBox/CapturedPanel" unique_id=1387663260]
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
+size_flags_horizontal = 3
 mouse_filter = 2
-theme_override_constants/h_separation = 2
-theme_override_constants/v_separation = 2
+
+[node name="CapturedPadding" type="MarginContainer" parent="UI/HUD/TopBar/WhitePanel/MainHBox/InfoVBox/CapturedPanel/CapturedFlow" unique_id=274190221]
+layout_mode = 2
+theme_override_constants/margin_left = 2
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 2
+theme_override_constants/margin_bottom = 4
+
+[node name="CapturedList" type="HBoxContainer" parent="UI/HUD/TopBar/WhitePanel/MainHBox/InfoVBox/CapturedPanel/CapturedFlow/CapturedPadding" unique_id=1863000101]
+layout_mode = 2
+theme_override_constants/separation = 6
 
 [node name="Spacer" type="Control" parent="UI/HUD/TopBar" unique_id=501456985]
 layout_mode = 2
@@ -453,12 +463,22 @@ layout_mode = 2
 mouse_filter = 2
 theme_override_styles/panel = SubResource("HudCaptureBlack")
 
-[node name="CapturedFlow" type="HFlowContainer" parent="UI/HUD/TopBar/BlackPanel/MainHBox/InfoVBox/CapturedPanel" unique_id=1117646782]
+[node name="CapturedFlow" type="ScrollContainer" parent="UI/HUD/TopBar/BlackPanel/MainHBox/InfoVBox/CapturedPanel" unique_id=1117646782]
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
+size_flags_horizontal = 3
 mouse_filter = 2
-theme_override_constants/h_separation = 2
-theme_override_constants/v_separation = 2
+
+[node name="CapturedPadding" type="MarginContainer" parent="UI/HUD/TopBar/BlackPanel/MainHBox/InfoVBox/CapturedPanel/CapturedFlow" unique_id=1769691215]
+layout_mode = 2
+theme_override_constants/margin_left = 2
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 2
+theme_override_constants/margin_bottom = 4
+
+[node name="CapturedList" type="HBoxContainer" parent="UI/HUD/TopBar/BlackPanel/MainHBox/InfoVBox/CapturedPanel/CapturedFlow/CapturedPadding" unique_id=495750194]
+layout_mode = 2
+theme_override_constants/separation = 6
 
 [node name="AvatarBG" type="PanelContainer" parent="UI/HUD/TopBar/BlackPanel/MainHBox" unique_id=95408901]
 custom_minimum_size = Vector2(84, 84)

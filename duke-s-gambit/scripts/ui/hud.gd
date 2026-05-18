@@ -7,6 +7,7 @@ extends Control
 # ── Constants ──────────────────────────────────────────────────────────────
 const ICON_SIZE  := 36
 const HISTORY_ICON_SIZE := 38
+const CAPTURED_BADGE_FONT := preload("res://assets/fonts/Montserrat-Regular.ttf")
 
 ## Maps PieceType int → piece name used in the SVG filename.
 const PIECE_NAMES: Dictionary = {
@@ -22,11 +23,21 @@ const PIECE_LETTERS: Dictionary = {
 	ChessEnums.PieceType.KING: "K",
 }
 
+const CAPTURED_BADGE_ORDER: Array[int] = [
+	ChessEnums.PieceType.PAWN,
+	ChessEnums.PieceType.KNIGHT,
+	ChessEnums.PieceType.BISHOP,
+	ChessEnums.PieceType.ROOK,
+	ChessEnums.PieceType.QUEEN,
+	ChessEnums.PieceType.KING,
+]
+
 # ── Internal node refs (wired from scene) ──────────────────────────────────
 var _name_lbl:    Array = [null, null]   # [white, black] Label
 var _elo_lbl:     Array = [null, null]
 var _timer_lbl:   Array = [null, null]
-var _captured_hf: Array = [null, null]  # HFlowContainer
+var _captured_scroll: Array = [null, null]  # ScrollContainer
+var _captured_list: Array = [null, null]  # HBoxContainer
 var _history_panel: PanelContainer = null
 var _history_list: VBoxContainer = null
 var _history_scroll: ScrollContainer = null
@@ -51,8 +62,14 @@ func _ready() -> void:
 	_elo_lbl[ChessEnums.PieceColor.BLACK]   = get_node("TopBar/BlackPanel/MainHBox/InfoVBox/Row/Elo") as Label
 	_timer_lbl[ChessEnums.PieceColor.WHITE] = get_node("TopBar/WhitePanel/MainHBox/InfoVBox/Row/Timer") as Label
 	_timer_lbl[ChessEnums.PieceColor.BLACK] = get_node("TopBar/BlackPanel/MainHBox/InfoVBox/Row/Timer") as Label
-	_captured_hf[ChessEnums.PieceColor.WHITE] = get_node("TopBar/WhitePanel/MainHBox/InfoVBox/CapturedPanel/CapturedFlow") as HFlowContainer
-	_captured_hf[ChessEnums.PieceColor.BLACK] = get_node("TopBar/BlackPanel/MainHBox/InfoVBox/CapturedPanel/CapturedFlow") as HFlowContainer
+	_captured_scroll[ChessEnums.PieceColor.WHITE] = get_node("TopBar/WhitePanel/MainHBox/InfoVBox/CapturedPanel/CapturedFlow") as ScrollContainer
+	_captured_scroll[ChessEnums.PieceColor.BLACK] = get_node("TopBar/BlackPanel/MainHBox/InfoVBox/CapturedPanel/CapturedFlow") as ScrollContainer
+	_captured_list[ChessEnums.PieceColor.WHITE] = get_node("TopBar/WhitePanel/MainHBox/InfoVBox/CapturedPanel/CapturedFlow/CapturedPadding/CapturedList") as HBoxContainer
+	_captured_list[ChessEnums.PieceColor.BLACK] = get_node("TopBar/BlackPanel/MainHBox/InfoVBox/CapturedPanel/CapturedFlow/CapturedPadding/CapturedList") as HBoxContainer
+	for c in [ChessEnums.PieceColor.WHITE, ChessEnums.PieceColor.BLACK]:
+		var captured_scroll := _captured_scroll[c] as ScrollContainer
+		captured_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+		captured_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 
 	_history_panel = get_node_or_null("../MoveHistoryPanel") as PanelContainer
 	_history_scroll = get_node_or_null("../MoveHistoryPanel/Margin/VBox/HistoryScroll") as ScrollContainer
@@ -79,8 +96,9 @@ func setup(white_name: String, white_elo: int,
 	(_elo_lbl [ChessEnums.PieceColor.BLACK] as Label).text = "ELO %d" % black_elo
 
 	for c in [ChessEnums.PieceColor.WHITE, ChessEnums.PieceColor.BLACK]:
-		for child in (_captured_hf[c] as HFlowContainer).get_children():
+		for child in (_captured_list[c] as HBoxContainer).get_children():
 			child.queue_free()
+		(_captured_scroll[c] as ScrollContainer).scroll_horizontal = 0
 
 	set_active_player(ChessEnums.PieceColor.WHITE)
 	reset_move_history()
@@ -194,6 +212,53 @@ func _build_piece_icon(color: int, piece_type: int, icon_size: int) -> Control:
 	icon.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
 	margin.add_child(icon)
 	return frame
+
+func _build_captured_badge(color: int, piece_type: int, count: int) -> Control:
+	var path := _piece_icon_path(color, piece_type)
+	if path == "" or not ResourceLoader.exists(path):
+		return null
+
+	var badge := PanelContainer.new()
+	badge.custom_minimum_size = Vector2(0, 36)
+	var badge_style := StyleBoxFlat.new()
+	badge_style.bg_color = Color8(64, 215, 245, 230)
+	badge_style.border_color = Color8(17, 79, 94, 96)
+	badge_style.set_border_width_all(1)
+	badge_style.set_corner_radius_all(999)
+	badge.add_theme_stylebox_override("panel", badge_style)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 10)
+	margin.add_theme_constant_override("margin_top", 4)
+	margin.add_theme_constant_override("margin_right", 10)
+	margin.add_theme_constant_override("margin_bottom", 4)
+	badge.add_child(margin)
+
+	var center := CenterContainer.new()
+	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	margin.add_child(center)
+
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 6)
+	center.add_child(row)
+
+	var icon := TextureRect.new()
+	icon.texture = load(path) as Texture2D
+	icon.custom_minimum_size = Vector2(22, 22)
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	row.add_child(icon)
+
+	var count_lbl := Label.new()
+	count_lbl.text = "%dx" % count
+	count_lbl.add_theme_font_override("font", CAPTURED_BADGE_FONT)
+	count_lbl.add_theme_font_size_override("font_size", 18)
+	count_lbl.add_theme_color_override("font_color", Color8(7, 41, 51, 255))
+	count_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(count_lbl)
+	return badge
 
 func _move_notation(mv: ChessMove) -> String:
 	match mv.move_type:
@@ -315,14 +380,22 @@ func update_timer(color: int, ms: int) -> void:
 		lbl.text = "⏱ %d.%ds" % [secs, frac]
 
 func refresh_captured(capturing_color: int, captured_types: Array) -> void:
-	var container := _captured_hf[capturing_color] as HFlowContainer
+	var container := _captured_list[capturing_color] as HBoxContainer
 	for child in container.get_children():
 		child.queue_free()
 
-	var opponent_str: String = "black" if capturing_color == ChessEnums.PieceColor.WHITE \
-							   else "white"
+	var counts: Dictionary = {}
 	for piece_type: int in captured_types:
-		var color := ChessEnums.PieceColor.BLACK if opponent_str == "black" else ChessEnums.PieceColor.WHITE
-		var icon := _build_piece_icon(color, piece_type, ICON_SIZE)
-		if icon != null:
-			container.add_child(icon)
+		counts[piece_type] = int(counts.get(piece_type, 0)) + 1
+
+	var captured_color := ChessEnums.PieceColor.BLACK if capturing_color == ChessEnums.PieceColor.WHITE \
+		else ChessEnums.PieceColor.WHITE
+	for piece_type in CAPTURED_BADGE_ORDER:
+		var count := int(counts.get(piece_type, 0))
+		if count <= 0:
+			continue
+		var badge := _build_captured_badge(captured_color, piece_type, count)
+		if badge != null:
+			container.add_child(badge)
+
+	(_captured_scroll[capturing_color] as ScrollContainer).scroll_horizontal = 0
