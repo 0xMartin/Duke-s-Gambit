@@ -10,6 +10,7 @@ extends Control
 @onready var _pvp_panel: Control = $MainPanel/PvPVBox
 @onready var _pvai_panel: Control = $MainPanel/PvAIVBox
 @onready var _stats_panel:    Control = $MainPanel/StatsVBox
+@onready var _stats_scroll: ScrollContainer = $MainPanel/StatsVBox/ScrollContainer
 @onready var _settings_panel: Control = $MainPanel/SettingsVBox
 
 # PvP panel
@@ -46,6 +47,7 @@ var _stats_table:       GridContainer = null
 var _profiles_sorted:   Array[Dictionary] = []
 const _STATS_HEADER_CELLS := 7
 const _TABLE_VALUE_THEME := preload("res://themes/table_value.tres")
+const _STATS_SCROLLBAR_THICKNESS := 24.0
 
 # ──────────────────────────────────────────────────────────────────────────
 func _ready() -> void:
@@ -56,6 +58,7 @@ func _ready() -> void:
 	_populate_time_options(_pvp_time_opt)
 	_populate_time_options(_pvai_time_opt)
 	_stats_table = get_node_or_null("MainPanel/StatsVBox/ScrollContainer/StatsTable") as GridContainer
+	_apply_stats_scrollbar_thickness()
 	_setup_pvai_controls()
 	_setup_settings_extra()
 	_connect_button_sounds()
@@ -289,8 +292,19 @@ func _nick_set_enabled(input_node: Node, enabled: bool) -> void:
 
 # ── Stats ──────────────────────────────────────────────────────────────────
 func _show_stats() -> void:
+	_apply_stats_scrollbar_thickness()
 	_populate_stats()
 	_show_panel(_stats_panel)
+
+func _apply_stats_scrollbar_thickness() -> void:
+	if _stats_scroll == null:
+		return
+	var v_scroll := _stats_scroll.get_v_scroll_bar()
+	if v_scroll:
+		v_scroll.custom_minimum_size.x = _STATS_SCROLLBAR_THICKNESS
+	var h_scroll := _stats_scroll.get_h_scroll_bar()
+	if h_scroll:
+		h_scroll.custom_minimum_size.y = _STATS_SCROLLBAR_THICKNESS
 
 func _populate_stats() -> void:
 	if _stats_table == null:
