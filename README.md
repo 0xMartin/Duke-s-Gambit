@@ -37,11 +37,12 @@ https://freesound.org/people/magnuswaker/sounds/524956/
 https://freesound.org/people/PhreaKsAccount/sounds/46272/
 
 todo:
-- globalni velepseni UI
-- ikona hry
-- splash screen
+- vyladeni barve (prijde mi to tmave)
 - nejake zvirata ve hre
 - animace na konci jak vybuchne / zachne horet server
+
+- ikona hry
+- splash screen
 - lepsi AI (muze tahnout 2x dele nez ted)
 
 - Server + moznost hrat online

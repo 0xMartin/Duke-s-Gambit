@@ -28,15 +28,15 @@ const DUST_BY_LEVEL := {
 }
 
 const AMBIENT_BY_LEVEL := {
-	0: 0.50,
-	1: 0.45,
+	0: 0.55,
+	1: 0.47,
 	2: 0.40,
 	3: 0.25,
 }
 
 const DIRECTIONAL_BY_LEVEL := {
-	0: 0.60,
-	1: 0.55,
+	0: 0.65,
+	1: 0.56,
 	2: 0.50,
 	3: 0.45,
 }
