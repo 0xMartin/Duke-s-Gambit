@@ -292,6 +292,11 @@ colors = PackedColorArray(0.23934713, 0.23934713, 0.23934713, 1, 1, 1, 1, 1)
 [sub_resource type="GradientTexture1D" id="GradientTexture1D_kvuet"]
 gradient = SubResource("Gradient_dinhu")
 
+[sub_resource type="Gradient" id="Gradient_bhx41"]
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_qnb83"]
+gradient = SubResource("Gradient_bhx41")
+
 [sub_resource type="Curve" id="Curve_trtic"]
 _data = [Vector2(1e-05, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
 point_count = 2
@@ -320,6 +325,7 @@ radial_velocity_min = -0.20002235
 radial_velocity_max = 0.19997764
 gravity = Vector3(0, 0, 0)
 scale_curve = SubResource("CurveTexture_ir15t")
+color_ramp = SubResource("GradientTexture1D_qnb83")
 color_initial_ramp = SubResource("GradientTexture1D_kvuet")
 alpha_curve = SubResource("CurveTexture_kvpfn")
 

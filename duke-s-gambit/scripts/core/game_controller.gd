@@ -72,6 +72,10 @@ const _PROMO_SFX_SPELL: AudioStream = preload("res://assets/sounds/spell.mp3")
 const _GAMEOVER_KING_ICON: Texture2D = preload("res://assets/textures/pieces/white_king.svg")
 const _GAMEOVER_PAWN_ICON: Texture2D = preload("res://assets/textures/pieces/white_pawn.svg")
 
+# Intro animation timing
+const _INTRO_PIECE_INTERVAL   := 0.25   # seconds between successive piece appearances
+const _INTRO_VFX_PIECE_DELAY  := 0.10   # seconds: VFX fires, then piece becomes visible
+
 # Signals
 signal game_over(winner_color: int, reason: int)   # reason = ChessEnums.GameState
 signal promotion_needed(sq: Vector2i, color: int)
@@ -179,7 +183,7 @@ func setup(p1_name: String, p2_name: String,
 func start_game() -> void:
 	_chess = ChessBoardState.new()
 	_chess.pawn_promotion_required.connect(_on_promotion_required)
-	_busy = false
+	_busy = true   # blocked until intro finishes
 	_game_over_shown = false
 	_selected_sq = Vector2i(-1, -1)
 	_move_counts = [0, 0]
@@ -190,11 +194,7 @@ func start_game() -> void:
 		_material_pressure_fx.call("reset_effects")
 	_clear_pieces()
 	_board.clear_last_move()
-	_spawn_all_pieces()
-	var initial_camera_color: int = ChessEnums.PieceColor.WHITE
-	if _is_player_vs_ai:
-		initial_camera_color = _human_player_color()
-	_camera.snap_to_player(initial_camera_color)
+	# Setup HUD data now (it will be hidden during the intro).
 	if _hud != null:
 		_hud.setup(
 			_player_names[ChessEnums.PieceColor.WHITE], _player_elos[ChessEnums.PieceColor.WHITE],
@@ -203,7 +203,89 @@ func start_game() -> void:
 		)
 		if _hud.has_method("reset_move_history"):
 			_hud.call("reset_move_history")
+	await _play_intro_animation()
+	_busy = false
+	var initial_camera_color: int = ChessEnums.PieceColor.WHITE
+	if _is_player_vs_ai:
+		initial_camera_color = _human_player_color()
+	_camera.snap_to_player(initial_camera_color)
 	_start_turn()
+
+# ── Intro animation ────────────────────────────────────────────────────────
+func _play_intro_animation() -> void:
+	if _ui != null:
+		_ui.visible = false
+	_camera.lock_input()
+	# Camera pan duration: ends exactly when the last (16th) piece becomes visible.
+	# T_last = (piece_count - 1) * interval + vfx_delay = 15 * 0.25 + 0.10 = 3.85 s
+	var sway_dur: float = 15.0 * _INTRO_PIECE_INTERVAL + _INTRO_VFX_PIECE_DELAY
+	# Fixed look-at target: centre of each player's edge (mid of row 0 / row 7).
+	var white_target := (_board.sq_to_world(Vector2i(3, 0)) + _board.sq_to_world(Vector2i(4, 0))) * 0.5 \
+		+ Vector3(0, 0.5, 0)
+	var black_target := (_board.sq_to_world(Vector2i(3, 7)) + _board.sq_to_world(Vector2i(4, 7))) * 0.5 \
+		+ Vector3(0, 0.5, 0)
+	# Phase 1: white pieces appear
+	_camera.set_intro_view(ChessEnums.PieceColor.WHITE, white_target, sway_dur)
+	await _intro_spawn_side(ChessEnums.PieceColor.WHITE)
+	await get_tree().create_timer(0.5).timeout
+	# Phase 2: black pieces appear
+	_camera.set_intro_view(ChessEnums.PieceColor.BLACK, black_target, sway_dur)
+	await _intro_spawn_side(ChessEnums.PieceColor.BLACK)
+	await get_tree().create_timer(0.4).timeout
+	# Restore
+	_camera.stop_intro_sway()
+	_camera.unlock_input()
+	if _ui != null:
+		_ui.visible = true
+
+func _intro_spawn_side(color: int) -> void:
+	var squares: Array = []
+	for c in range(8):
+		for r in range(8):
+			var p: Variant = _chess.board[c][r]
+			if p == null:
+				continue
+			var pd: Dictionary = p
+			if pd["color"] == color:
+				squares.append(Vector2i(c, r))
+	squares.shuffle()
+	for sq in squares:
+		var p: Variant = _chess.board[sq.x][sq.y]
+		if p == null:
+			continue
+		var pd: Dictionary = p
+		var piece := _spawn_piece(sq, pd["type"], pd["color"])
+		if piece == null:
+			continue
+		piece.visible = false
+		# VFX fires first
+		_spawn_intro_vfx(_board.sq_to_world(sq) + Vector3(0, 0.5, 0))
+		await get_tree().create_timer(_INTRO_VFX_PIECE_DELAY).timeout
+		# Piece pops into view with spell sound
+		if is_instance_valid(piece):
+			piece.visible = true
+		_play_intro_spell_sfx()
+		await get_tree().create_timer(_INTRO_PIECE_INTERVAL - _INTRO_VFX_PIECE_DELAY).timeout
+
+func _spawn_intro_vfx(world_pos: Vector3) -> void:
+	var vfx: Node3D = _PROMO_VFX_IMPACT_SCENE.instantiate() as Node3D
+	get_tree().root.add_child(vfx)
+	vfx.global_position = world_pos
+	vfx.set("one_shot", true)
+	if vfx.has_method("play"):
+		vfx.call("play")
+	get_tree().create_timer(4.0).timeout.connect(func() -> void:
+		if is_instance_valid(vfx):
+			vfx.queue_free())
+
+func _play_intro_spell_sfx() -> void:
+	var tmp := AudioStreamPlayer.new()
+	tmp.bus = "SFX"
+	get_tree().root.add_child(tmp)
+	tmp.stream = _PROMO_SFX_SPELL
+	tmp.volume_db = -6.0
+	tmp.finished.connect(tmp.queue_free)
+	tmp.play()
 
 func _human_player_color() -> int:
 	for color in [ChessEnums.PieceColor.WHITE, ChessEnums.PieceColor.BLACK]:

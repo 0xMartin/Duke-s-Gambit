@@ -65,6 +65,12 @@ var _shake_strength: float = 0.0
 var _shake_timer:    float = 0.0
 var _shake_dur:      float = 0.0
 
+# Intro animation state
+var _input_locked:       bool    = false
+var _intro_sway_tween:   Tween   = null
+var _intro_look_target:  Vector3 = Vector3.ZERO
+const INTRO_SWAY_HALF_RANGE := 1.5   # X units: pivot sweeps from -1.5 to +1.5
+
 # ── Ready ──────────────────────────────────────────────────────────────────
 func _ready() -> void:
 	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
@@ -75,8 +81,8 @@ func _ready() -> void:
 
 # ── Input ──────────────────────────────────────────────────────────────────
 func _unhandled_input(event: InputEvent) -> void:
-	if _kill_cam_active:
-		return   # block all camera controls during kill cam
+	if _kill_cam_active or _input_locked:
+		return   # block all camera controls during kill cam / intro
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_RIGHT:
@@ -154,7 +160,11 @@ func _apply_transform() -> void:
 	) * distance
 	if _cam:
 		_cam.position = offset
-		_cam.look_at(global_position, Vector3.UP)
+		if _intro_sway_tween != null:
+			# Intro: always look at the fixed player-edge target, not the moving pivot.
+			_cam.look_at(_intro_look_target, Vector3.UP)
+		else:
+			_cam.look_at(global_position, Vector3.UP)
 		# Apply camera shake as a small post-look rotation
 		if _shake_dur > 0.0:
 			var t: float = clamp(_shake_timer / _shake_dur, 0.0, 1.0)
@@ -203,6 +213,9 @@ func snap_to_player(color: int) -> void:
 	_target_azimuth   = _azimuth
 	elevation         = 40.0
 	_target_elevation = elevation
+	position          = Vector3.ZERO        # reset pivot to board centre
+	distance          = distance_after_move
+	_target_distance  = distance_after_move
 	_apply_transform()
 
 ## Dramatic close-up of a capture. Called by GameController before the capture animation.
@@ -286,3 +299,53 @@ func shake(strength: float, duration: float) -> void:
 	_shake_strength = strength
 	_shake_dur      = duration
 	_shake_timer    = 0.0
+
+## Lock all camera input (used during intro animation).
+func lock_input() -> void:
+	_input_locked = true
+	_dragging     = false
+	_panning      = false
+
+## Unlock camera input after intro animation completes.
+func unlock_input() -> void:
+	_input_locked = false
+
+## Set up a cinematic intro view for a given player color with a smooth left→right pan.
+## White intro: camera is on the black side looking toward white's edge.
+## Black intro: camera is on the white side looking toward black's edge.
+## look_target: world position the camera always points at throughout the pan.
+## duration: seconds the pan lasts (caller times it to end on the last piece).
+func set_intro_view(color: int, look_target: Vector3, duration: float) -> void:
+	_kill_cam_active      = false
+	_checkmate_cam_active = false
+	_kill_cam_track       = null
+	_dragging             = false
+	_panning              = false
+	_intro_look_target    = look_target
+	# White: camera on black's side (az=0°) looking at white's army.
+	# Black: camera on white's side (az=180°) looking at black's army.
+	var az := AZIMUTH_BLACK if color == ChessEnums.PieceColor.WHITE else AZIMUTH_WHITE
+	_azimuth          = az
+	_target_azimuth   = az
+	elevation         = 22.0    # half of the previous 45° → dramatic low angle
+	_target_elevation = 22.0
+	distance          = 8.0
+	_target_distance  = 8.0
+	# Shift pivot slightly toward the showcased side so their pieces fill the frame.
+	var z_off := -1.5 if color == ChessEnums.PieceColor.WHITE else 1.5
+	# Start the pan at the left edge, end at right edge.
+	position = Vector3(-INTRO_SWAY_HALF_RANGE, 0.0, z_off)
+	_apply_transform()
+	# Linear pan A → B, ends exactly when the last piece spawns.
+	if _intro_sway_tween:
+		_intro_sway_tween.kill()
+	_intro_sway_tween = create_tween()
+	_intro_sway_tween.tween_property(self, "position:x",
+			INTRO_SWAY_HALF_RANGE, duration) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+## Stop the intro pan (called when intro finishes).
+func stop_intro_sway() -> void:
+	if _intro_sway_tween:
+		_intro_sway_tween.kill()
+		_intro_sway_tween = null
