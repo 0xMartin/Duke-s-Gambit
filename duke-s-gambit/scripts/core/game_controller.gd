@@ -61,6 +61,12 @@ var _sfx_select: AudioStreamPlayer = null
 var _base_saturation: float = 0.9
 var _sat_tween: Tween = null
 
+# Intro overlay (built once in _ready, shown/hidden per phase)
+var _intro_overlay:     CanvasLayer = null
+var _intro_name_label:  Label       = null
+var _intro_left_icon:   TextureRect = null
+var _intro_right_icon:  TextureRect = null
+
 const OUTLINE_SELECTED := Color(0.00, 1.00, 0.15, 1.0)
 const OUTLINE_ATTACK   := Color(1.00, 0.05, 0.00, 1.0)
 const OUTLINE_CHECK    := Color(1.00, 0.05, 0.00, 1.0)
@@ -75,6 +81,11 @@ const _GAMEOVER_PAWN_ICON: Texture2D = preload("res://assets/textures/pieces/whi
 # Intro animation timing
 const _INTRO_PIECE_INTERVAL   := 0.25   # seconds between successive piece appearances
 const _INTRO_VFX_PIECE_DELAY  := 0.10   # seconds: VFX fires, then piece becomes visible
+const _INTRO_FONT: FontFile     = preload("res://assets/fonts/Montserrat-Bold.ttf")
+const _INTRO_WHITE_QUEEN: Texture2D = preload("res://assets/textures/pieces/white_queen.svg")
+const _INTRO_WHITE_KING: Texture2D  = preload("res://assets/textures/pieces/white_king.svg")
+const _INTRO_BLACK_QUEEN: Texture2D = preload("res://assets/textures/pieces/black_queen.svg")
+const _INTRO_BLACK_KING: Texture2D  = preload("res://assets/textures/pieces/black_king.svg")
 
 # Signals
 signal game_over(winner_color: int, reason: int)   # reason = ChessEnums.GameState
@@ -121,6 +132,7 @@ func _ready() -> void:
 		MusicManager.dynamic_preset_changed.connect(_on_dynamic_music_preset_changed)
 	MusicManager.play_game_music()
 	_on_dynamic_music_preset_changed("normal")
+	_build_intro_overlay()
 
 func _on_dynamic_music_preset_changed(preset: String) -> void:
 	if _world_env == null or _world_env.environment == null:
@@ -216,22 +228,25 @@ func _play_intro_animation() -> void:
 	if _ui != null:
 		_ui.visible = false
 	_camera.lock_input()
-	# Camera pan duration: ends exactly when the last (16th) piece becomes visible.
-	# T_last = (piece_count - 1) * interval + vfx_delay = 15 * 0.25 + 0.10 = 3.85 s
-	var sway_dur: float = 15.0 * _INTRO_PIECE_INTERVAL + _INTRO_VFX_PIECE_DELAY
-	# Fixed look-at target: centre of each player's edge (mid of row 0 / row 7).
+	# Pan lasts the full shot: 16 pieces * interval + inter-phase pause = 4.0 + 0.5 = 4.5 s.
+	var sway_dur: float = 16.0 * _INTRO_PIECE_INTERVAL + 0.5
+	# Fixed look-at targets: centre of each player's edge (mid of row 0 / row 7).
 	var white_target := (_board.sq_to_world(Vector2i(3, 0)) + _board.sq_to_world(Vector2i(4, 0))) * 0.5 \
 		+ Vector3(0, 0.5, 0)
 	var black_target := (_board.sq_to_world(Vector2i(3, 7)) + _board.sq_to_world(Vector2i(4, 7))) * 0.5 \
 		+ Vector3(0, 0.5, 0)
 	# Phase 1: white pieces appear
 	_camera.set_intro_view(ChessEnums.PieceColor.WHITE, white_target, sway_dur)
+	_show_intro_label(ChessEnums.PieceColor.WHITE)
 	await _intro_spawn_side(ChessEnums.PieceColor.WHITE)
 	await get_tree().create_timer(0.5).timeout
+	_hide_intro_label()
 	# Phase 2: black pieces appear
 	_camera.set_intro_view(ChessEnums.PieceColor.BLACK, black_target, sway_dur)
+	_show_intro_label(ChessEnums.PieceColor.BLACK)
 	await _intro_spawn_side(ChessEnums.PieceColor.BLACK)
 	await get_tree().create_timer(0.4).timeout
+	_hide_intro_label()
 	# Restore
 	_camera.stop_intro_sway()
 	_camera.unlock_input()
@@ -286,6 +301,81 @@ func _play_intro_spell_sfx() -> void:
 	tmp.volume_db = -6.0
 	tmp.finished.connect(tmp.queue_free)
 	tmp.play()
+
+# ── Intro overlay ──────────────────────────────────────────────────────────
+func _build_intro_overlay() -> void:
+	_intro_overlay = CanvasLayer.new()
+	_intro_overlay.layer = 10
+	_intro_overlay.visible = false
+	add_child(_intro_overlay)
+
+	var root := Control.new()
+	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_intro_overlay.add_child(root)
+
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(center)
+
+	var panel := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color                   = Color(0.0, 0.0, 0.0, 0.45)
+	style.corner_radius_top_left     = 10
+	style.corner_radius_top_right    = 10
+	style.corner_radius_bottom_left  = 10
+	style.corner_radius_bottom_right = 10
+	style.content_margin_left   = 36.0
+	style.content_margin_right  = 36.0
+	style.content_margin_top    = 18.0
+	style.content_margin_bottom = 18.0
+	panel.add_theme_stylebox_override("panel", style)
+	center.add_child(panel)
+
+	var hbox := HBoxContainer.new()
+	hbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	hbox.add_theme_constant_override("separation", 22)
+	panel.add_child(hbox)
+
+	_intro_left_icon = TextureRect.new()
+	_intro_left_icon.custom_minimum_size = Vector2(54, 54)
+	_intro_left_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_intro_left_icon.expand_mode  = TextureRect.EXPAND_IGNORE_SIZE
+	hbox.add_child(_intro_left_icon)
+
+	_intro_name_label = Label.new()
+	_intro_name_label.add_theme_font_override("font", _INTRO_FONT)
+	_intro_name_label.add_theme_font_size_override("font_size", 50)
+	_intro_name_label.add_theme_color_override("font_color", Color.WHITE)
+	_intro_name_label.add_theme_constant_override("outline_size", 4)
+	_intro_name_label.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.75))
+	_intro_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_intro_name_label.vertical_alignment   = VERTICAL_ALIGNMENT_CENTER
+	hbox.add_child(_intro_name_label)
+
+	_intro_right_icon = TextureRect.new()
+	_intro_right_icon.custom_minimum_size = Vector2(54, 54)
+	_intro_right_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_intro_right_icon.expand_mode  = TextureRect.EXPAND_IGNORE_SIZE
+	hbox.add_child(_intro_right_icon)
+
+func _show_intro_label(color: int) -> void:
+	if _intro_overlay == null:
+		return
+	var is_white := color == ChessEnums.PieceColor.WHITE
+	_intro_left_icon.texture  = _INTRO_WHITE_QUEEN if is_white else _INTRO_BLACK_QUEEN
+	_intro_right_icon.texture = _INTRO_WHITE_KING  if is_white else _INTRO_BLACK_KING
+	_intro_name_label.text    = _player_names[color]
+	var accent := Color(1.0, 0.95, 0.76) if is_white else Color(0.74, 0.88, 1.0)
+	_intro_name_label.add_theme_color_override("font_color", accent)
+	_intro_left_icon.modulate  = accent
+	_intro_right_icon.modulate = accent
+	_intro_overlay.visible = true
+
+func _hide_intro_label() -> void:
+	if _intro_overlay != null:
+		_intro_overlay.visible = false
 
 func _human_player_color() -> int:
 	for color in [ChessEnums.PieceColor.WHITE, ChessEnums.PieceColor.BLACK]:
