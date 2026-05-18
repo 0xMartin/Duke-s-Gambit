@@ -8,6 +8,7 @@ extends Control
 const ICON_SIZE  := 36
 const HISTORY_ICON_SIZE := 38
 const CAPTURED_BADGE_FONT := preload("res://assets/fonts/Montserrat-Regular.ttf")
+const HISTORY_LABEL_THEME := preload("res://themes/history_label.tres")
 const CAPTURED_PAGE_DURATION := 5.0
 
 ## Maps PieceType int → piece name used in the SVG filename.
@@ -154,9 +155,8 @@ func append_move_to_history(mv: ChessMove) -> void:
 
 	var turn_lbl := Label.new()
 	turn_lbl.custom_minimum_size = Vector2(72, 0)
+	turn_lbl.theme = HISTORY_LABEL_THEME
 	turn_lbl.text = turn_prefix
-	turn_lbl.add_theme_font_size_override("font_size", 22)
-	turn_lbl.add_theme_color_override("font_color", Color(0.86, 0.86, 0.90, 1.0))
 	row.add_child(turn_lbl)
 
 	var piece_icon := _build_piece_icon(mv.piece_color, mv.piece_type, HISTORY_ICON_SIZE)
@@ -165,9 +165,8 @@ func append_move_to_history(mv: ChessMove) -> void:
 
 	if mv.is_capture():
 		var x_lbl := Label.new()
+		x_lbl.theme = HISTORY_LABEL_THEME
 		x_lbl.text = "x"
-		x_lbl.add_theme_font_size_override("font_size", 24)
-		x_lbl.add_theme_color_override("font_color", Color(1.0, 0.3, 0.2, 1.0))
 		row.add_child(x_lbl)
 
 		var cap_icon := _build_piece_icon(1 - mv.piece_color, mv.captured_type, HISTORY_ICON_SIZE)
@@ -176,9 +175,8 @@ func append_move_to_history(mv: ChessMove) -> void:
 
 	var move_lbl := Label.new()
 	move_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	move_lbl.theme = HISTORY_LABEL_THEME
 	move_lbl.text = _move_notation(mv)
-	move_lbl.add_theme_font_size_override("font_size", 22)
-	move_lbl.add_theme_color_override("font_color", Color(0.95, 0.93, 0.88, 1.0))
 	row.add_child(move_lbl)
 
 	_history_list.add_child(row)
@@ -417,28 +415,10 @@ func _sq_to_notation(sq: Vector2i) -> String:
 
 func _apply_history_theme() -> void:
 	if _history_panel != null:
-		var panel_style := StyleBoxFlat.new()
-		panel_style.bg_color = Color(0.03, 0.04, 0.09, 0.88)
-		panel_style.border_color = Color(0.72, 0.58, 0.16, 0.85)
-		panel_style.set_border_width_all(2)
-		panel_style.set_corner_radius_all(10)
-		_history_panel.add_theme_stylebox_override("panel", panel_style)
-		var title_lbl := _history_panel.get_node_or_null("Margin/VBox/Header/Title") as Label
-		if title_lbl != null:
-			title_lbl.add_theme_font_size_override("font_size", 24)
-
-	if _history_collapse_btn != null:
-		_history_collapse_btn.text = "◀"
-		_history_collapse_btn.custom_minimum_size = Vector2(34, 28)
-
-	if _history_expand_btn != null:
-		_history_expand_btn.text = "▶"
-		_history_expand_btn.visible = false
-		_history_expand_btn.custom_minimum_size = Vector2(26, 84)
-
-	if _history_panel != null:
 		_history_panel_left_expanded = _history_panel.offset_left
 		_history_panel_width = _history_panel.offset_right - _history_panel.offset_left
+		if _history_panel_width <= 0.0:
+			_history_panel_width = maxf(_history_panel.custom_minimum_size.x, 300.0)
 
 func _collapse_history() -> void:
 	_set_history_minimized(true)
