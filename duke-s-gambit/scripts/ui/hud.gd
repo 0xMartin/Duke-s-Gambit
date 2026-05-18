@@ -44,6 +44,8 @@ var _captured_timer: Array = [null, null]  # Timer
 var _captured_pages: Array = [[], []]
 var _captured_page_index: Array = [0, 0]
 var _captured_badge_specs: Array = [[], []]
+var _captured_refresh_queued: Array = [false, false]
+var _captured_refresh_in_progress: Array = [false, false]
 var _history_panel: PanelContainer = null
 var _history_list: VBoxContainer = null
 var _history_scroll: ScrollContainer = null
@@ -62,18 +64,18 @@ var _has_time_limit: bool = false  # true = countdown mode
 # ── Setup ──────────────────────────────────────────────────────────────────
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_name_lbl[ChessEnums.PieceColor.WHITE]  = get_node("TopBar/WhitePanel/MainHBox/InfoVBox/Row/Name") as Label
-	_name_lbl[ChessEnums.PieceColor.BLACK]  = get_node("TopBar/BlackPanel/MainHBox/InfoVBox/Row/Name") as Label
-	_elo_lbl[ChessEnums.PieceColor.WHITE]   = get_node("TopBar/WhitePanel/MainHBox/InfoVBox/Row/Elo") as Label
-	_elo_lbl[ChessEnums.PieceColor.BLACK]   = get_node("TopBar/BlackPanel/MainHBox/InfoVBox/Row/Elo") as Label
-	_timer_lbl[ChessEnums.PieceColor.WHITE] = get_node("TopBar/WhitePanel/MainHBox/InfoVBox/Row/Timer") as Label
-	_timer_lbl[ChessEnums.PieceColor.BLACK] = get_node("TopBar/BlackPanel/MainHBox/InfoVBox/Row/Timer") as Label
-	_captured_scroll[ChessEnums.PieceColor.WHITE] = get_node("TopBar/WhitePanel/MainHBox/InfoVBox/CapturedPanel/CapturedFlow") as ScrollContainer
-	_captured_scroll[ChessEnums.PieceColor.BLACK] = get_node("TopBar/BlackPanel/MainHBox/InfoVBox/CapturedPanel/CapturedFlow") as ScrollContainer
-	_captured_padding[ChessEnums.PieceColor.WHITE] = get_node("TopBar/WhitePanel/MainHBox/InfoVBox/CapturedPanel/CapturedFlow/CapturedPadding") as MarginContainer
-	_captured_padding[ChessEnums.PieceColor.BLACK] = get_node("TopBar/BlackPanel/MainHBox/InfoVBox/CapturedPanel/CapturedFlow/CapturedPadding") as MarginContainer
-	_captured_list[ChessEnums.PieceColor.WHITE] = get_node("TopBar/WhitePanel/MainHBox/InfoVBox/CapturedPanel/CapturedFlow/CapturedPadding/CapturedList") as HBoxContainer
-	_captured_list[ChessEnums.PieceColor.BLACK] = get_node("TopBar/BlackPanel/MainHBox/InfoVBox/CapturedPanel/CapturedFlow/CapturedPadding/CapturedList") as HBoxContainer
+	_name_lbl[ChessEnums.PieceColor.WHITE]  = get_node("WhitePanel/MainHBox/InfoVBox/Row/Name") as Label
+	_name_lbl[ChessEnums.PieceColor.BLACK]  = get_node("BlackPanel/MainHBox/InfoVBox/Row/Name") as Label
+	_elo_lbl[ChessEnums.PieceColor.WHITE]   = get_node("WhitePanel/MainHBox/InfoVBox/Row/Elo") as Label
+	_elo_lbl[ChessEnums.PieceColor.BLACK]   = get_node("BlackPanel/MainHBox/InfoVBox/Row/Elo") as Label
+	_timer_lbl[ChessEnums.PieceColor.WHITE] = get_node("WhitePanel/MainHBox/InfoVBox/Row/Timer") as Label
+	_timer_lbl[ChessEnums.PieceColor.BLACK] = get_node("BlackPanel/MainHBox/InfoVBox/Row/Timer") as Label
+	_captured_scroll[ChessEnums.PieceColor.WHITE] = get_node("WhitePanel/MainHBox/InfoVBox/CapturedPanel/CapturedFlow") as ScrollContainer
+	_captured_scroll[ChessEnums.PieceColor.BLACK] = get_node("BlackPanel/MainHBox/InfoVBox/CapturedPanel/CapturedFlow") as ScrollContainer
+	_captured_padding[ChessEnums.PieceColor.WHITE] = get_node("WhitePanel/MainHBox/InfoVBox/CapturedPanel/CapturedFlow/CapturedPadding") as MarginContainer
+	_captured_padding[ChessEnums.PieceColor.BLACK] = get_node("BlackPanel/MainHBox/InfoVBox/CapturedPanel/CapturedFlow/CapturedPadding") as MarginContainer
+	_captured_list[ChessEnums.PieceColor.WHITE] = get_node("WhitePanel/MainHBox/InfoVBox/CapturedPanel/CapturedFlow/CapturedPadding/CapturedList") as HBoxContainer
+	_captured_list[ChessEnums.PieceColor.BLACK] = get_node("BlackPanel/MainHBox/InfoVBox/CapturedPanel/CapturedFlow/CapturedPadding/CapturedList") as HBoxContainer
 	for c in [ChessEnums.PieceColor.WHITE, ChessEnums.PieceColor.BLACK]:
 		var captured_scroll := _captured_scroll[c] as ScrollContainer
 		captured_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -85,7 +87,6 @@ func _ready() -> void:
 		page_timer.timeout.connect(_on_captured_page_timeout.bind(c))
 		add_child(page_timer)
 		_captured_timer[c] = page_timer
-		(captured_scroll as Control).resized.connect(_refresh_captured_pages.bind(c))
 
 	_history_panel = get_node_or_null("../MoveHistoryPanel") as PanelContainer
 	_history_scroll = get_node_or_null("../MoveHistoryPanel/Margin/VBox/HistoryScroll") as ScrollContainer
@@ -99,6 +100,11 @@ func _ready() -> void:
 	_apply_history_theme()
 	reset_move_history()
 	_set_history_minimized(true, true)
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_RESIZED:
+		_queue_captured_page_refresh(ChessEnums.PieceColor.WHITE)
+		_queue_captured_page_refresh(ChessEnums.PieceColor.BLACK)
 
 # ── Public API ─────────────────────────────────────────────────────────────
 
@@ -118,6 +124,8 @@ func setup(white_name: String, white_elo: int,
 		_captured_pages[c] = []
 		_captured_page_index[c] = 0
 		_captured_badge_specs[c] = []
+		_captured_refresh_queued[c] = false
+		_captured_refresh_in_progress[c] = false
 
 	set_active_player(ChessEnums.PieceColor.WHITE)
 	reset_move_history()
@@ -303,6 +311,9 @@ func _get_captured_viewport_width(color: int) -> float:
 	return max(viewport_width, 1.0)
 
 func _refresh_captured_pages(color: int) -> void:
+	if _captured_refresh_in_progress[color]:
+		return
+	_captured_refresh_in_progress[color] = true
 	var specs: Array = _captured_badge_specs[color]
 	var pages: Array = []
 	var max_width := _get_captured_viewport_width(color)
@@ -326,6 +337,7 @@ func _refresh_captured_pages(color: int) -> void:
 		_captured_page_index[color] = 0
 		(_captured_timer[color] as Timer).stop()
 		_clear_captured_page(color)
+		_captured_refresh_in_progress[color] = false
 		return
 	_captured_page_index[color] = mini(_captured_page_index[color], page_count - 1)
 	_show_captured_page(color, _captured_page_index[color])
@@ -335,6 +347,17 @@ func _refresh_captured_pages(color: int) -> void:
 			timer.start()
 	else:
 		timer.stop()
+	_captured_refresh_in_progress[color] = false
+
+func _queue_captured_page_refresh(color: int) -> void:
+	if _captured_refresh_queued[color]:
+		return
+	_captured_refresh_queued[color] = true
+	call_deferred("_run_queued_captured_page_refresh", color)
+
+func _run_queued_captured_page_refresh(color: int) -> void:
+	_captured_refresh_queued[color] = false
+	_refresh_captured_pages(color)
 
 func _clear_captured_page(color: int) -> void:
 	var container := _captured_list[color] as HBoxContainer
@@ -503,4 +526,4 @@ func refresh_captured(capturing_color: int, captured_types: Array) -> void:
 			badge_specs.append(badge_spec)
 	_captured_badge_specs[capturing_color] = badge_specs
 	_captured_page_index[capturing_color] = 0
-	_refresh_captured_pages(capturing_color)
+	_queue_captured_page_refresh(capturing_color)

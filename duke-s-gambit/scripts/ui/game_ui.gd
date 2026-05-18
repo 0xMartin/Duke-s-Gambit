@@ -89,8 +89,12 @@ func _on_promotion_needed(sq: Vector2i, color: int) -> void:
 	_promo_panel.visible = true
 
 func _choose(piece_type: int) -> void:
-	_promo_panel.visible = false
-	_game.choose_promotion(_pending_promo_sq, piece_type)
+	var accepted := _game.choose_promotion(_pending_promo_sq, piece_type)
+	if accepted:
+		_promo_panel.visible = false
+	else:
+		_configure_promotion_dialog(_pending_promo_color)
+		_promo_panel.visible = true
 
 func _promo_icon_path(color: int, piece_type: int) -> String:
 	var prefix := "white" if color == ChessEnums.PieceColor.WHITE else "black"
@@ -128,13 +132,31 @@ func _promo_button(btn: Button, piece_type: int, color: int) -> void:
 		btn.icon = load(icon_path)
 		btn.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
 
+func _set_promo_button_enabled(btn: Button, piece_type: int, allowed: Array[int]) -> void:
+	if btn == null:
+		return
+	var is_allowed := allowed.is_empty() or allowed.has(piece_type)
+	btn.disabled = not is_allowed
+	btn.modulate = Color(1, 1, 1, 1) if is_allowed else Color(0.65, 0.65, 0.65, 1)
+
 func _configure_promotion_dialog(color: int) -> void:
 	if _promo_title:
 		_promo_title.text = "White pawn promotion" if color == ChessEnums.PieceColor.WHITE else "Black pawn promotion"
-	_promo_button($PromotionPanel/VBox/HBox/QueenBtn, ChessEnums.PieceType.QUEEN, color)
-	_promo_button($PromotionPanel/VBox/HBox/RookBtn, ChessEnums.PieceType.ROOK, color)
-	_promo_button($PromotionPanel/VBox/HBox/BishopBtn, ChessEnums.PieceType.BISHOP, color)
-	_promo_button($PromotionPanel/VBox/HBox/KnightBtn, ChessEnums.PieceType.KNIGHT, color)
+	var allowed: Array[int] = []
+	if _game != null and _game.has_method("get_pending_promotion_types"):
+		allowed = _game.get_pending_promotion_types(_pending_promo_sq)
+	var queen_btn := $PromotionPanel/VBox/HBox/QueenBtn as Button
+	var rook_btn := $PromotionPanel/VBox/HBox/RookBtn as Button
+	var bishop_btn := $PromotionPanel/VBox/HBox/BishopBtn as Button
+	var knight_btn := $PromotionPanel/VBox/HBox/KnightBtn as Button
+	_promo_button(queen_btn, ChessEnums.PieceType.QUEEN, color)
+	_promo_button(rook_btn, ChessEnums.PieceType.ROOK, color)
+	_promo_button(bishop_btn, ChessEnums.PieceType.BISHOP, color)
+	_promo_button(knight_btn, ChessEnums.PieceType.KNIGHT, color)
+	_set_promo_button_enabled(queen_btn, ChessEnums.PieceType.QUEEN, allowed)
+	_set_promo_button_enabled(rook_btn, ChessEnums.PieceType.ROOK, allowed)
+	_set_promo_button_enabled(bishop_btn, ChessEnums.PieceType.BISHOP, allowed)
+	_set_promo_button_enabled(knight_btn, ChessEnums.PieceType.KNIGHT, allowed)
 
 func _on_back_pressed() -> void:
 	MusicManager.play_menu_music()

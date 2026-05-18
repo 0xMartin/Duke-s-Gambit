@@ -311,7 +311,7 @@ transform = Transform3D(0.70710677, -0.5000378, 0.49996227, 0, 0.7070534, 0.7071
 light_energy = 0.6
 shadow_enabled = true
 
-[node name="UI" type="Control" parent="." unique_id=1898942881]
+[node name="HUD" type="Control" parent="." unique_id=1898942881]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -321,44 +321,37 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("4")
 
-[node name="HUD" type="Control" parent="UI" unique_id=345053778]
-layout_mode = 1
-anchors_preset = 10
-anchor_right = 1.0
-offset_bottom = 180.0
-grow_horizontal = 2
-mouse_filter = 2
-script = ExtResource("5")
-
-[node name="TopBar" type="HBoxContainer" parent="UI/HUD" unique_id=488746810]
+[node name="TopBar" type="HBoxContainer" parent="HUD" unique_id=488746810]
 layout_mode = 1
 anchors_preset = -1
 anchor_right = 1.0
-anchor_bottom = 0.683
+anchor_bottom = 0.120314814
 offset_bottom = 0.05999756
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 theme_override_constants/separation = 0
+script = ExtResource("5")
 metadata/_edit_use_anchors_ = true
 
-[node name="WhitePanel" type="PanelContainer" parent="UI/HUD/TopBar" unique_id=1639280010]
+[node name="WhitePanel" type="PanelContainer" parent="HUD/TopBar" unique_id=1639280010]
+custom_minimum_size = Vector2(0, 130)
 layout_mode = 2
 mouse_filter = 2
 theme = ExtResource("5_ir15t")
 
-[node name="MainHBox" type="HBoxContainer" parent="UI/HUD/TopBar/WhitePanel" unique_id=568236136]
+[node name="MainHBox" type="HBoxContainer" parent="HUD/TopBar/WhitePanel" unique_id=568236136]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 16
 
-[node name="AvatarBG" type="PanelContainer" parent="UI/HUD/TopBar/WhitePanel/MainHBox" unique_id=1971534063]
+[node name="AvatarBG" type="PanelContainer" parent="HUD/TopBar/WhitePanel/MainHBox" unique_id=1971534063]
 custom_minimum_size = Vector2(84, 84)
 layout_mode = 2
 mouse_filter = 2
 theme_override_styles/panel = SubResource("HudAvatarWhite")
 
-[node name="AvatarTex" type="TextureRect" parent="UI/HUD/TopBar/WhitePanel/MainHBox/AvatarBG" unique_id=1067594281]
+[node name="AvatarTex" type="TextureRect" parent="HUD/TopBar/WhitePanel/MainHBox/AvatarBG" unique_id=1067594281]
 custom_minimum_size = Vector2(84, 84)
 layout_mode = 2
 mouse_filter = 2
@@ -366,127 +359,128 @@ texture = ExtResource("6_ssvqc")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="InfoVBox" type="VBoxContainer" parent="UI/HUD/TopBar/WhitePanel/MainHBox" unique_id=1330188565]
+[node name="InfoVBox" type="VBoxContainer" parent="HUD/TopBar/WhitePanel/MainHBox" unique_id=1330188565]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 3
 alignment = 1
 
-[node name="Row" type="HBoxContainer" parent="UI/HUD/TopBar/WhitePanel/MainHBox/InfoVBox" unique_id=586098515]
+[node name="Row" type="HBoxContainer" parent="HUD/TopBar/WhitePanel/MainHBox/InfoVBox" unique_id=586098515]
 layout_mode = 2
 theme_override_constants/separation = 15
 
-[node name="Name" type="Label" parent="UI/HUD/TopBar/WhitePanel/MainHBox/InfoVBox/Row" unique_id=1243572640]
+[node name="Name" type="Label" parent="HUD/TopBar/WhitePanel/MainHBox/InfoVBox/Row" unique_id=1243572640]
 layout_mode = 2
 theme = ExtResource("7_ca42v")
 text = "White"
 
-[node name="Elo" type="Label" parent="UI/HUD/TopBar/WhitePanel/MainHBox/InfoVBox/Row" unique_id=1388764898]
+[node name="Elo" type="Label" parent="HUD/TopBar/WhitePanel/MainHBox/InfoVBox/Row" unique_id=1388764898]
 layout_mode = 2
 theme = ExtResource("8_rysoc")
 text = "ELO 1200"
 
-[node name="Timer" type="Label" parent="UI/HUD/TopBar/WhitePanel/MainHBox/InfoVBox/Row" unique_id=1758136311]
+[node name="Timer" type="Label" parent="HUD/TopBar/WhitePanel/MainHBox/InfoVBox/Row" unique_id=1758136311]
 custom_minimum_size = Vector2(130, 0)
 layout_mode = 2
 theme = ExtResource("9_ssvqc")
 text = "10:00"
 horizontal_alignment = 2
 
-[node name="CapturedPanel" type="PanelContainer" parent="UI/HUD/TopBar/WhitePanel/MainHBox/InfoVBox" unique_id=1365764537]
+[node name="CapturedPanel" type="PanelContainer" parent="HUD/TopBar/WhitePanel/MainHBox/InfoVBox" unique_id=1365764537]
 layout_mode = 2
 mouse_filter = 2
 theme_override_styles/panel = SubResource("HudCaptureWhite")
 
-[node name="CapturedFlow" type="ScrollContainer" parent="UI/HUD/TopBar/WhitePanel/MainHBox/InfoVBox/CapturedPanel" unique_id=1387663260]
+[node name="CapturedFlow" type="ScrollContainer" parent="HUD/TopBar/WhitePanel/MainHBox/InfoVBox/CapturedPanel" unique_id=1387663260]
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
 
-[node name="CapturedPadding" type="MarginContainer" parent="UI/HUD/TopBar/WhitePanel/MainHBox/InfoVBox/CapturedPanel/CapturedFlow" unique_id=274190221]
+[node name="CapturedPadding" type="MarginContainer" parent="HUD/TopBar/WhitePanel/MainHBox/InfoVBox/CapturedPanel/CapturedFlow" unique_id=274190221]
 layout_mode = 2
 theme_override_constants/margin_left = 2
 theme_override_constants/margin_top = 4
 theme_override_constants/margin_right = 2
 theme_override_constants/margin_bottom = 4
 
-[node name="CapturedList" type="HBoxContainer" parent="UI/HUD/TopBar/WhitePanel/MainHBox/InfoVBox/CapturedPanel/CapturedFlow/CapturedPadding" unique_id=1863000101]
+[node name="CapturedList" type="HBoxContainer" parent="HUD/TopBar/WhitePanel/MainHBox/InfoVBox/CapturedPanel/CapturedFlow/CapturedPadding" unique_id=1863000101]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="Spacer" type="Control" parent="UI/HUD/TopBar" unique_id=501456985]
+[node name="Spacer" type="Control" parent="HUD/TopBar" unique_id=501456985]
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
 
-[node name="BlackPanel" type="PanelContainer" parent="UI/HUD/TopBar" unique_id=2134970181]
+[node name="BlackPanel" type="PanelContainer" parent="HUD/TopBar" unique_id=2134970181]
+custom_minimum_size = Vector2(0, 130)
 layout_mode = 2
 mouse_filter = 2
 theme = ExtResource("5_ir15t")
 theme_override_styles/panel = SubResource("StyleBoxFlat_37s47")
 
-[node name="MainHBox" type="HBoxContainer" parent="UI/HUD/TopBar/BlackPanel" unique_id=1050871494]
+[node name="MainHBox" type="HBoxContainer" parent="HUD/TopBar/BlackPanel" unique_id=1050871494]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 16
 
-[node name="InfoVBox" type="VBoxContainer" parent="UI/HUD/TopBar/BlackPanel/MainHBox" unique_id=105680244]
+[node name="InfoVBox" type="VBoxContainer" parent="HUD/TopBar/BlackPanel/MainHBox" unique_id=105680244]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 3
 alignment = 1
 
-[node name="Row" type="HBoxContainer" parent="UI/HUD/TopBar/BlackPanel/MainHBox/InfoVBox" unique_id=1831603310]
+[node name="Row" type="HBoxContainer" parent="HUD/TopBar/BlackPanel/MainHBox/InfoVBox" unique_id=1831603310]
 layout_mode = 2
 theme_override_constants/separation = 15
 
-[node name="Name" type="Label" parent="UI/HUD/TopBar/BlackPanel/MainHBox/InfoVBox/Row" unique_id=2069091762]
+[node name="Name" type="Label" parent="HUD/TopBar/BlackPanel/MainHBox/InfoVBox/Row" unique_id=2069091762]
 layout_mode = 2
 theme = ExtResource("7_ca42v")
 text = "Black"
 
-[node name="Elo" type="Label" parent="UI/HUD/TopBar/BlackPanel/MainHBox/InfoVBox/Row" unique_id=1129891114]
+[node name="Elo" type="Label" parent="HUD/TopBar/BlackPanel/MainHBox/InfoVBox/Row" unique_id=1129891114]
 layout_mode = 2
 theme = ExtResource("8_rysoc")
 text = "ELO 1200"
 
-[node name="Timer" type="Label" parent="UI/HUD/TopBar/BlackPanel/MainHBox/InfoVBox/Row" unique_id=1123195889]
+[node name="Timer" type="Label" parent="HUD/TopBar/BlackPanel/MainHBox/InfoVBox/Row" unique_id=1123195889]
 custom_minimum_size = Vector2(130, 0)
 layout_mode = 2
 theme = ExtResource("9_ssvqc")
 text = "10:00"
 horizontal_alignment = 2
 
-[node name="CapturedPanel" type="PanelContainer" parent="UI/HUD/TopBar/BlackPanel/MainHBox/InfoVBox" unique_id=82171555]
+[node name="CapturedPanel" type="PanelContainer" parent="HUD/TopBar/BlackPanel/MainHBox/InfoVBox" unique_id=82171555]
 layout_mode = 2
 mouse_filter = 2
 theme_override_styles/panel = SubResource("HudCaptureBlack")
 
-[node name="CapturedFlow" type="ScrollContainer" parent="UI/HUD/TopBar/BlackPanel/MainHBox/InfoVBox/CapturedPanel" unique_id=1117646782]
+[node name="CapturedFlow" type="ScrollContainer" parent="HUD/TopBar/BlackPanel/MainHBox/InfoVBox/CapturedPanel" unique_id=1117646782]
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
 
-[node name="CapturedPadding" type="MarginContainer" parent="UI/HUD/TopBar/BlackPanel/MainHBox/InfoVBox/CapturedPanel/CapturedFlow" unique_id=1769691215]
+[node name="CapturedPadding" type="MarginContainer" parent="HUD/TopBar/BlackPanel/MainHBox/InfoVBox/CapturedPanel/CapturedFlow" unique_id=1769691215]
 layout_mode = 2
 theme_override_constants/margin_left = 2
 theme_override_constants/margin_top = 4
 theme_override_constants/margin_right = 2
 theme_override_constants/margin_bottom = 4
 
-[node name="CapturedList" type="HBoxContainer" parent="UI/HUD/TopBar/BlackPanel/MainHBox/InfoVBox/CapturedPanel/CapturedFlow/CapturedPadding" unique_id=495750194]
+[node name="CapturedList" type="HBoxContainer" parent="HUD/TopBar/BlackPanel/MainHBox/InfoVBox/CapturedPanel/CapturedFlow/CapturedPadding" unique_id=495750194]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="AvatarBG" type="PanelContainer" parent="UI/HUD/TopBar/BlackPanel/MainHBox" unique_id=95408901]
+[node name="AvatarBG" type="PanelContainer" parent="HUD/TopBar/BlackPanel/MainHBox" unique_id=95408901]
 custom_minimum_size = Vector2(84, 84)
 layout_mode = 2
 mouse_filter = 2
 theme_override_styles/panel = SubResource("HudAvatarBlack")
 
-[node name="AvatarTex" type="TextureRect" parent="UI/HUD/TopBar/BlackPanel/MainHBox/AvatarBG" unique_id=911899612]
+[node name="AvatarTex" type="TextureRect" parent="HUD/TopBar/BlackPanel/MainHBox/AvatarBG" unique_id=911899612]
 custom_minimum_size = Vector2(84, 84)
 layout_mode = 2
 mouse_filter = 2
@@ -494,7 +488,7 @@ texture = ExtResource("10_ssvqc")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="MoveHistoryPanel" type="PanelContainer" parent="UI" unique_id=1426172844]
+[node name="MoveHistoryPanel" type="PanelContainer" parent="HUD" unique_id=1426172844]
 visible = false
 custom_minimum_size = Vector2(380, 320)
 layout_mode = 1
@@ -508,43 +502,43 @@ offset_bottom = -14.0
 grow_horizontal = 0
 grow_vertical = 2
 
-[node name="Margin" type="MarginContainer" parent="UI/MoveHistoryPanel" unique_id=554857996]
+[node name="Margin" type="MarginContainer" parent="HUD/MoveHistoryPanel" unique_id=554857996]
 layout_mode = 2
 theme_override_constants/margin_left = 8
 theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 8
 theme_override_constants/margin_bottom = 8
 
-[node name="VBox" type="VBoxContainer" parent="UI/MoveHistoryPanel/Margin" unique_id=192817535]
+[node name="VBox" type="VBoxContainer" parent="HUD/MoveHistoryPanel/Margin" unique_id=192817535]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="Header" type="HBoxContainer" parent="UI/MoveHistoryPanel/Margin/VBox" unique_id=1634836110]
+[node name="Header" type="HBoxContainer" parent="HUD/MoveHistoryPanel/Margin/VBox" unique_id=1634836110]
 layout_mode = 2
 
-[node name="Title" type="Label" parent="UI/MoveHistoryPanel/Margin/VBox/Header" unique_id=6561106]
+[node name="Title" type="Label" parent="HUD/MoveHistoryPanel/Margin/VBox/Header" unique_id=6561106]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.95, 0.9, 0.65, 1)
 theme_override_font_sizes/font_size = 18
 text = "Move History"
 
-[node name="CollapseButton" type="Button" parent="UI/MoveHistoryPanel/Margin/VBox/Header" unique_id=904342247]
+[node name="CollapseButton" type="Button" parent="HUD/MoveHistoryPanel/Margin/VBox/Header" unique_id=904342247]
 custom_minimum_size = Vector2(30, 24)
 layout_mode = 2
 text = "◀"
 
-[node name="HistoryScroll" type="ScrollContainer" parent="UI/MoveHistoryPanel/Margin/VBox" unique_id=651528752]
+[node name="HistoryScroll" type="ScrollContainer" parent="HUD/MoveHistoryPanel/Margin/VBox" unique_id=651528752]
 custom_minimum_size = Vector2(0, 120)
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="HistoryList" type="VBoxContainer" parent="UI/MoveHistoryPanel/Margin/VBox/HistoryScroll" unique_id=2085093791]
+[node name="HistoryList" type="VBoxContainer" parent="HUD/MoveHistoryPanel/Margin/VBox/HistoryScroll" unique_id=2085093791]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 6
 
-[node name="MoveHistoryExpandButton" type="Button" parent="UI" unique_id=946903513]
+[node name="MoveHistoryExpandButton" type="Button" parent="HUD" unique_id=946903513]
 custom_minimum_size = Vector2(26, 84)
 layout_mode = 1
 anchors_preset = 2
@@ -563,7 +557,7 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_ca42v")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_rysoc")
 text = "▶"
 
-[node name="AIThinkingLabel" type="Label" parent="UI" unique_id=337434124]
+[node name="AIThinkingLabel" type="Label" parent="HUD" unique_id=337434124]
 visible = false
 layout_mode = 1
 anchors_preset = 5
@@ -575,7 +569,7 @@ grow_horizontal = 2
 text = "AI is thinking..."
 horizontal_alignment = 1
 
-[node name="AIThinkingProgress" type="ProgressBar" parent="UI" unique_id=151511017]
+[node name="AIThinkingProgress" type="ProgressBar" parent="HUD" unique_id=151511017]
 visible = false
 custom_minimum_size = Vector2(260, 16)
 layout_mode = 1
@@ -589,7 +583,7 @@ offset_bottom = 70.0
 grow_horizontal = 2
 show_percentage = false
 
-[node name="SurrenderButton" type="Button" parent="UI" unique_id=1889013262]
+[node name="SurrenderButton" type="Button" parent="HUD" unique_id=1889013262]
 layout_mode = 1
 anchors_preset = 5
 anchor_left = 0.5
@@ -607,7 +601,7 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_ssvqc")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_5newe")
 text = "Surrender"
 
-[node name="GameOverPanel" type="PanelContainer" parent="UI" unique_id=2010256283]
+[node name="GameOverPanel" type="PanelContainer" parent="HUD" unique_id=2010256283]
 visible = false
 layout_mode = 1
 anchors_preset = -1
@@ -618,11 +612,11 @@ anchor_bottom = 0.75
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="VBox" type="VBoxContainer" parent="UI/GameOverPanel" unique_id=1923570882]
+[node name="VBox" type="VBoxContainer" parent="HUD/GameOverPanel" unique_id=1923570882]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="TitleLabel" type="Label" parent="UI/GameOverPanel/VBox" unique_id=653513695]
+[node name="TitleLabel" type="Label" parent="HUD/GameOverPanel/VBox" unique_id=653513695]
 layout_mode = 2
 size_flags_vertical = 1
 theme_override_colors/font_color = Color(1, 0.88, 0.25, 1)
@@ -634,7 +628,7 @@ horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
 
-[node name="WinnerLabel" type="Label" parent="UI/GameOverPanel/VBox" unique_id=2135930926]
+[node name="WinnerLabel" type="Label" parent="HUD/GameOverPanel/VBox" unique_id=2135930926]
 layout_mode = 2
 size_flags_vertical = 1
 theme_override_font_sizes/font_size = 40
@@ -643,7 +637,7 @@ horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
 
-[node name="LoserLabel" type="Label" parent="UI/GameOverPanel/VBox" unique_id=161364805]
+[node name="LoserLabel" type="Label" parent="HUD/GameOverPanel/VBox" unique_id=161364805]
 layout_mode = 2
 size_flags_vertical = 1
 theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
@@ -653,7 +647,7 @@ horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
 
-[node name="ReasonLabel" type="Label" parent="UI/GameOverPanel/VBox" unique_id=823044705]
+[node name="ReasonLabel" type="Label" parent="HUD/GameOverPanel/VBox" unique_id=823044705]
 layout_mode = 2
 size_flags_vertical = 1
 theme_override_colors/font_color = Color(0.85, 0.75, 0.4, 1)
@@ -663,10 +657,10 @@ horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
 
-[node name="Spacer" type="Control" parent="UI/GameOverPanel/VBox" unique_id=643031126]
+[node name="Spacer" type="Control" parent="HUD/GameOverPanel/VBox" unique_id=643031126]
 layout_mode = 2
 
-[node name="StatsLabel" type="Label" parent="UI/GameOverPanel/VBox" unique_id=363688089]
+[node name="StatsLabel" type="Label" parent="HUD/GameOverPanel/VBox" unique_id=363688089]
 layout_mode = 2
 size_flags_vertical = 2
 theme_override_font_sizes/font_size = 18
@@ -676,14 +670,14 @@ horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
 
-[node name="StatsTimeTitle" type="Label" parent="UI/GameOverPanel/VBox" unique_id=127566483]
+[node name="StatsTimeTitle" type="Label" parent="HUD/GameOverPanel/VBox" unique_id=127566483]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.85, 0.75, 0.4, 1)
 theme_override_font_sizes/font_size = 20
 text = "Time"
 horizontal_alignment = 1
 
-[node name="StatsTimeValue" type="Label" parent="UI/GameOverPanel/VBox" unique_id=1678480177]
+[node name="StatsTimeValue" type="Label" parent="HUD/GameOverPanel/VBox" unique_id=1678480177]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.95, 0.93, 0.88, 1)
 theme_override_font_sizes/font_size = 18
@@ -692,14 +686,14 @@ Black: 0:00"
 horizontal_alignment = 1
 autowrap_mode = 3
 
-[node name="StatsAvgTitle" type="Label" parent="UI/GameOverPanel/VBox" unique_id=534174413]
+[node name="StatsAvgTitle" type="Label" parent="HUD/GameOverPanel/VBox" unique_id=534174413]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.85, 0.75, 0.4, 1)
 theme_override_font_sizes/font_size = 20
 text = "Average Turn"
 horizontal_alignment = 1
 
-[node name="StatsAvgValue" type="Label" parent="UI/GameOverPanel/VBox" unique_id=591922289]
+[node name="StatsAvgValue" type="Label" parent="HUD/GameOverPanel/VBox" unique_id=591922289]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.95, 0.93, 0.88, 1)
 theme_override_font_sizes/font_size = 18
@@ -708,14 +702,14 @@ Black: 0.0 s"
 horizontal_alignment = 1
 autowrap_mode = 3
 
-[node name="BackButton" type="Button" parent="UI/GameOverPanel/VBox" unique_id=998528934]
+[node name="BackButton" type="Button" parent="HUD/GameOverPanel/VBox" unique_id=998528934]
 custom_minimum_size = Vector2(0, 64)
 layout_mode = 2
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 36
 text = "Back to Menu"
 
-[node name="SurrenderConfirmPanel" type="PanelContainer" parent="UI" unique_id=448641579]
+[node name="SurrenderConfirmPanel" type="PanelContainer" parent="HUD" unique_id=448641579]
 visible = false
 layout_mode = 1
 anchors_preset = -1
@@ -726,11 +720,11 @@ anchor_bottom = 0.6
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="VBox" type="VBoxContainer" parent="UI/SurrenderConfirmPanel" unique_id=730165915]
+[node name="VBox" type="VBoxContainer" parent="HUD/SurrenderConfirmPanel" unique_id=730165915]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="QuestionLabel" type="Label" parent="UI/SurrenderConfirmPanel/VBox" unique_id=1353471840]
+[node name="QuestionLabel" type="Label" parent="HUD/SurrenderConfirmPanel/VBox" unique_id=1353471840]
 layout_mode = 2
 size_flags_vertical = 2
 theme_override_font_sizes/font_size = 28
@@ -739,24 +733,24 @@ horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
 
-[node name="ButtonHBox" type="HBoxContainer" parent="UI/SurrenderConfirmPanel/VBox" unique_id=99322785]
+[node name="ButtonHBox" type="HBoxContainer" parent="HUD/SurrenderConfirmPanel/VBox" unique_id=99322785]
 layout_mode = 2
 theme_override_constants/separation = 20
 alignment = 1
 
-[node name="YesButton" type="Button" parent="UI/SurrenderConfirmPanel/VBox/ButtonHBox" unique_id=59706857]
+[node name="YesButton" type="Button" parent="HUD/SurrenderConfirmPanel/VBox/ButtonHBox" unique_id=59706857]
 custom_minimum_size = Vector2(120, 50)
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = "Yes"
 
-[node name="NoButton" type="Button" parent="UI/SurrenderConfirmPanel/VBox/ButtonHBox" unique_id=1619507832]
+[node name="NoButton" type="Button" parent="HUD/SurrenderConfirmPanel/VBox/ButtonHBox" unique_id=1619507832]
 custom_minimum_size = Vector2(120, 50)
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = "No"
 
-[node name="PromotionPanel" type="PanelContainer" parent="UI" unique_id=1877138672]
+[node name="PromotionPanel" type="PanelContainer" parent="HUD" unique_id=1877138672]
 visible = false
 layout_mode = 1
 anchors_preset = -1
@@ -767,39 +761,39 @@ anchor_bottom = 0.62
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="VBox" type="VBoxContainer" parent="UI/PromotionPanel" unique_id=165090484]
+[node name="VBox" type="VBoxContainer" parent="HUD/PromotionPanel" unique_id=165090484]
 layout_mode = 2
 
-[node name="TitleLabel" type="Label" parent="UI/PromotionPanel/VBox" unique_id=165090485]
+[node name="TitleLabel" type="Label" parent="HUD/PromotionPanel/VBox" unique_id=165090485]
 layout_mode = 2
 theme_override_font_sizes/font_size = 28
 text = "Promote pawn"
 
-[node name="HBox" type="HBoxContainer" parent="UI/PromotionPanel/VBox" unique_id=165090486]
+[node name="HBox" type="HBoxContainer" parent="HUD/PromotionPanel/VBox" unique_id=165090486]
 layout_mode = 2
 
-[node name="QueenBtn" type="Button" parent="UI/PromotionPanel/VBox/HBox" unique_id=1520320148]
+[node name="QueenBtn" type="Button" parent="HUD/PromotionPanel/VBox/HBox" unique_id=1520320148]
 custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 36
 text = "Queen"
 
-[node name="RookBtn" type="Button" parent="UI/PromotionPanel/VBox/HBox" unique_id=47212626]
+[node name="RookBtn" type="Button" parent="HUD/PromotionPanel/VBox/HBox" unique_id=47212626]
 custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 36
 text = "Rook"
 
-[node name="BishopBtn" type="Button" parent="UI/PromotionPanel/VBox/HBox" unique_id=1068299863]
+[node name="BishopBtn" type="Button" parent="HUD/PromotionPanel/VBox/HBox" unique_id=1068299863]
 custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 36
 text = "Bishop"
 
-[node name="KnightBtn" type="Button" parent="UI/PromotionPanel/VBox/HBox" unique_id=1714199918]
+[node name="KnightBtn" type="Button" parent="HUD/PromotionPanel/VBox/HBox" unique_id=1714199918]
 custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
 size_flags_horizontal = 3

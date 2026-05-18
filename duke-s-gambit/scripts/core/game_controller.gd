@@ -9,7 +9,7 @@ extends Node3D
 @export var board_node:  NodePath = ^"Board"
 @export var camera_node: NodePath = ^"OrbitCamera"
 @export var pieces_root: NodePath = ^"Pieces"
-@export var ui_root:     NodePath = ^"UI"
+@export var ui_root:     NodePath = ^"HUD"
 
 ## Scale applied to every piece on spawn. Adjust until pieces fit the board.
 @export var piece_scale: float = 0.05
@@ -103,7 +103,7 @@ func _ready() -> void:
 		var p := _terrain.global_position
 		_terrain.global_position = Vector3(bc.x, p.y, p.z)
 	_setup_piece_scenes()
-	_hud = _ui.get_node_or_null("HUD")
+	_hud = _ui.get_node_or_null("TopBar")
 	_sfx_select = AudioStreamPlayer.new()
 	_sfx_select.bus = "SFX"
 	_sfx_select.stream = preload("res://assets/sounds/piece_select.mp3")
@@ -694,17 +694,29 @@ func _on_promotion_required(sq: Vector2i, color: int) -> void:
 	emit_signal("promotion_needed", sq, color)
 	# UI handled by PromotionPanel node; it calls choose_promotion()
 
-func choose_promotion(sq: Vector2i, piece_type: int) -> void:
+func get_pending_promotion_types(sq: Vector2i) -> Array[int]:
+	var result: Array[int] = []
+	for mv in _pending_promotion_moves:
+		if mv.to_sq != sq:
+			continue
+		if not result.has(mv.promotion_type):
+			result.append(mv.promotion_type)
+	return result
+
+func choose_promotion(sq: Vector2i, piece_type: int) -> bool:
 	# Called by UI after player picks promoted piece.
 	var chosen: ChessMove = null
 	for mv in _pending_promotion_moves:
 		if mv.to_sq == sq and mv.promotion_type == piece_type:
 			chosen = mv
 			break
-	_pending_promotion_moves.clear()
 	if chosen == null:
-		return
+		# Invalid option for current position; allow player to choose again.
+		_busy = false
+		return false
+	_pending_promotion_moves.clear()
 	_on_move_chosen(chosen)
+	return true
 
 # ── Game over UI ───────────────────────────────────────────────────────────
 func _show_game_over(winner_color: int, reason: String) -> void:
