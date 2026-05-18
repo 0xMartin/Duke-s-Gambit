@@ -45,6 +45,7 @@ var _save: Node = null
 var _stats_table:       GridContainer = null
 var _profiles_sorted:   Array[Dictionary] = []
 const _STATS_HEADER_CELLS := 7
+const _TABLE_VALUE_THEME := preload("res://themes/table_value.tres")
 
 # ──────────────────────────────────────────────────────────────────────────
 func _ready() -> void:
@@ -318,6 +319,7 @@ func _make_stats_cell(text: String,
 		align: HorizontalAlignment = HORIZONTAL_ALIGNMENT_CENTER) -> Label:
 	var lbl := Label.new()
 	lbl.text = text
+	lbl.theme = _TABLE_VALUE_THEME
 	lbl.horizontal_alignment = align
 	lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	return lbl

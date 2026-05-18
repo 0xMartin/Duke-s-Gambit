@@ -20,6 +20,7 @@
 [ext_resource type="Theme" uid="uid://bmjxmhngpsc2k" path="res://themes/menu_label.tres" id="16_a8gd2"]
 [ext_resource type="Theme" uid="uid://2s5uoyj2dryf" path="res://themes/menu_section_title.tres" id="16_hstxw"]
 [ext_resource type="Theme" uid="uid://b5h30lei0eemm" path="res://themes/option_button.tres" id="19_8egab"]
+[ext_resource type="Theme" uid="uid://bywhcekfwqmcu" path="res://themes/table.tres" id="21_1dfpl"]
 [ext_resource type="Theme" uid="uid://docidxqt3s1pb" path="res://themes/slider.tres" id="21_gw5y6"]
 [ext_resource type="Theme" uid="uid://btb433dt14txa" path="res://themes/check_button.tres" id="22_svtp6"]
 
@@ -31,6 +32,18 @@ shader_parameter/float_speed = 2.4
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_bg_scroll"]
 shader = ExtResource("6_bgscroll")
 shader_parameter/scroll_speed = Vector2(-0.015, 0.0225)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1dfpl"]
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+bg_color = Color(1, 1, 1, 0.28627452)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+corner_detail = 5
 
 [node name="MainMenu" type="Control" unique_id=969542434]
 layout_mode = 3
@@ -129,7 +142,7 @@ z_index = 10
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.5
-anchor_top = 0.28055555
+anchor_top = 0.26296297
 anchor_right = 0.9546875
 anchor_bottom = 0.8925926
 grow_horizontal = 2
@@ -364,9 +377,10 @@ horizontal_alignment = 1
 custom_minimum_size = Vector2(0, 300)
 layout_mode = 2
 size_flags_vertical = 3
+theme = ExtResource("21_1dfpl")
 
 [node name="StatsTable" type="GridContainer" parent="MainPanel/StatsVBox/ScrollContainer" unique_id=423938033]
-custom_minimum_size = Vector2(900, 0)
+custom_minimum_size = Vector2(1000, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 columns = 7
@@ -374,36 +388,43 @@ columns = 7
 [node name="HeaderPlayer" type="Label" parent="MainPanel/StatsVBox/ScrollContainer/StatsTable" unique_id=980610074]
 layout_mode = 2
 size_flags_horizontal = 3
+theme = ExtResource("16_a8gd2")
 text = "Player"
 
 [node name="HeaderElo" type="Label" parent="MainPanel/StatsVBox/ScrollContainer/StatsTable" unique_id=1895325612]
 layout_mode = 2
 size_flags_horizontal = 3
+theme = ExtResource("16_a8gd2")
 text = "ELO"
 
 [node name="HeaderWins" type="Label" parent="MainPanel/StatsVBox/ScrollContainer/StatsTable" unique_id=885228286]
 layout_mode = 2
 size_flags_horizontal = 3
+theme = ExtResource("16_a8gd2")
 text = "Wins"
 
 [node name="HeaderLosses" type="Label" parent="MainPanel/StatsVBox/ScrollContainer/StatsTable" unique_id=921827421]
 layout_mode = 2
 size_flags_horizontal = 3
+theme = ExtResource("16_a8gd2")
 text = "Losses"
 
 [node name="HeaderDraws" type="Label" parent="MainPanel/StatsVBox/ScrollContainer/StatsTable" unique_id=1327091562]
 layout_mode = 2
 size_flags_horizontal = 3
+theme = ExtResource("16_a8gd2")
 text = "Draws"
 
 [node name="HeaderAvgMove" type="Label" parent="MainPanel/StatsVBox/ScrollContainer/StatsTable" unique_id=258930572]
 layout_mode = 2
 size_flags_horizontal = 3
+theme = ExtResource("16_a8gd2")
 text = "Avg Move"
 
 [node name="HeaderGames" type="Label" parent="MainPanel/StatsVBox/ScrollContainer/StatsTable" unique_id=346051290]
 layout_mode = 2
 size_flags_horizontal = 3
+theme = ExtResource("16_a8gd2")
 text = "Games"
 
 [node name="BackBtn" type="Button" parent="MainPanel/StatsVBox" unique_id=1196503376]
@@ -565,3 +586,16 @@ horizontal_alignment = 2
 layout_mode = 2
 theme = ExtResource("12_flqon")
 text = "Back"
+
+[node name="Panel" type="Panel" parent="." unique_id=1354729672]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.485
+anchor_top = 0.1
+anchor_right = 0.49
+anchor_bottom = 0.9
+offset_top = 0.3999939
+offset_right = -0.2800293
+offset_bottom = -0.2800293
+theme_override_styles/panel = SubResource("StyleBoxFlat_1dfpl")
+metadata/_edit_use_anchors_ = true
