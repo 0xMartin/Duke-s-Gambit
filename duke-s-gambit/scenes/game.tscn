@@ -650,31 +650,31 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_ca42v")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_rysoc")
 text = "▶"
 
-[node name="AIThinkingLabel" type="Label" parent="HUD" unique_id=337434124]
+[node name="AIThinkingBox" type="CenterContainer" parent="HUD" unique_id=188004221]
 visible = false
 layout_mode = 1
-anchors_preset = 5
-anchor_left = 0.5
-anchor_right = 0.5
-offset_top = 16.0
-offset_bottom = 48.0
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 12.0
+offset_bottom = 108.0
 grow_horizontal = 2
+mouse_filter = 2
+
+[node name="AIThinkingVBox" type="VBoxContainer" parent="HUD/AIThinkingBox" unique_id=995431227]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="AIThinkingLabel" type="Label" parent="HUD/AIThinkingBox/AIThinkingVBox" unique_id=337434124]
+layout_mode = 2
 theme = ExtResource("14_pl11u")
 text = "AI is thinking..."
 horizontal_alignment = 1
 
-[node name="AIThinkingProgress" type="ProgressBar" parent="HUD" unique_id=151511017]
-visible = false
-custom_minimum_size = Vector2(260, 16)
-layout_mode = 1
-anchors_preset = 5
-anchor_left = 0.5
-anchor_right = 0.5
-offset_left = -202.0
-offset_top = 78.0
-offset_right = 202.0
-offset_bottom = 104.0
-grow_horizontal = 2
+[node name="AIThinkingProgress" type="ProgressBar" parent="HUD/AIThinkingBox/AIThinkingVBox" unique_id=151511017]
+custom_minimum_size = Vector2(360, 24)
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_styles/background = SubResource("StyleBoxFlat_sww3w")
 theme_override_styles/fill = SubResource("StyleBoxFlat_suyxu")
 show_percentage = false

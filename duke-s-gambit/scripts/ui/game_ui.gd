@@ -8,8 +8,9 @@ extends Control
 @onready var _promo_panel: Control = $PromotionPanel
 @onready var _surrender_panel: PanelContainer = $SurrenderConfirmPanel
 @onready var _surrender_btn: Button = $SurrenderButton
-@onready var _ai_thinking_label: Label = $AIThinkingLabel
-@onready var _ai_status_bar: ProgressBar = $AIThinkingProgress
+@onready var _ai_thinking_box: Control = $AIThinkingBox
+@onready var _ai_thinking_label: Label = $AIThinkingBox/AIThinkingVBox/AIThinkingLabel
+@onready var _ai_status_bar: ProgressBar = $AIThinkingBox/AIThinkingVBox/AIThinkingProgress
 
 var _pending_promo_sq: Vector2i = Vector2i(-1, -1)
 var _pending_promo_color: int = 0
@@ -46,6 +47,8 @@ func _animate_ai_loading_bar() -> void:
 	_ai_loading_tween.tween_property(_ai_status_bar, "value", 0, 0.2)
 
 func show_ai_thinking() -> void:
+	if _ai_thinking_box != null:
+		_ai_thinking_box.visible = true
 	if _ai_thinking_label != null:
 		_ai_thinking_label.visible = true
 	if _ai_status_bar != null:
@@ -56,6 +59,8 @@ func hide_ai_thinking() -> void:
 	if _ai_loading_tween != null:
 		_ai_loading_tween.kill()
 		_ai_loading_tween = null
+	if _ai_thinking_box != null:
+		_ai_thinking_box.visible = false
 	if _ai_thinking_label != null:
 		_ai_thinking_label.visible = false
 	if _ai_status_bar != null:
