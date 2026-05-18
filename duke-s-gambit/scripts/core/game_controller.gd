@@ -298,7 +298,6 @@ func _start_turn() -> void:
 
 	_move_start_time_ms = Time.get_ticks_msec()
 	var ctrl: PlayerController = _controllers[color] as PlayerController
-	_update_ai_ui(ctrl.is_ai)
 	# Show AI thinking indicator
 	if ctrl.is_ai and _ui != null:
 		var game_ui = _ui as Control
@@ -389,11 +388,6 @@ func _format_time(ms: int) -> String:
 	if mins > 0:
 		return "%d:%02d" % [mins, sec_rem]
 	return "%d s" % secs
-
-func _update_ai_ui(is_ai: bool) -> void:
-	var lbl := _ui.get_node_or_null("AIThinkingLabel") as Label
-	if lbl:
-		lbl.visible = is_ai
 
 # ── Input (human clicks) ───────────────────────────────────────────────────
 func _unhandled_input(event: InputEvent) -> void:
@@ -748,39 +742,6 @@ func _show_game_over(winner_color: int, reason: String) -> void:
 
 	if reason_lbl:
 		reason_lbl.text = reason
-
-	if stats_time_title == null or stats_time_value == null \
-	or stats_avg_title == null or stats_avg_value == null:
-		var vbox := panel.get_node_or_null("VBox") as VBoxContainer
-		if vbox != null:
-			if stats_time_title == null:
-				stats_time_title = Label.new()
-				stats_time_title.name = "StatsTimeTitle"
-				stats_time_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-				stats_time_title.add_theme_font_size_override("font_size", 20)
-				stats_time_title.add_theme_color_override("font_color", Color(0.85, 0.75, 0.4, 1.0))
-				vbox.add_child(stats_time_title)
-			if stats_time_value == null:
-				stats_time_value = Label.new()
-				stats_time_value.name = "StatsTimeValue"
-				stats_time_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-				stats_time_value.add_theme_font_size_override("font_size", 18)
-				stats_time_value.add_theme_color_override("font_color", Color(0.95, 0.93, 0.88, 1.0))
-				vbox.add_child(stats_time_value)
-			if stats_avg_title == null:
-				stats_avg_title = Label.new()
-				stats_avg_title.name = "StatsAvgTitle"
-				stats_avg_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-				stats_avg_title.add_theme_font_size_override("font_size", 20)
-				stats_avg_title.add_theme_color_override("font_color", Color(0.85, 0.75, 0.4, 1.0))
-				vbox.add_child(stats_avg_title)
-			if stats_avg_value == null:
-				stats_avg_value = Label.new()
-				stats_avg_value.name = "StatsAvgValue"
-				stats_avg_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-				stats_avg_value.add_theme_font_size_override("font_size", 18)
-				stats_avg_value.add_theme_color_override("font_color", Color(0.95, 0.93, 0.88, 1.0))
-				vbox.add_child(stats_avg_value)
 
 	# Compute time remaining/elapsed for both players
 	var white_time: String = ""
