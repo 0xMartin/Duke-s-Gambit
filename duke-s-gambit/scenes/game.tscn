@@ -696,6 +696,7 @@ theme_override_styles/disabled = SubResource("StyleBoxFlat_5newe")
 text = "Surrender"
 
 [node name="GameOverPanel" type="PanelContainer" parent="HUD" unique_id=2010256283]
+visible = false
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.25833333

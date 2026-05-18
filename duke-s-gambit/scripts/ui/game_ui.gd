@@ -17,7 +17,7 @@ var _pending_promo_color: int = 0
 var _ai_loading_tween: Tween = null
 
 func _ready() -> void:
-	$GameOverPanel/VBox/BackButton.pressed.connect(_on_back_pressed)
+	$GameOverPanel/VBox/ContentCenter/ContentVBox/BackButton.pressed.connect(_on_back_pressed)
 	$PromotionPanel/VBox/ContentCenter/HBox/QueenBtn.pressed.connect( func(): _choose(ChessEnums.PieceType.QUEEN))
 	$PromotionPanel/VBox/ContentCenter/HBox/RookBtn.pressed.connect(  func(): _choose(ChessEnums.PieceType.ROOK))
 	$PromotionPanel/VBox/ContentCenter/HBox/BishopBtn.pressed.connect(func(): _choose(ChessEnums.PieceType.BISHOP))
