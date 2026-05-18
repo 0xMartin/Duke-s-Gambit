@@ -38,7 +38,7 @@ background_mode = 2
 sky = SubResource("Sky1")
 ambient_light_source = 2
 ambient_light_color = Color(0.8673276, 0.8736465, 0.786995, 1)
-ambient_light_energy = 0.5
+ambient_light_energy = 0.55
 fog_enabled = true
 fog_mode = 1
 fog_light_color = Color(0.5508366, 0.5597339, 0.4666593, 1)
@@ -392,7 +392,7 @@ environment = SubResource("Env1")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=218313874]
 transform = Transform3D(0.70710677, -0.5000378, 0.49996227, 0, 0.7070534, 0.70716023, -0.70710677, -0.5000378, 0.49996227, 0, 8, 0)
-light_energy = 0.6
+light_energy = 0.65
 shadow_enabled = true
 
 [node name="HUD" type="Control" parent="." unique_id=1898942881]
