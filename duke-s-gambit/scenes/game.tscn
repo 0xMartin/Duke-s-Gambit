@@ -47,7 +47,7 @@ adjustment_saturation = 0.9
 [sub_resource type="StyleBoxFlat" id="HudAvatarWhite"]
 content_margin_left = 10.0
 content_margin_right = 10.0
-bg_color = Color(0.050980393, 0.050980393, 0.050980393, 0.78431374)
+bg_color = Color(0.050980393, 0.050980393, 0.050980393, 0.627451)
 
 [sub_resource type="StyleBoxFlat" id="HudCaptureWhite"]
 content_margin_left = 4.0
@@ -85,7 +85,7 @@ corner_radius_bottom_left = 100
 [sub_resource type="StyleBoxFlat" id="HudAvatarBlack"]
 content_margin_left = 10.0
 content_margin_right = 10.0
-bg_color = Color(0.050980393, 0.050980393, 0.050980393, 0.78431374)
+bg_color = Color(0.050980393, 0.050980393, 0.050980393, 0.627451)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_trtic"]
 content_margin_left = 10.0

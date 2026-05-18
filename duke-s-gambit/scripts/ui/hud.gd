@@ -8,6 +8,7 @@ extends Control
 const ICON_SIZE  := 36
 const HISTORY_ICON_SIZE := 38
 const CAPTURED_BADGE_FONT := preload("res://assets/fonts/Montserrat-Regular.ttf")
+const CAPTURED_PAGE_DURATION := 5.0
 
 ## Maps PieceType int → piece name used in the SVG filename.
 const PIECE_NAMES: Dictionary = {
@@ -37,7 +38,12 @@ var _name_lbl:    Array = [null, null]   # [white, black] Label
 var _elo_lbl:     Array = [null, null]
 var _timer_lbl:   Array = [null, null]
 var _captured_scroll: Array = [null, null]  # ScrollContainer
+var _captured_padding: Array = [null, null]  # MarginContainer
 var _captured_list: Array = [null, null]  # HBoxContainer
+var _captured_timer: Array = [null, null]  # Timer
+var _captured_pages: Array = [[], []]
+var _captured_page_index: Array = [0, 0]
+var _captured_badge_specs: Array = [[], []]
 var _history_panel: PanelContainer = null
 var _history_list: VBoxContainer = null
 var _history_scroll: ScrollContainer = null
@@ -64,12 +70,22 @@ func _ready() -> void:
 	_timer_lbl[ChessEnums.PieceColor.BLACK] = get_node("TopBar/BlackPanel/MainHBox/InfoVBox/Row/Timer") as Label
 	_captured_scroll[ChessEnums.PieceColor.WHITE] = get_node("TopBar/WhitePanel/MainHBox/InfoVBox/CapturedPanel/CapturedFlow") as ScrollContainer
 	_captured_scroll[ChessEnums.PieceColor.BLACK] = get_node("TopBar/BlackPanel/MainHBox/InfoVBox/CapturedPanel/CapturedFlow") as ScrollContainer
+	_captured_padding[ChessEnums.PieceColor.WHITE] = get_node("TopBar/WhitePanel/MainHBox/InfoVBox/CapturedPanel/CapturedFlow/CapturedPadding") as MarginContainer
+	_captured_padding[ChessEnums.PieceColor.BLACK] = get_node("TopBar/BlackPanel/MainHBox/InfoVBox/CapturedPanel/CapturedFlow/CapturedPadding") as MarginContainer
 	_captured_list[ChessEnums.PieceColor.WHITE] = get_node("TopBar/WhitePanel/MainHBox/InfoVBox/CapturedPanel/CapturedFlow/CapturedPadding/CapturedList") as HBoxContainer
 	_captured_list[ChessEnums.PieceColor.BLACK] = get_node("TopBar/BlackPanel/MainHBox/InfoVBox/CapturedPanel/CapturedFlow/CapturedPadding/CapturedList") as HBoxContainer
 	for c in [ChessEnums.PieceColor.WHITE, ChessEnums.PieceColor.BLACK]:
 		var captured_scroll := _captured_scroll[c] as ScrollContainer
-		captured_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+		captured_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 		captured_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		captured_scroll.clip_contents = true
+		var page_timer := Timer.new()
+		page_timer.one_shot = false
+		page_timer.wait_time = CAPTURED_PAGE_DURATION
+		page_timer.timeout.connect(_on_captured_page_timeout.bind(c))
+		add_child(page_timer)
+		_captured_timer[c] = page_timer
+		(captured_scroll as Control).resized.connect(_refresh_captured_pages.bind(c))
 
 	_history_panel = get_node_or_null("../MoveHistoryPanel") as PanelContainer
 	_history_scroll = get_node_or_null("../MoveHistoryPanel/Margin/VBox/HistoryScroll") as ScrollContainer
@@ -98,7 +114,10 @@ func setup(white_name: String, white_elo: int,
 	for c in [ChessEnums.PieceColor.WHITE, ChessEnums.PieceColor.BLACK]:
 		for child in (_captured_list[c] as HBoxContainer).get_children():
 			child.queue_free()
-		(_captured_scroll[c] as ScrollContainer).scroll_horizontal = 0
+		(_captured_timer[c] as Timer).stop()
+		_captured_pages[c] = []
+		_captured_page_index[c] = 0
+		_captured_badge_specs[c] = []
 
 	set_active_player(ChessEnums.PieceColor.WHITE)
 	reset_move_history()
@@ -260,6 +279,92 @@ func _build_captured_badge(color: int, piece_type: int, count: int) -> Control:
 	row.add_child(count_lbl)
 	return badge
 
+func _build_captured_badge_spec(color: int, piece_type: int, count: int) -> Dictionary:
+	var badge := _build_captured_badge(color, piece_type, count)
+	if badge == null:
+		return {}
+	var separation := (_captured_list[ChessEnums.PieceColor.WHITE] as HBoxContainer).get_theme_constant("separation")
+	var badge_size := badge.get_combined_minimum_size()
+	return {
+		"color": color,
+		"piece_type": piece_type,
+		"count": count,
+		"width": badge_size.x + separation,
+	}
+
+func _get_captured_viewport_width(color: int) -> float:
+	var scroll := _captured_scroll[color] as ScrollContainer
+	var padding := _captured_padding[color] as MarginContainer
+	var style := scroll.get_theme_stylebox("panel")
+	var viewport_width := scroll.size.x
+	if style != null:
+		viewport_width -= style.content_margin_left + style.content_margin_right
+	viewport_width -= padding.get_theme_constant("margin_left") + padding.get_theme_constant("margin_right")
+	return max(viewport_width, 1.0)
+
+func _refresh_captured_pages(color: int) -> void:
+	var specs: Array = _captured_badge_specs[color]
+	var pages: Array = []
+	var max_width := _get_captured_viewport_width(color)
+	var current_page: Array = []
+	var current_width := 0.0
+	for spec_variant in specs:
+		var spec: Dictionary = spec_variant as Dictionary
+		var badge_width := float(spec.get("width", 0.0))
+		if current_page.is_empty() or current_width + badge_width <= max_width:
+			current_page.append(spec)
+			current_width += badge_width
+		else:
+			pages.append(current_page)
+			current_page = [spec]
+			current_width = badge_width
+	if not current_page.is_empty():
+		pages.append(current_page)
+	_captured_pages[color] = pages
+	var page_count := pages.size()
+	if page_count == 0:
+		_captured_page_index[color] = 0
+		(_captured_timer[color] as Timer).stop()
+		_clear_captured_page(color)
+		return
+	_captured_page_index[color] = mini(_captured_page_index[color], page_count - 1)
+	_show_captured_page(color, _captured_page_index[color])
+	var timer := _captured_timer[color] as Timer
+	if page_count > 1:
+		if timer.is_stopped():
+			timer.start()
+	else:
+		timer.stop()
+
+func _clear_captured_page(color: int) -> void:
+	var container := _captured_list[color] as HBoxContainer
+	for child in container.get_children():
+		child.queue_free()
+
+func _show_captured_page(color: int, page_index: int) -> void:
+	_clear_captured_page(color)
+	var pages: Array = _captured_pages[color]
+	if page_index < 0 or page_index >= pages.size():
+		return
+	var container := _captured_list[color] as HBoxContainer
+	for spec_variant in (pages[page_index] as Array):
+		var spec: Dictionary = spec_variant as Dictionary
+		var badge := _build_captured_badge(
+			int(spec.get("color", ChessEnums.PieceColor.WHITE)),
+			int(spec.get("piece_type", ChessEnums.PieceType.PAWN)),
+			int(spec.get("count", 0))
+		)
+		if badge != null:
+			container.add_child(badge)
+
+func _on_captured_page_timeout(color: int) -> void:
+	var pages: Array = _captured_pages[color]
+	if pages.size() <= 1:
+		(_captured_timer[color] as Timer).stop()
+		return
+	_captured_page_index[color] = (_captured_page_index[color] + 1) % pages.size()
+	_show_captured_page(color, _captured_page_index[color])
+
 func _move_notation(mv: ChessMove) -> String:
 	match mv.move_type:
 		ChessEnums.MoveType.CASTLING_KINGSIDE:
@@ -380,9 +485,7 @@ func update_timer(color: int, ms: int) -> void:
 		lbl.text = "⏱ %d.%ds" % [secs, frac]
 
 func refresh_captured(capturing_color: int, captured_types: Array) -> void:
-	var container := _captured_list[capturing_color] as HBoxContainer
-	for child in container.get_children():
-		child.queue_free()
+	_clear_captured_page(capturing_color)
 
 	var counts: Dictionary = {}
 	for piece_type: int in captured_types:
@@ -390,12 +493,14 @@ func refresh_captured(capturing_color: int, captured_types: Array) -> void:
 
 	var captured_color := ChessEnums.PieceColor.BLACK if capturing_color == ChessEnums.PieceColor.WHITE \
 		else ChessEnums.PieceColor.WHITE
+	var badge_specs: Array = []
 	for piece_type in CAPTURED_BADGE_ORDER:
 		var count := int(counts.get(piece_type, 0))
 		if count <= 0:
 			continue
-		var badge := _build_captured_badge(captured_color, piece_type, count)
-		if badge != null:
-			container.add_child(badge)
-
-	(_captured_scroll[capturing_color] as ScrollContainer).scroll_horizontal = 0
+		var badge_spec := _build_captured_badge_spec(captured_color, piece_type, count)
+		if not badge_spec.is_empty():
+			badge_specs.append(badge_spec)
+	_captured_badge_specs[capturing_color] = badge_specs
+	_captured_page_index[capturing_color] = 0
+	_refresh_captured_pages(capturing_color)
