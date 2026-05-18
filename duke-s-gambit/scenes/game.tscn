@@ -17,6 +17,7 @@
 [ext_resource type="Script" uid="uid://ds1b1u8eofgp2" path="res://scripts/systems/material_pressure_fx.gd" id="10_mlq8w"]
 [ext_resource type="Texture2D" uid="uid://dei3jv5y0s42n" path="res://assets/textures/ui/black_king.png" id="10_ssvqc"]
 [ext_resource type="PackedScene" uid="uid://blackflag" path="res://scenes/effects/black_flag.tscn" id="10_vtaks"]
+[ext_resource type="FontFile" uid="uid://bn1f5cgy4rauy" path="res://assets/fonts/Montserrat-Regular.ttf" id="11_264po"]
 [ext_resource type="PackedScene" uid="uid://whiteflag" path="res://scenes/effects/white_flag.tscn" id="11_kvpfn"]
 
 [sub_resource type="PanoramaSkyMaterial" id="SkyMat1"]
@@ -86,6 +87,72 @@ corner_radius_bottom_left = 100
 content_margin_left = 10.0
 content_margin_right = 10.0
 bg_color = Color(0.050980393, 0.050980393, 0.050980393, 0.627451)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bt5mj"]
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 20.0
+content_margin_bottom = 5.0
+bg_color = Color(0.19076231, 0.19076234, 0.19076231, 0.627451)
+border_width_bottom = 10
+border_color = Color(0.050980393, 0.050980393, 0.050980393, 0.78431374)
+corner_radius_top_left = 25
+corner_radius_top_right = 25
+corner_radius_bottom_right = 25
+corner_radius_bottom_left = 25
+corner_detail = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_e1j6l"]
+content_margin_left = 10.0
+content_margin_top = 4.0
+content_margin_right = 8.0
+content_margin_bottom = 4.0
+bg_color = Color(0.1775, 0.6212499, 0.71, 0.9019608)
+border_color = Color(0.13340001, 0.5055666, 0.58, 0.9019608)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+corner_detail = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pl11u"]
+content_margin_left = 10.0
+content_margin_top = 4.0
+content_margin_right = 8.0
+content_margin_bottom = 4.0
+bg_color = Color(0.2283324, 0.7707562, 0.881161, 0.9019608)
+border_color = Color(0.17553008, 0.6315501, 0.722754, 0.9019608)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+corner_detail = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bhx41"]
+content_margin_left = 10.0
+content_margin_top = 4.0
+content_margin_right = 8.0
+content_margin_bottom = 4.0
+bg_color = Color(0.25397617, 0.84549344, 0.9658908, 0.9019608)
+border_color = Color(0.19639485, 0.69368815, 0.7931468, 0.9019608)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+corner_detail = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_qnb83"]
+content_margin_left = 10.0
+content_margin_top = 4.0
+content_margin_right = 8.0
+content_margin_bottom = 4.0
+bg_color = Color(0.042321395, 0.22863767, 0.26656047, 0.9019608)
+border_color = Color(0.025834013, 0.180822, 0.21214952, 0.9019608)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+corner_detail = 5
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_trtic"]
 content_margin_left = 10.0
@@ -489,7 +556,6 @@ expand_mode = 1
 stretch_mode = 5
 
 [node name="MoveHistoryPanel" type="PanelContainer" parent="HUD" unique_id=1426172844]
-visible = false
 custom_minimum_size = Vector2(380, 320)
 layout_mode = 1
 anchors_preset = 2
@@ -501,6 +567,8 @@ offset_right = 388.0
 offset_bottom = -14.0
 grow_horizontal = 0
 grow_vertical = 2
+theme = ExtResource("5_ir15t")
+theme_override_styles/panel = SubResource("StyleBoxFlat_bt5mj")
 
 [node name="Margin" type="MarginContainer" parent="HUD/MoveHistoryPanel" unique_id=554857996]
 layout_mode = 2
@@ -519,13 +587,22 @@ layout_mode = 2
 [node name="Title" type="Label" parent="HUD/MoveHistoryPanel/Margin/VBox/Header" unique_id=6561106]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.95, 0.9, 0.65, 1)
-theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_constants/outline_size = 15
+theme_override_fonts/font = ExtResource("11_264po")
+theme_override_font_sizes/font_size = 25
 text = "Move History"
 
 [node name="CollapseButton" type="Button" parent="HUD/MoveHistoryPanel/Margin/VBox/Header" unique_id=904342247]
 custom_minimum_size = Vector2(30, 24)
 layout_mode = 2
+theme = ExtResource("7_trtic")
+theme_override_constants/outline_size = 10
+theme_override_font_sizes/font_size = 20
+theme_override_styles/normal = SubResource("StyleBoxFlat_e1j6l")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_pl11u")
+theme_override_styles/hover = SubResource("StyleBoxFlat_bhx41")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_qnb83")
 text = "◀"
 
 [node name="HistoryScroll" type="ScrollContainer" parent="HUD/MoveHistoryPanel/Margin/VBox" unique_id=651528752]
