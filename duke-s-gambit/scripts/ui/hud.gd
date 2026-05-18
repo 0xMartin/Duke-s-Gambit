@@ -10,6 +10,7 @@ const HISTORY_ICON_SIZE := 38
 const CAPTURED_BADGE_FONT := preload("res://assets/fonts/Montserrat-Regular.ttf")
 const HISTORY_LABEL_THEME := preload("res://themes/history_label.tres")
 const CAPTURED_PAGE_DURATION := 5.0
+const MAX_HUD_NAME_LENGTH := 15
 
 ## Maps PieceType int → piece name used in the SVG filename.
 const PIECE_NAMES: Dictionary = {
@@ -113,9 +114,9 @@ func setup(white_name: String, white_elo: int,
 		   black_name: String, black_elo: int,
 		   has_time_limit: bool = false) -> void:
 	_has_time_limit = has_time_limit
-	(_name_lbl[ChessEnums.PieceColor.WHITE] as Label).text = white_name
+	_apply_player_name(ChessEnums.PieceColor.WHITE, white_name)
 	(_elo_lbl [ChessEnums.PieceColor.WHITE] as Label).text = "ELO %d" % white_elo
-	(_name_lbl[ChessEnums.PieceColor.BLACK] as Label).text = black_name
+	_apply_player_name(ChessEnums.PieceColor.BLACK, black_name)
 	(_elo_lbl [ChessEnums.PieceColor.BLACK] as Label).text = "ELO %d" % black_elo
 
 	for c in [ChessEnums.PieceColor.WHITE, ChessEnums.PieceColor.BLACK]:
@@ -130,6 +131,18 @@ func setup(white_name: String, white_elo: int,
 
 	set_active_player(ChessEnums.PieceColor.WHITE)
 	reset_move_history()
+
+func _apply_player_name(color: int, player_name: String) -> void:
+	var label := _name_lbl[color] as Label
+	if label == null:
+		return
+	label.text = _format_player_name(player_name)
+	label.tooltip_text = player_name
+
+func _format_player_name(player_name: String) -> String:
+	if player_name.length() <= MAX_HUD_NAME_LENGTH:
+		return player_name
+	return player_name.left(MAX_HUD_NAME_LENGTH - 3) + "..."
 
 func reset_move_history() -> void:
 	_history_ply_count = 0

@@ -453,6 +453,7 @@ theme_override_constants/separation = 15
 [node name="Name" type="Label" parent="HUD/TopBar/WhitePanel/MainHBox/InfoVBox/Row" unique_id=1243572640]
 layout_mode = 2
 theme = ExtResource("7_ca42v")
+theme_override_font_sizes/font_size = 30
 text = "White"
 
 [node name="Elo" type="Label" parent="HUD/TopBar/WhitePanel/MainHBox/InfoVBox/Row" unique_id=1388764898]
@@ -519,6 +520,7 @@ theme_override_constants/separation = 15
 [node name="Name" type="Label" parent="HUD/TopBar/BlackPanel/MainHBox/InfoVBox/Row" unique_id=2069091762]
 layout_mode = 2
 theme = ExtResource("7_ca42v")
+theme_override_font_sizes/font_size = 30
 text = "Black"
 
 [node name="Elo" type="Label" parent="HUD/TopBar/BlackPanel/MainHBox/InfoVBox/Row" unique_id=1129891114]

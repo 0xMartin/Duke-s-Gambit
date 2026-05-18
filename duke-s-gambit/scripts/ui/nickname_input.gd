@@ -6,7 +6,7 @@ extends Control
 
 signal value_changed(value: String)
 
-const _MAX_NICKNAME_LENGTH := 20
+const _MAX_NICKNAME_LENGTH := 15
 const _SUGGEST_HOVER_BG := Color(0.1362522, 0.47794718, 0.545388, 1.0)
 
 @onready var _line_edit: LineEdit = $LineEdit
