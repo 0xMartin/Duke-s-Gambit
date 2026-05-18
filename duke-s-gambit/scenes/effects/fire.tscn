@@ -93,6 +93,7 @@ size = Vector2(0.25, 0.25)
 
 [node name="GPUParticles3D3" type="GPUParticles3D" parent="." unique_id=910909831]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.47032797, 0)
+cast_shadow = 0
 amount = 30
 lifetime = 9.0
 transform_align = 1
@@ -100,6 +101,7 @@ process_material = SubResource("ParticleProcessMaterial_08243")
 draw_pass_1 = SubResource("QuadMesh_6q518")
 
 [node name="GPUParticles3D" type="GPUParticles3D" parent="." unique_id=921286294]
+cast_shadow = 0
 amount = 30
 lifetime = 3.0
 transform_align = 1
@@ -107,6 +109,7 @@ process_material = SubResource("ParticleProcessMaterial_afpr4")
 draw_pass_1 = SubResource("QuadMesh_rt0mn")
 
 [node name="GPUParticles3D2" type="GPUParticles3D" parent="." unique_id=875520486]
+cast_shadow = 0
 amount = 40
 lifetime = 2.5
 transform_align = 1
