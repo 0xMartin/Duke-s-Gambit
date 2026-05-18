@@ -18,7 +18,6 @@
 [ext_resource type="Script" uid="uid://ds1b1u8eofgp2" path="res://scripts/systems/material_pressure_fx.gd" id="10_mlq8w"]
 [ext_resource type="Texture2D" uid="uid://dei3jv5y0s42n" path="res://assets/textures/ui/black_king.png" id="10_ssvqc"]
 [ext_resource type="PackedScene" uid="uid://blackflag" path="res://scenes/effects/black_flag.tscn" id="10_vtaks"]
-[ext_resource type="FontFile" uid="uid://bn1f5cgy4rauy" path="res://assets/fonts/Montserrat-Regular.ttf" id="11_264po"]
 [ext_resource type="PackedScene" uid="uid://whiteflag" path="res://scenes/effects/white_flag.tscn" id="11_kvpfn"]
 [ext_resource type="Texture2D" uid="uid://creg7doi502rt" path="res://assets/textures/pieces/white_queen.svg" id="12_promo_wq"]
 [ext_resource type="Texture2D" uid="uid://d1dl1lcyflqnp" path="res://assets/textures/pieces/white_rook.svg" id="13_promo_wr"]
@@ -603,10 +602,7 @@ layout_mode = 2
 [node name="Title" type="Label" parent="HUD/MoveHistoryPanel/Margin/VBox/Header" unique_id=6561106]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_constants/outline_size = 15
-theme_override_fonts/font = ExtResource("11_264po")
-theme_override_font_sizes/font_size = 28
+theme = ExtResource("14_pl11u")
 text = "Move History"
 
 [node name="CollapseButton" type="Button" parent="HUD/MoveHistoryPanel/Margin/VBox/Header" unique_id=904342247]
@@ -698,7 +694,6 @@ theme_override_styles/disabled = SubResource("StyleBoxFlat_5newe")
 text = "Surrender"
 
 [node name="GameOverPanel" type="PanelContainer" parent="HUD" unique_id=2010256283]
-visible = false
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.25
@@ -716,10 +711,7 @@ theme_override_constants/separation = 10
 [node name="TitleLabel" type="Label" parent="HUD/GameOverPanel/VBox" unique_id=653513695]
 layout_mode = 2
 size_flags_vertical = 1
-theme_override_colors/font_color = Color(1, 0.88, 0.25, 1)
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 4
-theme_override_font_sizes/font_size = 52
+theme = ExtResource("14_pl11u")
 text = "VICTORY"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -803,7 +795,7 @@ autowrap_mode = 3
 custom_minimum_size = Vector2(0, 64)
 layout_mode = 2
 size_flags_horizontal = 4
-theme_override_font_sizes/font_size = 36
+theme = ExtResource("7_trtic")
 text = "Back to Menu"
 
 [node name="SurrenderConfirmPanel" type="PanelContainer" parent="HUD" unique_id=448641579]
@@ -853,15 +845,17 @@ theme_override_font_sizes/font_size = 24
 text = "No"
 
 [node name="PromotionPanel" type="PanelContainer" parent="HUD" unique_id=1877138672]
+visible = false
 layout_mode = 1
 anchors_preset = -1
-anchor_left = 0.15
-anchor_top = 0.4
-anchor_right = 0.85
-anchor_bottom = 0.62
+anchor_left = 0.32447916
+anchor_top = 0.3712963
+anchor_right = 0.67552084
+anchor_bottom = 0.6487037
 grow_horizontal = 2
 grow_vertical = 2
 theme = ExtResource("5_bt5mj")
+metadata/_edit_use_anchors_ = true
 
 [node name="VBox" type="VBoxContainer" parent="HUD/PromotionPanel" unique_id=165090484]
 layout_mode = 2
@@ -870,11 +864,20 @@ layout_mode = 2
 layout_mode = 2
 theme = ExtResource("14_pl11u")
 text = "Promote pawn"
+horizontal_alignment = 1
 
-[node name="HBox" type="HBoxContainer" parent="HUD/PromotionPanel/VBox" unique_id=165090486]
+[node name="ContentCenter" type="CenterContainer" parent="HUD/PromotionPanel/VBox" unique_id=1801005322]
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 
-[node name="QueenBtn" type="Button" parent="HUD/PromotionPanel/VBox/HBox" unique_id=1520320148]
+[node name="HBox" type="GridContainer" parent="HUD/PromotionPanel/VBox/ContentCenter" unique_id=165090486]
+layout_mode = 2
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 12
+columns = 2
+
+[node name="QueenBtn" type="Button" parent="HUD/PromotionPanel/VBox/ContentCenter/HBox" unique_id=1520320148]
 custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -883,7 +886,7 @@ theme_override_font_sizes/font_size = 36
 text = "Queen"
 icon = ExtResource("12_promo_wq")
 
-[node name="RookBtn" type="Button" parent="HUD/PromotionPanel/VBox/HBox" unique_id=47212626]
+[node name="RookBtn" type="Button" parent="HUD/PromotionPanel/VBox/ContentCenter/HBox" unique_id=47212626]
 custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -892,7 +895,7 @@ theme_override_font_sizes/font_size = 36
 text = "Rook"
 icon = ExtResource("13_promo_wr")
 
-[node name="BishopBtn" type="Button" parent="HUD/PromotionPanel/VBox/HBox" unique_id=1068299863]
+[node name="BishopBtn" type="Button" parent="HUD/PromotionPanel/VBox/ContentCenter/HBox" unique_id=1068299863]
 custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -901,7 +904,7 @@ theme_override_font_sizes/font_size = 36
 text = "Bishop"
 icon = ExtResource("14_promo_wb")
 
-[node name="KnightBtn" type="Button" parent="HUD/PromotionPanel/VBox/HBox" unique_id=1714199918]
+[node name="KnightBtn" type="Button" parent="HUD/PromotionPanel/VBox/ContentCenter/HBox" unique_id=1714199918]
 custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
 size_flags_horizontal = 3

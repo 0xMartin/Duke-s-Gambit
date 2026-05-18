@@ -18,10 +18,10 @@ var _ai_loading_tween: Tween = null
 
 func _ready() -> void:
 	$GameOverPanel/VBox/BackButton.pressed.connect(_on_back_pressed)
-	$PromotionPanel/VBox/HBox/QueenBtn.pressed.connect( func(): _choose(ChessEnums.PieceType.QUEEN))
-	$PromotionPanel/VBox/HBox/RookBtn.pressed.connect(  func(): _choose(ChessEnums.PieceType.ROOK))
-	$PromotionPanel/VBox/HBox/BishopBtn.pressed.connect(func(): _choose(ChessEnums.PieceType.BISHOP))
-	$PromotionPanel/VBox/HBox/KnightBtn.pressed.connect(func(): _choose(ChessEnums.PieceType.KNIGHT))
+	$PromotionPanel/VBox/ContentCenter/HBox/QueenBtn.pressed.connect( func(): _choose(ChessEnums.PieceType.QUEEN))
+	$PromotionPanel/VBox/ContentCenter/HBox/RookBtn.pressed.connect(  func(): _choose(ChessEnums.PieceType.ROOK))
+	$PromotionPanel/VBox/ContentCenter/HBox/BishopBtn.pressed.connect(func(): _choose(ChessEnums.PieceType.BISHOP))
+	$PromotionPanel/VBox/ContentCenter/HBox/KnightBtn.pressed.connect(func(): _choose(ChessEnums.PieceType.KNIGHT))
 	$SurrenderButton.pressed.connect(_on_surrender_pressed)
 
 	$SurrenderConfirmPanel/VBox/ButtonHBox/YesButton.pressed.connect(_on_surrender_confirmed)
@@ -123,10 +123,10 @@ func _promo_button(btn: Button, piece_type: int, color: int) -> void:
 		btn.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
 
 func _configure_promotion_dialog(color: int) -> void:
-	var queen_btn := $PromotionPanel/VBox/HBox/QueenBtn as Button
-	var rook_btn := $PromotionPanel/VBox/HBox/RookBtn as Button
-	var bishop_btn := $PromotionPanel/VBox/HBox/BishopBtn as Button
-	var knight_btn := $PromotionPanel/VBox/HBox/KnightBtn as Button
+	var queen_btn := $PromotionPanel/VBox/ContentCenter/HBox/QueenBtn as Button
+	var rook_btn := $PromotionPanel/VBox/ContentCenter/HBox/RookBtn as Button
+	var bishop_btn := $PromotionPanel/VBox/ContentCenter/HBox/BishopBtn as Button
+	var knight_btn := $PromotionPanel/VBox/ContentCenter/HBox/KnightBtn as Button
 	_promo_button(queen_btn, ChessEnums.PieceType.QUEEN, color)
 	_promo_button(rook_btn, ChessEnums.PieceType.ROOK, color)
 	_promo_button(bishop_btn, ChessEnums.PieceType.BISHOP, color)
