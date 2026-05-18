@@ -34,16 +34,17 @@ extends Control
 @onready var _pan_sens_label:     Label    = $MainPanel/SettingsVBox/PanSensRow/PanSensLabel
 @onready var _tilt_sens_slider:   HSlider  = $MainPanel/SettingsVBox/TiltSensRow/TiltSensSlider
 @onready var _tilt_sens_label:    Label    = $MainPanel/SettingsVBox/TiltSensRow/TiltSensLabel
-@onready var _kill_cam_check:     CheckBox = $MainPanel/SettingsVBox/KillCamRow/KillCamCheck
-@onready var _face_player_check:  CheckBox = $MainPanel/SettingsVBox/FacePlayerRow/FacePlayerCheck
+@onready var _kill_cam_check:     CheckButton = $MainPanel/SettingsVBox/KillCamRow/KillCamCheck
+@onready var _face_player_check:  CheckButton = $MainPanel/SettingsVBox/FacePlayerRow/FacePlayerCheck
 @onready var _music_vol_slider:   HSlider  = $MainPanel/SettingsVBox/MusicVolRow/MusicVolSlider
 @onready var _music_vol_label:    Label    = $MainPanel/SettingsVBox/MusicVolRow/MusicVolLabel
 @onready var _sfx_vol_slider:     HSlider  = $MainPanel/SettingsVBox/SFXVolRow/SFXVolSlider
 @onready var _sfx_vol_label:      Label    = $MainPanel/SettingsVBox/SFXVolRow/SFXVolLabel
 
 var _save: Node = null
-var _stats_vbox:        VBoxContainer = null
+var _stats_table:       GridContainer = null
 var _profiles_sorted:   Array[Dictionary] = []
+const _STATS_HEADER_CELLS := 7
 
 # ──────────────────────────────────────────────────────────────────────────
 func _ready() -> void:
@@ -53,7 +54,7 @@ func _ready() -> void:
 	_setup_signals()
 	_populate_time_options(_pvp_time_opt)
 	_populate_time_options(_pvai_time_opt)
-	_stats_vbox = get_node_or_null("MainPanel/StatsVBox/ScrollContainer/VBox") as VBoxContainer
+	_stats_table = get_node_or_null("MainPanel/StatsVBox/ScrollContainer/StatsTable") as GridContainer
 	_setup_pvai_controls()
 	_setup_settings_extra()
 	_connect_button_sounds()
@@ -291,31 +292,27 @@ func _show_stats() -> void:
 	_show_panel(_stats_panel)
 
 func _populate_stats() -> void:
-	for child in _stats_vbox.get_children():
-		child.queue_free()
-	if _save == null:
+	if _stats_table == null:
 		return
 
-	var table := GridContainer.new()
-	table.columns = 7
-	table.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# Keep the header row from the scene and clear only dynamic data rows.
+	for i in range(_stats_table.get_child_count() - 1, _STATS_HEADER_CELLS - 1, -1):
+		_stats_table.get_child(i).queue_free()
 
-	for title in ["Player", "ELO", "Wins", "Losses", "Draws", "Avg Move", "Games"]:
-		table.add_child(_make_stats_cell(title, HORIZONTAL_ALIGNMENT_LEFT))
+	if _save == null:
+		return
 
 	for key: String in _save.get_all_player_names():
 		var p: Dictionary = _save.get_player(key)
 		var avg_ms: float = _save.average_move_time_ms(key)
 		var avg_s: String = "%.1fs" % (avg_ms / 1000.0) if avg_ms > 0 else "-"
-		table.add_child(_make_stats_cell(str(p["name"]), HORIZONTAL_ALIGNMENT_LEFT))
-		table.add_child(_make_stats_cell(str(p["elo"])))
-		table.add_child(_make_stats_cell(str(p["wins"])))
-		table.add_child(_make_stats_cell(str(p["losses"])))
-		table.add_child(_make_stats_cell(str(p["draws"])))
-		table.add_child(_make_stats_cell(avg_s))
-		table.add_child(_make_stats_cell(str(p["games_played"])))
-
-	_stats_vbox.add_child(table)
+		_stats_table.add_child(_make_stats_cell(str(p["name"]), HORIZONTAL_ALIGNMENT_LEFT))
+		_stats_table.add_child(_make_stats_cell(str(p["elo"])))
+		_stats_table.add_child(_make_stats_cell(str(p["wins"])))
+		_stats_table.add_child(_make_stats_cell(str(p["losses"])))
+		_stats_table.add_child(_make_stats_cell(str(p["draws"])))
+		_stats_table.add_child(_make_stats_cell(avg_s))
+		_stats_table.add_child(_make_stats_cell(str(p["games_played"])))
 
 func _make_stats_cell(text: String,
 		align: HorizontalAlignment = HORIZONTAL_ALIGNMENT_CENTER) -> Label:
