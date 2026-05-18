@@ -7,6 +7,7 @@ extends Control
 # ── Node refs ──────────────────────────────────────────────────────────────
 @onready var _main_panel:     Control = $MainPanel
 @onready var _main_menu_panel: Control = $MainPanel/MainVBox
+@onready var _title_label: Label = $Title
 @onready var _pvp_panel: Control = $MainPanel/PvPVBox
 @onready var _pvai_panel: Control = $MainPanel/PvAIVBox
 @onready var _stats_panel:    Control = $MainPanel/StatsVBox
@@ -48,6 +49,10 @@ var _profiles_sorted:   Array[Dictionary] = []
 const _STATS_HEADER_CELLS := 7
 const _TABLE_VALUE_THEME := preload("res://themes/table_value.tres")
 const _STATS_SCROLLBAR_THICKNESS := 24.0
+const _TITLE_FONT_MIN_SIZE := 44
+const _TITLE_FONT_MAX_SIZE := 110
+const _TITLE_HORIZONTAL_PADDING := 12.0
+const _TITLE_VERTICAL_PADDING := 8.0
 
 # ──────────────────────────────────────────────────────────────────────────
 func _ready() -> void:
@@ -62,9 +67,44 @@ func _ready() -> void:
 	_setup_pvai_controls()
 	_setup_settings_extra()
 	_connect_button_sounds()
+	call_deferred("_fit_title_font_size")
 	if _settings_ai_row:
 		_settings_ai_row.visible = false
 	_show_panel(_main_menu_panel)
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_RESIZED:
+		_fit_title_font_size()
+
+func _fit_title_font_size() -> void:
+	if _title_label == null:
+		return
+	var font := _title_label.get_theme_font("font")
+	if font == null:
+		return
+
+	var text := _title_label.text
+	if text.is_empty():
+		return
+
+	var available_width := maxf(10.0, _title_label.size.x - _TITLE_HORIZONTAL_PADDING)
+	var available_height := maxf(10.0, _title_label.size.y - _TITLE_VERTICAL_PADDING)
+
+	var low := _TITLE_FONT_MIN_SIZE
+	var high := _TITLE_FONT_MAX_SIZE
+	var best := _TITLE_FONT_MIN_SIZE
+
+	while low <= high:
+		var mid := int((low + high) / 2)
+		var text_size := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, mid)
+		var text_height := font.get_height(mid)
+		if text_size.x <= available_width and text_height <= available_height:
+			best = mid
+			low = mid + 1
+		else:
+			high = mid - 1
+
+	_title_label.add_theme_font_size_override("font_size", best)
 
 func _setup_signals() -> void:
 	$MainPanel/MainVBox/PvPBtn.pressed.connect(_open_pvp_menu)

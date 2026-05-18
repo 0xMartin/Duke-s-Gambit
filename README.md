@@ -1,7 +1,7 @@
 <img src="./doc/banner.png" alt="Game banner" width="100%">
 
 <div align="center">
-<h1> Duke's Gambit: Battle for Java Code</h1>
+<h1>Duke's Gambit: Battle for Java Code</h1>
 </div>
 
 > [!NOTE]
