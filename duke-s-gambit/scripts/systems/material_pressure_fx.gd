@@ -22,23 +22,23 @@ const PIECE_MATERIAL := {
 
 const DUST_BY_LEVEL := {
 	0: 160,
-	1: 220,
-	2: 320,
-	3: 460,
+	1: 250,
+	2: 380,
+	3: 530,
 }
 
 const AMBIENT_BY_LEVEL := {
 	0: 0.55,
 	1: 0.47,
 	2: 0.40,
-	3: 0.25,
+	3: 0.33,
 }
 
 const DIRECTIONAL_BY_LEVEL := {
 	0: 0.65,
 	1: 0.56,
 	2: 0.50,
-	3: 0.45,
+	3: 0.44,
 }
 
 @onready var _fire_white: Node = get_parent().get_node_or_null("FireWhite")
