@@ -699,10 +699,10 @@ text = "Surrender"
 visible = false
 layout_mode = 1
 anchors_preset = -1
-anchor_left = 0.25833333
-anchor_top = 0.275
-anchor_right = 0.7416667
-anchor_bottom = 0.725
+anchor_left = 0.29739583
+anchor_top = 0.26481482
+anchor_right = 0.7026042
+anchor_bottom = 0.7351852
 grow_horizontal = 2
 grow_vertical = 2
 theme = ExtResource("5_bt5mj")
@@ -741,7 +741,7 @@ layout_mode = 2
 theme_override_constants/separation = 8
 
 [node name="WhitePlayerIcon" type="TextureRect" parent="HUD/GameOverPanel/VBox/ContentCenter/ContentVBox/PlayersRow/WhitePlayerBox" unique_id=98512314]
-custom_minimum_size = Vector2(28, 28)
+custom_minimum_size = Vector2(40, 40)
 layout_mode = 2
 expand_mode = 1
 stretch_mode = 5
@@ -749,6 +749,7 @@ stretch_mode = 5
 [node name="WhitePlayerLabel" type="Label" parent="HUD/GameOverPanel/VBox/ContentCenter/ContentVBox/PlayersRow/WhitePlayerBox" unique_id=134160991]
 layout_mode = 2
 theme = ExtResource("14_pl11u")
+theme_override_font_sizes/font_size = 35
 text = "White"
 vertical_alignment = 1
 
@@ -763,7 +764,7 @@ layout_mode = 2
 theme_override_constants/separation = 8
 
 [node name="BlackPlayerIcon" type="TextureRect" parent="HUD/GameOverPanel/VBox/ContentCenter/ContentVBox/PlayersRow/BlackPlayerBox" unique_id=182083111]
-custom_minimum_size = Vector2(28, 28)
+custom_minimum_size = Vector2(40, 40)
 layout_mode = 2
 expand_mode = 1
 stretch_mode = 5
@@ -771,6 +772,7 @@ stretch_mode = 5
 [node name="BlackPlayerLabel" type="Label" parent="HUD/GameOverPanel/VBox/ContentCenter/ContentVBox/PlayersRow/BlackPlayerBox" unique_id=211933772]
 layout_mode = 2
 theme = ExtResource("14_pl11u")
+theme_override_font_sizes/font_size = 35
 text = "Black"
 vertical_alignment = 1
 
@@ -778,6 +780,7 @@ vertical_alignment = 1
 layout_mode = 2
 size_flags_vertical = 1
 theme = ExtResource("14_pl11u")
+theme_override_colors/font_color = Color(0.8212408, 0.7625423, 0.44389942, 1)
 text = "Checkmate"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -861,6 +864,10 @@ anchor_left = 0.35
 anchor_top = 0.4
 anchor_right = 0.65
 anchor_bottom = 0.6
+offset_left = 3.0
+offset_top = 2.0
+offset_right = -3.0
+offset_bottom = -2.0
 grow_horizontal = 2
 grow_vertical = 2
 theme = ExtResource("5_bt5mj")
@@ -904,9 +911,9 @@ visible = false
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.32447916
-anchor_top = 0.3712963
+anchor_top = 0.3635185
 anchor_right = 0.67552084
-anchor_bottom = 0.6487037
+anchor_bottom = 0.6564815
 grow_horizontal = 2
 grow_vertical = 2
 theme = ExtResource("5_bt5mj")
