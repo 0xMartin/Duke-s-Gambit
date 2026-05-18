@@ -444,7 +444,7 @@ text = "White"
 [node name="Elo" type="Label" parent="HUD/TopBar/WhitePanel/MainHBox/InfoVBox/Row" unique_id=1388764898]
 layout_mode = 2
 theme = ExtResource("8_rysoc")
-text = "ELO 1200"
+text = "ELO 1000"
 
 [node name="Timer" type="Label" parent="HUD/TopBar/WhitePanel/MainHBox/InfoVBox/Row" unique_id=1758136311]
 custom_minimum_size = Vector2(130, 0)
@@ -510,7 +510,7 @@ text = "Black"
 [node name="Elo" type="Label" parent="HUD/TopBar/BlackPanel/MainHBox/InfoVBox/Row" unique_id=1129891114]
 layout_mode = 2
 theme = ExtResource("8_rysoc")
-text = "ELO 1200"
+text = "ELO 1000"
 
 [node name="Timer" type="Label" parent="HUD/TopBar/BlackPanel/MainHBox/InfoVBox/Row" unique_id=1123195889]
 custom_minimum_size = Vector2(130, 0)

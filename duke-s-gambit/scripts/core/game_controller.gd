@@ -548,6 +548,8 @@ func _on_move_chosen(mv: ChessMove) -> void:
 	if _time_control_ms > 0:
 		_time_remaining_ms[mv.piece_color] = maxi(
 			_time_remaining_ms[mv.piece_color] - elapsed, 0)
+	# Freeze clock updates until the next turn is officially started.
+	_move_start_time_ms = 0
 
 	# Track captured pieces for HUD
 	if mv.captured_type != ChessEnums.PieceType.NONE:
@@ -575,7 +577,6 @@ func _on_move_chosen(mv: ChessMove) -> void:
 	_board.highlight_last_move(mv.from_sq, mv.to_sq)
 	if _hud != null and _hud.has_method("append_move_to_history"):
 		_hud.call("append_move_to_history", mv)
-	_busy = false
 
 	# After a kill-cam capture, hold the view for 2 s so the player can appreciate the moment.
 	if _is_capture and cam_cfg != null and cam_cfg.kill_cam_enabled:
@@ -590,6 +591,7 @@ func _on_move_chosen(mv: ChessMove) -> void:
 			_camera.restore_pre_kill_cam_view()
 		elif not _is_player_vs_ai and (cam_cfg == null or cam_cfg.get("face_player_after_move") != false):
 			_camera.face_player(_chess.active_color)
+	_busy = false
 	_start_turn()
 
 func _animate_move(mv: ChessMove) -> void:
