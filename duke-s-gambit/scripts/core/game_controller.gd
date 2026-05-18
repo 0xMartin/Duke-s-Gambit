@@ -69,6 +69,8 @@ const OUTLINE_WIDTH    := 0.5
 # Promotion impact (same assets as BasePiece death effect)
 const _PROMO_VFX_IMPACT_SCENE: PackedScene = preload("res://assets/BinbunVFX_Vol2/StylizedHitFX/effects/big_impact/vfx_big_impact_02.tscn")
 const _PROMO_SFX_SPELL: AudioStream = preload("res://assets/sounds/spell.mp3")
+const _GAMEOVER_KING_ICON: Texture2D = preload("res://assets/textures/pieces/white_king.svg")
+const _GAMEOVER_PAWN_ICON: Texture2D = preload("res://assets/textures/pieces/white_pawn.svg")
 
 # Signals
 signal game_over(winner_color: int, reason: int)   # reason = ChessEnums.GameState
@@ -727,32 +729,50 @@ func _show_game_over(winner_color: int, reason: String) -> void:
 		return
 	panel.visible = true
 
-	var title_lbl := panel.get_node_or_null("VBox/TitleLabel") as Label
-	var winner_lbl := panel.get_node_or_null("VBox/WinnerLabel") as Label
-	var loser_lbl := panel.get_node_or_null("VBox/LoserLabel") as Label
-	var reason_lbl := panel.get_node_or_null("VBox/ReasonLabel") as Label
-	var stats_lbl := panel.get_node_or_null("VBox/StatsLabel") as Label
-	var stats_time_title := panel.get_node_or_null("VBox/StatsTimeTitle") as Label
-	var stats_time_value := panel.get_node_or_null("VBox/StatsTimeValue") as Label
-	var stats_avg_title := panel.get_node_or_null("VBox/StatsAvgTitle") as Label
-	var stats_avg_value := panel.get_node_or_null("VBox/StatsAvgValue") as Label
+	var white_player_icon := panel.get_node_or_null("VBox/ContentCenter/ContentVBox/PlayersRow/WhitePlayerBox/WhitePlayerIcon") as TextureRect
+	var white_player_lbl := panel.get_node_or_null("VBox/ContentCenter/ContentVBox/PlayersRow/WhitePlayerBox/WhitePlayerLabel") as Label
+	var black_player_icon := panel.get_node_or_null("VBox/ContentCenter/ContentVBox/PlayersRow/BlackPlayerBox/BlackPlayerIcon") as TextureRect
+	var black_player_lbl := panel.get_node_or_null("VBox/ContentCenter/ContentVBox/PlayersRow/BlackPlayerBox/BlackPlayerLabel") as Label
+	var reason_lbl := panel.get_node_or_null("VBox/ContentCenter/ContentVBox/ReasonLabel") as Label
+	var white_name_value := panel.get_node_or_null("VBox/ContentCenter/ContentVBox/StatsCenter/StatsGrid/WhiteNameValue") as Label
+	var white_time_value := panel.get_node_or_null("VBox/ContentCenter/ContentVBox/StatsCenter/StatsGrid/WhiteTimeValue") as Label
+	var white_avg_value := panel.get_node_or_null("VBox/ContentCenter/ContentVBox/StatsCenter/StatsGrid/WhiteAvgValue") as Label
+	var black_name_value := panel.get_node_or_null("VBox/ContentCenter/ContentVBox/StatsCenter/StatsGrid/BlackNameValue") as Label
+	var black_time_value := panel.get_node_or_null("VBox/ContentCenter/ContentVBox/StatsCenter/StatsGrid/BlackTimeValue") as Label
+	var black_avg_value := panel.get_node_or_null("VBox/ContentCenter/ContentVBox/StatsCenter/StatsGrid/BlackAvgValue") as Label
 
+	if white_player_lbl:
+		white_player_lbl.text = _player_names[ChessEnums.PieceColor.WHITE]
+	if black_player_lbl:
+		black_player_lbl.text = _player_names[ChessEnums.PieceColor.BLACK]
 	if winner_color == -1:
-		if title_lbl:
-			title_lbl.text = "DRAW"
-		if winner_lbl:
-			winner_lbl.text = "%s vs %s" % [_player_names[0], _player_names[1]]
-		if loser_lbl:
-			loser_lbl.text = ""
+		if white_player_icon:
+			white_player_icon.texture = _GAMEOVER_KING_ICON
+			white_player_icon.modulate = Color(0.92, 0.92, 0.92, 1.0)
+		if black_player_icon:
+			black_player_icon.texture = _GAMEOVER_KING_ICON
+			black_player_icon.modulate = Color(0.92, 0.92, 0.92, 1.0)
+		if white_player_lbl:
+			white_player_lbl.add_theme_color_override("font_color", Color(0.92, 0.92, 0.92, 1.0))
+		if black_player_lbl:
+			black_player_lbl.add_theme_color_override("font_color", Color(0.92, 0.92, 0.92, 1.0))
 	else:
-		var winner_name: String = _player_names[winner_color]
-		var loser_name: String  = _player_names[1 - winner_color]
-		if title_lbl:
-			title_lbl.text = "VICTORY"
-		if winner_lbl:
-			winner_lbl.text = winner_name + " WON"
-		if loser_lbl:
-			loser_lbl.text = loser_name + " LOST"
+		if white_player_icon:
+			white_player_icon.texture = _GAMEOVER_KING_ICON if winner_color == ChessEnums.PieceColor.WHITE else _GAMEOVER_PAWN_ICON
+			white_player_icon.modulate = Color(0.2, 0.85, 0.3, 1.0) if winner_color == ChessEnums.PieceColor.WHITE else Color(0.9, 0.25, 0.25, 1.0)
+		if black_player_icon:
+			black_player_icon.texture = _GAMEOVER_KING_ICON if winner_color == ChessEnums.PieceColor.BLACK else _GAMEOVER_PAWN_ICON
+			black_player_icon.modulate = Color(0.2, 0.85, 0.3, 1.0) if winner_color == ChessEnums.PieceColor.BLACK else Color(0.9, 0.25, 0.25, 1.0)
+		if white_player_lbl:
+			white_player_lbl.add_theme_color_override(
+				"font_color",
+				Color(0.2, 0.85, 0.3, 1.0) if winner_color == ChessEnums.PieceColor.WHITE else Color(0.9, 0.25, 0.25, 1.0)
+			)
+		if black_player_lbl:
+			black_player_lbl.add_theme_color_override(
+				"font_color",
+				Color(0.2, 0.85, 0.3, 1.0) if winner_color == ChessEnums.PieceColor.BLACK else Color(0.9, 0.25, 0.25, 1.0)
+			)
 
 	if reason_lbl:
 		reason_lbl.text = reason
@@ -777,22 +797,18 @@ func _show_game_over(winner_color: int, reason: String) -> void:
 	var white_avg_s: String = "%.1f s" % (white_avg_ms / 1000.0)
 	var black_avg_s: String = "%.1f s" % (black_avg_ms / 1000.0)
 
-	if stats_time_title:
-		stats_time_title.text = "Time"
-	if stats_time_value:
-		stats_time_value.text = "%s: %s\n%s: %s" % [
-			_player_names[ChessEnums.PieceColor.WHITE], white_time,
-			_player_names[ChessEnums.PieceColor.BLACK], black_time
-		]
-	if stats_avg_title:
-		stats_avg_title.text = "Average Turn"
-	if stats_avg_value:
-		stats_avg_value.text = "%s: %s\n%s: %s" % [
-			_player_names[ChessEnums.PieceColor.WHITE], white_avg_s,
-			_player_names[ChessEnums.PieceColor.BLACK], black_avg_s
-		]
-	if stats_lbl:
-		stats_lbl.visible = false
+	if white_name_value:
+		white_name_value.text = _player_names[ChessEnums.PieceColor.WHITE]
+	if black_name_value:
+		black_name_value.text = _player_names[ChessEnums.PieceColor.BLACK]
+	if white_time_value:
+		white_time_value.text = white_time
+	if black_time_value:
+		black_time_value.text = black_time
+	if white_avg_value:
+		white_avg_value.text = white_avg_s
+	if black_avg_value:
+		black_avg_value.text = black_avg_s
 
 
 	# Save stats

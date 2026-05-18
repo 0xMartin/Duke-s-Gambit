@@ -21,9 +21,11 @@
 [ext_resource type="PackedScene" uid="uid://whiteflag" path="res://scenes/effects/white_flag.tscn" id="11_kvpfn"]
 [ext_resource type="Texture2D" uid="uid://creg7doi502rt" path="res://assets/textures/pieces/white_queen.svg" id="12_promo_wq"]
 [ext_resource type="Texture2D" uid="uid://d1dl1lcyflqnp" path="res://assets/textures/pieces/white_rook.svg" id="13_promo_wr"]
+[ext_resource type="Theme" uid="uid://df6j2xpf5nywx" path="res://themes/game_dialog_title.tres" id="14_bhx41"]
 [ext_resource type="Theme" uid="uid://cufxac8hjayal" path="res://themes/game_label.tres" id="14_pl11u"]
 [ext_resource type="Texture2D" uid="uid://dpa8nghhm2jva" path="res://assets/textures/pieces/white_bishop.svg" id="14_promo_wb"]
 [ext_resource type="Texture2D" uid="uid://uvf7mxoq5q70" path="res://assets/textures/pieces/white_knight.svg" id="15_promo_wn"]
+[ext_resource type="Theme" uid="uid://db33v6k81swqy" path="res://themes/table_value.tres" id="16_tablev"]
 
 [sub_resource type="PanoramaSkyMaterial" id="SkyMat1"]
 panorama = ExtResource("6")
@@ -696,13 +698,14 @@ text = "Surrender"
 [node name="GameOverPanel" type="PanelContainer" parent="HUD" unique_id=2010256283]
 layout_mode = 1
 anchors_preset = -1
-anchor_left = 0.25
-anchor_top = 0.25
-anchor_right = 0.75
-anchor_bottom = 0.75
+anchor_left = 0.25833333
+anchor_top = 0.275
+anchor_right = 0.7416667
+anchor_bottom = 0.725
 grow_horizontal = 2
 grow_vertical = 2
 theme = ExtResource("5_bt5mj")
+metadata/_edit_use_anchors_ = true
 
 [node name="VBox" type="VBoxContainer" parent="HUD/GameOverPanel" unique_id=1923570882]
 layout_mode = 2
@@ -711,87 +714,138 @@ theme_override_constants/separation = 10
 [node name="TitleLabel" type="Label" parent="HUD/GameOverPanel/VBox" unique_id=653513695]
 layout_mode = 2
 size_flags_vertical = 1
-theme = ExtResource("14_pl11u")
+theme = ExtResource("14_bhx41")
 text = "Game Over"
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
 
-[node name="WinnerLabel" type="Label" parent="HUD/GameOverPanel/VBox" unique_id=2135930926]
+[node name="ContentCenter" type="CenterContainer" parent="HUD/GameOverPanel/VBox" unique_id=905500341]
 layout_mode = 2
-size_flags_vertical = 1
-theme_override_font_sizes/font_size = 40
-text = "Player 1 WON"
-horizontal_alignment = 1
-vertical_alignment = 1
-autowrap_mode = 3
+size_flags_horizontal = 3
+size_flags_vertical = 3
 
-[node name="LoserLabel" type="Label" parent="HUD/GameOverPanel/VBox" unique_id=161364805]
+[node name="ContentVBox" type="VBoxContainer" parent="HUD/GameOverPanel/VBox/ContentCenter" unique_id=867749129]
+custom_minimum_size = Vector2(560, 0)
 layout_mode = 2
-size_flags_vertical = 1
-theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
-theme_override_font_sizes/font_size = 36
-text = "Player 2 LOST"
-horizontal_alignment = 1
-vertical_alignment = 1
-autowrap_mode = 3
+theme_override_constants/separation = 10
 
-[node name="ReasonLabel" type="Label" parent="HUD/GameOverPanel/VBox" unique_id=823044705]
+[node name="PlayersRow" type="HBoxContainer" parent="HUD/GameOverPanel/VBox/ContentCenter/ContentVBox" unique_id=917001121]
+layout_mode = 2
+theme_override_constants/separation = 24
+alignment = 1
+
+[node name="WhitePlayerBox" type="HBoxContainer" parent="HUD/GameOverPanel/VBox/ContentCenter/ContentVBox/PlayersRow" unique_id=423028801]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="WhitePlayerIcon" type="TextureRect" parent="HUD/GameOverPanel/VBox/ContentCenter/ContentVBox/PlayersRow/WhitePlayerBox" unique_id=98512314]
+custom_minimum_size = Vector2(28, 28)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="WhitePlayerLabel" type="Label" parent="HUD/GameOverPanel/VBox/ContentCenter/ContentVBox/PlayersRow/WhitePlayerBox" unique_id=134160991]
+layout_mode = 2
+theme = ExtResource("14_pl11u")
+text = "White"
+vertical_alignment = 1
+
+[node name="Label" type="Label" parent="HUD/GameOverPanel/VBox/ContentCenter/ContentVBox/PlayersRow" unique_id=1633580033]
+layout_mode = 2
+theme = ExtResource("14_pl11u")
+theme_override_colors/font_color = Color(0.7497805, 0.7497799, 0.74977994, 1)
+text = "X"
+
+[node name="BlackPlayerBox" type="HBoxContainer" parent="HUD/GameOverPanel/VBox/ContentCenter/ContentVBox/PlayersRow" unique_id=271763914]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="BlackPlayerIcon" type="TextureRect" parent="HUD/GameOverPanel/VBox/ContentCenter/ContentVBox/PlayersRow/BlackPlayerBox" unique_id=182083111]
+custom_minimum_size = Vector2(28, 28)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="BlackPlayerLabel" type="Label" parent="HUD/GameOverPanel/VBox/ContentCenter/ContentVBox/PlayersRow/BlackPlayerBox" unique_id=211933772]
+layout_mode = 2
+theme = ExtResource("14_pl11u")
+text = "Black"
+vertical_alignment = 1
+
+[node name="ReasonLabel" type="Label" parent="HUD/GameOverPanel/VBox/ContentCenter/ContentVBox" unique_id=823044705]
 layout_mode = 2
 size_flags_vertical = 1
-theme_override_colors/font_color = Color(0.85, 0.75, 0.4, 1)
-theme_override_font_sizes/font_size = 24
+theme = ExtResource("14_pl11u")
 text = "Checkmate"
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
 
-[node name="Spacer" type="Control" parent="HUD/GameOverPanel/VBox" unique_id=643031126]
+[node name="Spacer" type="Control" parent="HUD/GameOverPanel/VBox/ContentCenter/ContentVBox" unique_id=643031126]
+custom_minimum_size = Vector2(0, 10)
 layout_mode = 2
 
-[node name="StatsLabel" type="Label" parent="HUD/GameOverPanel/VBox" unique_id=363688089]
+[node name="StatsCenter" type="CenterContainer" parent="HUD/GameOverPanel/VBox/ContentCenter/ContentVBox" unique_id=149002781]
 layout_mode = 2
-size_flags_vertical = 2
-theme_override_font_sizes/font_size = 18
-text = "Player 1: 5:30 | Avg: 2.3 s
-Player 2: 4:15 | Avg: 1.9 s"
-horizontal_alignment = 1
-vertical_alignment = 1
-autowrap_mode = 3
+size_flags_horizontal = 3
 
-[node name="StatsTimeTitle" type="Label" parent="HUD/GameOverPanel/VBox" unique_id=127566483]
+[node name="StatsGrid" type="GridContainer" parent="HUD/GameOverPanel/VBox/ContentCenter/ContentVBox/StatsCenter" unique_id=418770223]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.85, 0.75, 0.4, 1)
-theme_override_font_sizes/font_size = 20
+theme_override_constants/h_separation = 20
+theme_override_constants/v_separation = 8
+columns = 3
+
+[node name="ColPlayer" type="Label" parent="HUD/GameOverPanel/VBox/ContentCenter/ContentVBox/StatsCenter/StatsGrid" unique_id=522144781]
+layout_mode = 2
+theme = ExtResource("14_pl11u")
+text = "Player"
+
+[node name="ColTime" type="Label" parent="HUD/GameOverPanel/VBox/ContentCenter/ContentVBox/StatsCenter/StatsGrid" unique_id=199340642]
+layout_mode = 2
+theme = ExtResource("14_pl11u")
 text = "Time"
-horizontal_alignment = 1
 
-[node name="StatsTimeValue" type="Label" parent="HUD/GameOverPanel/VBox" unique_id=1678480177]
+[node name="ColAverage" type="Label" parent="HUD/GameOverPanel/VBox/ContentCenter/ContentVBox/StatsCenter/StatsGrid" unique_id=73519511]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.95, 0.93, 0.88, 1)
-theme_override_font_sizes/font_size = 18
-text = "White: 0:00
-Black: 0:00"
-horizontal_alignment = 1
-autowrap_mode = 3
+theme = ExtResource("14_pl11u")
+text = "Average Time"
 
-[node name="StatsAvgTitle" type="Label" parent="HUD/GameOverPanel/VBox" unique_id=534174413]
+[node name="WhiteNameValue" type="Label" parent="HUD/GameOverPanel/VBox/ContentCenter/ContentVBox/StatsCenter/StatsGrid" unique_id=158024436]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.85, 0.75, 0.4, 1)
-theme_override_font_sizes/font_size = 20
-text = "Average Turn"
-horizontal_alignment = 1
+theme = ExtResource("16_tablev")
+text = "White"
 
-[node name="StatsAvgValue" type="Label" parent="HUD/GameOverPanel/VBox" unique_id=591922289]
+[node name="WhiteTimeValue" type="Label" parent="HUD/GameOverPanel/VBox/ContentCenter/ContentVBox/StatsCenter/StatsGrid" unique_id=356561110]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.95, 0.93, 0.88, 1)
-theme_override_font_sizes/font_size = 18
-text = "White: 0.0 s
-Black: 0.0 s"
-horizontal_alignment = 1
-autowrap_mode = 3
+theme = ExtResource("16_tablev")
+text = "0:00"
 
-[node name="BackButton" type="Button" parent="HUD/GameOverPanel/VBox" unique_id=998528934]
+[node name="WhiteAvgValue" type="Label" parent="HUD/GameOverPanel/VBox/ContentCenter/ContentVBox/StatsCenter/StatsGrid" unique_id=184554120]
+layout_mode = 2
+theme = ExtResource("16_tablev")
+text = "0.0 s"
+
+[node name="BlackNameValue" type="Label" parent="HUD/GameOverPanel/VBox/ContentCenter/ContentVBox/StatsCenter/StatsGrid" unique_id=126749552]
+layout_mode = 2
+theme = ExtResource("16_tablev")
+text = "Black"
+
+[node name="BlackTimeValue" type="Label" parent="HUD/GameOverPanel/VBox/ContentCenter/ContentVBox/StatsCenter/StatsGrid" unique_id=814014223]
+layout_mode = 2
+theme = ExtResource("16_tablev")
+text = "0:00"
+
+[node name="BlackAvgValue" type="Label" parent="HUD/GameOverPanel/VBox/ContentCenter/ContentVBox/StatsCenter/StatsGrid" unique_id=170630442]
+layout_mode = 2
+theme = ExtResource("16_tablev")
+text = "0.0 s"
+
+[node name="Spacer2" type="Control" parent="HUD/GameOverPanel/VBox/ContentCenter/ContentVBox" unique_id=270717151]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+
+[node name="BackButton" type="Button" parent="HUD/GameOverPanel/VBox/ContentCenter/ContentVBox" unique_id=998528934]
 custom_minimum_size = Vector2(0, 64)
 layout_mode = 2
 size_flags_horizontal = 4
@@ -862,7 +916,7 @@ layout_mode = 2
 
 [node name="TitleLabel" type="Label" parent="HUD/PromotionPanel/VBox" unique_id=165090485]
 layout_mode = 2
-theme = ExtResource("14_pl11u")
+theme = ExtResource("14_bhx41")
 text = "Promote pawn"
 horizontal_alignment = 1
 
