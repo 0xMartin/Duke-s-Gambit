@@ -5,11 +5,15 @@
 [ext_resource type="PackedScene" uid="uid://orbitcamera" path="res://scenes/orbit_camera.tscn" id="3"]
 [ext_resource type="Script" uid="uid://c0ovcwq6s7tyi" path="res://scripts/ui/game_ui.gd" id="4"]
 [ext_resource type="Script" uid="uid://bfgfin44nf1d2" path="res://scripts/ui/hud.gd" id="5"]
+[ext_resource type="Theme" uid="uid://0v4k77luosjx" path="res://themes/player_card.tres" id="5_ir15t"]
 [ext_resource type="Texture2D" uid="uid://bomo6t88iri6d" path="res://assets/textures/skybox.png" id="6"]
 [ext_resource type="PackedScene" uid="uid://ddoai7gywl243" path="res://assets/word/terrain.blend" id="7"]
+[ext_resource type="Theme" uid="uid://dvhswm2woi4np" path="res://themes/nick_label.tres" id="7_ca42v"]
 [ext_resource type="Theme" uid="uid://caxfi4yovmntm" path="res://themes/button.tres" id="7_trtic"]
 [ext_resource type="Texture2D" uid="uid://ih0bn2if7eyb" path="res://assets/textures/pieces/white_pawn.svg" id="8"]
+[ext_resource type="Theme" uid="uid://bwkdd8jtpy1p6" path="res://themes/elo_label.tres" id="8_rysoc"]
 [ext_resource type="Texture2D" uid="uid://bj1851l6k55lq" path="res://assets/textures/pieces/black_pawn.svg" id="9"]
+[ext_resource type="Theme" uid="uid://dkuee5xxc60o7" path="res://themes/time_label.tres" id="9_ssvqc"]
 [ext_resource type="PackedScene" uid="uid://ddfwbcc0rrn1m" path="res://scenes/effects/fire.tscn" id="10_dinhu"]
 [ext_resource type="Script" uid="uid://ds1b1u8eofgp2" path="res://scripts/systems/material_pressure_fx.gd" id="10_mlq8w"]
 [ext_resource type="PackedScene" uid="uid://blackflag" path="res://scenes/effects/black_flag.tscn" id="10_vtaks"]
@@ -40,18 +44,6 @@ fog_depth_end = 85.0
 adjustment_enabled = true
 adjustment_saturation = 0.9
 
-[sub_resource type="StyleBoxFlat" id="HudPanelWhite"]
-bg_color = Color(0.04, 0.05, 0.1, 0.82)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.38, 0.3, 0.06, 0.55)
-corner_radius_top_left = 12
-corner_radius_top_right = 12
-corner_radius_bottom_right = 12
-corner_radius_bottom_left = 12
-
 [sub_resource type="StyleBoxFlat" id="HudAvatarWhite"]
 bg_color = Color(0.85, 0.85, 0.85, 1)
 corner_radius_top_left = 42
@@ -70,18 +62,6 @@ corner_radius_top_right = 6
 corner_radius_bottom_right = 6
 corner_radius_bottom_left = 6
 
-[sub_resource type="StyleBoxFlat" id="HudPanelBlack"]
-bg_color = Color(0.04, 0.05, 0.1, 0.82)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.38, 0.3, 0.06, 0.55)
-corner_radius_top_left = 12
-corner_radius_top_right = 12
-corner_radius_bottom_right = 12
-corner_radius_bottom_left = 12
-
 [sub_resource type="StyleBoxFlat" id="HudCaptureBlack"]
 content_margin_left = 4.0
 content_margin_top = 2.0
@@ -99,6 +79,114 @@ corner_radius_top_left = 42
 corner_radius_top_right = 42
 corner_radius_bottom_right = 42
 corner_radius_bottom_left = 42
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_trtic"]
+content_margin_left = 10.0
+content_margin_top = 4.0
+content_margin_right = 8.0
+content_margin_bottom = 4.0
+bg_color = Color(0.1775, 0.6212499, 0.71, 0.9019608)
+border_width_bottom = 7
+border_color = Color(0.13340001, 0.5055666, 0.58, 0.9019608)
+corner_radius_top_left = 3
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 3
+corner_detail = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ir15t"]
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 8.0
+content_margin_bottom = 2.0
+bg_color = Color(0.1675, 0.58624995, 0.67, 0.9019608)
+border_width_bottom = 2
+border_color = Color(0.12100002, 0.47849998, 0.55, 0.9019608)
+corner_radius_top_left = 3
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 3
+corner_detail = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ca42v"]
+content_margin_left = 10.0
+content_margin_top = 4.0
+content_margin_right = 8.0
+content_margin_bottom = 4.0
+bg_color = Color(0.24959998, 0.84159994, 0.96, 0.9019608)
+border_width_bottom = 7
+border_color = Color(0.1975, 0.69124997, 0.79, 0.9019608)
+corner_radius_top_left = 3
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 3
+corner_detail = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_rysoc"]
+content_margin_left = 10.0
+content_margin_top = 4.0
+content_margin_right = 8.0
+content_margin_bottom = 4.0
+bg_color = Color(0.016000003, 0.12879999, 0.16, 0.9019608)
+border_width_bottom = 7
+border_color = Color(0.007699999, 0.08953997, 0.11, 0.9019608)
+corner_radius_top_left = 3
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 3
+corner_detail = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_264po"]
+content_margin_left = 40.0
+content_margin_top = 8.0
+content_margin_right = 40.0
+content_margin_bottom = 18.0
+bg_color = Color(0.1764706, 0.61960787, 0.70980394, 0.9019608)
+border_width_bottom = 10
+border_color = Color(0.13333334, 0.5058824, 0.5803922, 0.9019608)
+corner_radius_top_left = 15
+corner_radius_top_right = 15
+corner_radius_bottom_right = 15
+corner_radius_bottom_left = 15
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1kice"]
+content_margin_left = 40.0
+content_margin_top = 12.0
+content_margin_right = 40.0
+content_margin_bottom = 14.0
+bg_color = Color(0.16862746, 0.58431375, 0.67058825, 0.9019608)
+border_width_bottom = 6
+border_color = Color(0.12156863, 0.47843137, 0.54901963, 0.9019608)
+corner_radius_top_left = 15
+corner_radius_top_right = 15
+corner_radius_bottom_right = 15
+corner_radius_bottom_left = 15
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ssvqc"]
+content_margin_left = 40.0
+content_margin_top = 8.0
+content_margin_right = 40.0
+content_margin_bottom = 18.0
+bg_color = Color(0.24959998, 0.84159994, 0.96, 0.9019608)
+border_width_bottom = 10
+border_color = Color(0.1975, 0.69124997, 0.79, 0.9019608)
+corner_radius_top_left = 15
+corner_radius_top_right = 15
+corner_radius_bottom_right = 15
+corner_radius_bottom_left = 15
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_5newe"]
+content_margin_left = 40.0
+content_margin_top = 8.0
+content_margin_right = 40.0
+content_margin_bottom = 18.0
+bg_color = Color(0.05490196, 0.27058825, 0.32156864, 0.9019608)
+border_width_bottom = 10
+border_color = Color(0.02745098, 0.2, 0.23137255, 0.9019608)
+corner_radius_top_left = 15
+corner_radius_top_right = 15
+corner_radius_bottom_right = 15
+corner_radius_bottom_left = 15
 
 [sub_resource type="Curve" id="Curve_kvpfn"]
 _data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.22492403, 0.24857438), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
@@ -248,7 +336,7 @@ theme_override_constants/separation = 0
 [node name="WhitePanel" type="PanelContainer" parent="UI/HUD/TopBar" unique_id=1639280010]
 layout_mode = 2
 mouse_filter = 2
-theme_override_styles/panel = SubResource("HudPanelWhite")
+theme = ExtResource("5_ir15t")
 
 [node name="Margin" type="MarginContainer" parent="UI/HUD/TopBar/WhitePanel" unique_id=821965180]
 layout_mode = 2
@@ -292,23 +380,19 @@ color = Color(0, 0, 0, 0)
 
 [node name="Name" type="Label" parent="UI/HUD/TopBar/WhitePanel/Margin/MainHBox/InfoVBox/Row" unique_id=1243572640]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.88, 0.88, 0.88, 1)
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 3
-theme_override_font_sizes/font_size = 28
+theme = ExtResource("7_ca42v")
 text = "White"
 
 [node name="Elo" type="Label" parent="UI/HUD/TopBar/WhitePanel/Margin/MainHBox/InfoVBox/Row" unique_id=1388764898]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
-theme_override_font_sizes/font_size = 22
+theme = ExtResource("8_rysoc")
 text = "ELO 1200"
 
 [node name="Timer" type="Label" parent="UI/HUD/TopBar/WhitePanel/Margin/MainHBox/InfoVBox/Row" unique_id=1758136311]
 custom_minimum_size = Vector2(130, 0)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.9, 0.85, 0.5, 1)
-theme_override_font_sizes/font_size = 22
+theme = ExtResource("9_ssvqc")
+text = "10:00"
 horizontal_alignment = 2
 
 [node name="CapturedPanel" type="PanelContainer" parent="UI/HUD/TopBar/WhitePanel/Margin/MainHBox/InfoVBox" unique_id=1365764537]
@@ -331,7 +415,7 @@ mouse_filter = 2
 [node name="BlackPanel" type="PanelContainer" parent="UI/HUD/TopBar" unique_id=2134970181]
 layout_mode = 2
 mouse_filter = 2
-theme_override_styles/panel = SubResource("HudPanelBlack")
+theme = ExtResource("5_ir15t")
 
 [node name="Margin" type="MarginContainer" parent="UI/HUD/TopBar/BlackPanel" unique_id=1235819400]
 layout_mode = 2
@@ -361,23 +445,19 @@ color = Color(0, 0, 0, 0)
 
 [node name="Name" type="Label" parent="UI/HUD/TopBar/BlackPanel/Margin/MainHBox/InfoVBox/Row" unique_id=2069091762]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.88, 0.88, 0.88, 1)
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 3
-theme_override_font_sizes/font_size = 28
+theme = ExtResource("7_ca42v")
 text = "Black"
 
 [node name="Elo" type="Label" parent="UI/HUD/TopBar/BlackPanel/Margin/MainHBox/InfoVBox/Row" unique_id=1129891114]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
-theme_override_font_sizes/font_size = 22
+theme = ExtResource("8_rysoc")
 text = "ELO 1200"
 
 [node name="Timer" type="Label" parent="UI/HUD/TopBar/BlackPanel/Margin/MainHBox/InfoVBox/Row" unique_id=1123195889]
 custom_minimum_size = Vector2(130, 0)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.9, 0.85, 0.5, 1)
-theme_override_font_sizes/font_size = 22
+theme = ExtResource("9_ssvqc")
+text = "10:00"
 horizontal_alignment = 2
 
 [node name="CapturedPanel" type="PanelContainer" parent="UI/HUD/TopBar/BlackPanel/Margin/MainHBox/InfoVBox" unique_id=82171555]
@@ -407,6 +487,7 @@ expand_mode = 1
 stretch_mode = 6
 
 [node name="MoveHistoryPanel" type="PanelContainer" parent="UI" unique_id=1426172844]
+visible = false
 custom_minimum_size = Vector2(380, 320)
 layout_mode = 1
 anchors_preset = 2
@@ -456,18 +537,22 @@ size_flags_horizontal = 3
 theme_override_constants/separation = 6
 
 [node name="MoveHistoryExpandButton" type="Button" parent="UI" unique_id=946903513]
-visible = false
 custom_minimum_size = Vector2(26, 84)
 layout_mode = 1
 anchors_preset = 2
 anchor_top = 1.0
 anchor_bottom = 1.0
-offset_left = 4.0
-offset_top = -200.0
-offset_right = 30.0
-offset_bottom = -116.0
-grow_horizontal = 0
-grow_vertical = 2
+offset_left = -3.0
+offset_top = -201.0
+offset_right = 34.0
+offset_bottom = -117.0
+grow_vertical = 0
+theme_override_constants/outline_size = 10
+theme_override_font_sizes/font_size = 22
+theme_override_styles/normal = SubResource("StyleBoxFlat_trtic")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_ir15t")
+theme_override_styles/hover = SubResource("StyleBoxFlat_ca42v")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_rysoc")
 text = "▶"
 
 [node name="AIThinkingLabel" type="Label" parent="UI" unique_id=337434124]
@@ -508,6 +593,10 @@ offset_bottom = 56.0
 grow_horizontal = 2
 theme = ExtResource("7_trtic")
 theme_override_font_sizes/font_size = 24
+theme_override_styles/normal = SubResource("StyleBoxFlat_264po")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_1kice")
+theme_override_styles/hover = SubResource("StyleBoxFlat_ssvqc")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_5newe")
 text = "Surrender"
 
 [node name="GameOverPanel" type="PanelContainer" parent="UI" unique_id=2010256283]

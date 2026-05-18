@@ -314,17 +314,7 @@ func set_active_player(color: int) -> void:
 		# Name colour
 		(_name_lbl[c] as Label).add_theme_color_override("font_color",
 			Color(1.0, 0.92, 0.4) if active else Color(0.88, 0.88, 0.88))
-		# Panel border: thick bright gold when active, thin dim when inactive
-		var ps := _panel_style[c] as StyleBoxFlat
-		if ps != null:
-			if active:
-				ps.border_color = Color(1.0, 0.85, 0.1, 1.0)
-				ps.set_border_width_all(5)
-				ps.bg_color = Color(0.10, 0.12, 0.24, 0.97)
-			else:
-				ps.border_color = Color(0.38, 0.30, 0.06, 0.55)
-				ps.set_border_width_all(2)
-				ps.bg_color = Color(0.04, 0.05, 0.10, 0.82)
+		   # No panel design manipulation; all theming is external now.
 
 ## color = which player's label to update.
 ## ms  = remaining time (countdown) or elapsed (count-up), depending on _has_time_limit.
