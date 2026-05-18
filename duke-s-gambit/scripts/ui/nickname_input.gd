@@ -8,15 +8,26 @@ signal value_changed(value: String)
 
 @onready var _line_edit: LineEdit = $LineEdit
 @onready var _suggest_panel: PanelContainer = $SuggestPanel
+@onready var _suggest_scroll: ScrollContainer = $SuggestPanel/Scroll
 @onready var _suggest_box: VBoxContainer = $SuggestPanel/Scroll/VBox
 
 var _profiles_sorted: Array[Dictionary] = []
 
 func _ready() -> void:
+	# Keep suggestions in this scene tree and draw as a top-level overlay.
 	_suggest_panel.top_level = true
 	_suggest_panel.z_as_relative = false
-	_suggest_panel.z_index = 5000
+	_suggest_panel.z_index = 4096
+
 	_suggest_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	_suggest_scroll.mouse_filter = Control.MOUSE_FILTER_PASS
+	_suggest_scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_suggest_scroll.offset_left = 0.0
+	_suggest_scroll.offset_top = 0.0
+	_suggest_scroll.offset_right = 0.0
+	_suggest_scroll.offset_bottom = 0.0
+	_suggest_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_suggest_box.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	_suggest_panel.size = Vector2.ZERO
 	_line_edit.text_changed.connect(_on_text_changed)
 	_line_edit.focus_entered.connect(_on_focus_entered)
@@ -88,6 +99,7 @@ func _refresh_suggestions() -> void:
 		return
 
 	var max_items := mini(matches.size(), 8)
+	var item_height := 32.0
 	for i in range(max_items):
 		var profile: Dictionary = matches[i]
 		var player_name: String = str(profile.get("name", ""))
@@ -98,29 +110,30 @@ func _refresh_suggestions() -> void:
 		btn.focus_mode = Control.FOCUS_NONE
 		btn.flat = true
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		# Copy font and color from LineEdit
+		btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		# Copy font, font_size and color from LineEdit so suggestions match.
 		var font = _line_edit.get_theme_font("font")
 		if font != null:
 			btn.add_theme_font_override("font", font)
+		var font_size := _line_edit.get_theme_font_size("font_size")
+		if font_size > 0:
+			btn.add_theme_font_size_override("font_size", font_size)
 		var font_color = _line_edit.get_theme_color("font_color")
 		if font_color != null:
 			btn.add_theme_color_override("font_color", font_color)
+		btn.custom_minimum_size = Vector2(0.0, maxf(item_height, float(font_size) + 10.0))
 		btn.pressed.connect(func() -> void: _choose_suggestion(player_name))
 		_suggest_box.add_child(btn)
+		item_height = maxf(item_height, btn.custom_minimum_size.y)
 
-	# Dynamically set suggestion panel height to fit current content (up to 8 items).
-	await get_tree().process_frame
 	var item_count := _suggest_box.get_child_count()
-	var item_height := 32.0
-	if item_count > 0:
-		item_height = maxf(item_height, (_suggest_box.get_child(0) as Control).get_combined_minimum_size().y)
 	var max_visible := 8
-	var max_height := item_height * float(max_visible)
-	var content_height := (_suggest_box as Control).get_combined_minimum_size().y
+	var separation := float(_suggest_box.get_theme_constant("separation"))
+	var content_height := item_height * float(item_count) + maxf(0.0, float(item_count - 1)) * separation
+	var max_height := item_height * float(max_visible) + maxf(0.0, float(max_visible - 1)) * separation
 	var target_height := minf(content_height, max_height)
-	var scroll := _suggest_panel.get_node_or_null("Scroll") as ScrollContainer
-	if scroll:
-		scroll.custom_minimum_size = Vector2(0.0, target_height)
+	_suggest_box.custom_minimum_size = Vector2(_line_edit.get_global_rect().size.x, content_height)
+	_suggest_scroll.custom_minimum_size = Vector2(0.0, target_height)
 	_suggest_panel.custom_minimum_size = Vector2(_line_edit.get_global_rect().size.x, target_height)
 	_suggest_panel.size = Vector2(_line_edit.get_global_rect().size.x, target_height)
 
