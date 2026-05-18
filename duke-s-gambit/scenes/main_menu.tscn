@@ -20,6 +20,7 @@
 [ext_resource type="Theme" uid="uid://bmjxmhngpsc2k" path="res://themes/menu_label.tres" id="16_a8gd2"]
 [ext_resource type="Theme" uid="uid://2s5uoyj2dryf" path="res://themes/menu_section_title.tres" id="16_hstxw"]
 [ext_resource type="Theme" uid="uid://b5h30lei0eemm" path="res://themes/option_button.tres" id="19_8egab"]
+[ext_resource type="Theme" uid="uid://docidxqt3s1pb" path="res://themes/slider.tres" id="21_gw5y6"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_icon_float"]
 shader = ExtResource("7_iconfloat")
@@ -365,8 +366,6 @@ horizontal_alignment = 1
 custom_minimum_size = Vector2(0, 300)
 layout_mode = 2
 size_flags_vertical = 3
-horizontal_scroll_mode = 1
-vertical_scroll_mode = 1
 
 [node name="StatsTable" type="GridContainer" parent="MainPanel/StatsVBox/ScrollContainer" unique_id=423938033]
 custom_minimum_size = Vector2(900, 0)
@@ -374,37 +373,37 @@ layout_mode = 2
 size_flags_horizontal = 3
 columns = 7
 
-[node name="HeaderPlayer" type="Label" parent="MainPanel/StatsVBox/ScrollContainer/StatsTable"]
+[node name="HeaderPlayer" type="Label" parent="MainPanel/StatsVBox/ScrollContainer/StatsTable" unique_id=980610074]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Player"
 
-[node name="HeaderElo" type="Label" parent="MainPanel/StatsVBox/ScrollContainer/StatsTable"]
+[node name="HeaderElo" type="Label" parent="MainPanel/StatsVBox/ScrollContainer/StatsTable" unique_id=1895325612]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "ELO"
 
-[node name="HeaderWins" type="Label" parent="MainPanel/StatsVBox/ScrollContainer/StatsTable"]
+[node name="HeaderWins" type="Label" parent="MainPanel/StatsVBox/ScrollContainer/StatsTable" unique_id=885228286]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Wins"
 
-[node name="HeaderLosses" type="Label" parent="MainPanel/StatsVBox/ScrollContainer/StatsTable"]
+[node name="HeaderLosses" type="Label" parent="MainPanel/StatsVBox/ScrollContainer/StatsTable" unique_id=921827421]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Losses"
 
-[node name="HeaderDraws" type="Label" parent="MainPanel/StatsVBox/ScrollContainer/StatsTable"]
+[node name="HeaderDraws" type="Label" parent="MainPanel/StatsVBox/ScrollContainer/StatsTable" unique_id=1327091562]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Draws"
 
-[node name="HeaderAvgMove" type="Label" parent="MainPanel/StatsVBox/ScrollContainer/StatsTable"]
+[node name="HeaderAvgMove" type="Label" parent="MainPanel/StatsVBox/ScrollContainer/StatsTable" unique_id=258930572]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Avg Move"
 
-[node name="HeaderGames" type="Label" parent="MainPanel/StatsVBox/ScrollContainer/StatsTable"]
+[node name="HeaderGames" type="Label" parent="MainPanel/StatsVBox/ScrollContainer/StatsTable" unique_id=346051290]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Games"
@@ -439,7 +438,11 @@ text = "Music Volume: 50%"
 [node name="MusicVolSlider" type="HSlider" parent="MainPanel/SettingsVBox/MusicVolRow" unique_id=848671361]
 layout_mode = 2
 size_flags_horizontal = 3
+theme = ExtResource("21_gw5y6")
+step = 5.0
 value = 50.0
+tick_count = 5
+ticks_on_borders = true
 
 [node name="SFXVolRow" type="HBoxContainer" parent="MainPanel/SettingsVBox" unique_id=1838517052]
 layout_mode = 2
@@ -454,7 +457,11 @@ text = "SFX Volume: 100%"
 [node name="SFXVolSlider" type="HSlider" parent="MainPanel/SettingsVBox/SFXVolRow" unique_id=1578007712]
 layout_mode = 2
 size_flags_horizontal = 3
+theme = ExtResource("21_gw5y6")
+step = 5.0
 value = 100.0
+tick_count = 5
+ticks_on_borders = true
 
 [node name="FacePlayerRow" type="HBoxContainer" parent="MainPanel/SettingsVBox" unique_id=2050643938]
 layout_mode = 2
@@ -496,9 +503,12 @@ text = "Pan Sensitivity: 5"
 [node name="PanSensSlider" type="HSlider" parent="MainPanel/SettingsVBox/PanSensRow" unique_id=1200927991]
 layout_mode = 2
 size_flags_horizontal = 3
+theme = ExtResource("21_gw5y6")
 min_value = 1.0
 max_value = 10.0
 value = 5.0
+tick_count = 10
+ticks_on_borders = true
 
 [node name="TiltSensRow" type="HBoxContainer" parent="MainPanel/SettingsVBox" unique_id=1367002245]
 layout_mode = 2
@@ -513,9 +523,12 @@ text = "Tilt Sensitivity: 5"
 [node name="TiltSensSlider" type="HSlider" parent="MainPanel/SettingsVBox/TiltSensRow" unique_id=1414890674]
 layout_mode = 2
 size_flags_horizontal = 3
+theme = ExtResource("21_gw5y6")
 min_value = 1.0
 max_value = 10.0
 value = 5.0
+tick_count = 10
+ticks_on_borders = true
 
 [node name="BackBtn" type="Button" parent="MainPanel/SettingsVBox" unique_id=775881788]
 layout_mode = 2
