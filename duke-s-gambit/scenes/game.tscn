@@ -853,7 +853,6 @@ theme_override_font_sizes/font_size = 24
 text = "No"
 
 [node name="PromotionPanel" type="PanelContainer" parent="HUD" unique_id=1877138672]
-visible = false
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.15
@@ -869,7 +868,7 @@ layout_mode = 2
 
 [node name="TitleLabel" type="Label" parent="HUD/PromotionPanel/VBox" unique_id=165090485]
 layout_mode = 2
-theme_override_font_sizes/font_size = 28
+theme = ExtResource("14_pl11u")
 text = "Promote pawn"
 
 [node name="HBox" type="HBoxContainer" parent="HUD/PromotionPanel/VBox" unique_id=165090486]
@@ -879,6 +878,7 @@ layout_mode = 2
 custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
 size_flags_horizontal = 3
+theme = ExtResource("7_trtic")
 theme_override_font_sizes/font_size = 36
 text = "Queen"
 icon = ExtResource("12_promo_wq")
@@ -887,6 +887,7 @@ icon = ExtResource("12_promo_wq")
 custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
 size_flags_horizontal = 3
+theme = ExtResource("7_trtic")
 theme_override_font_sizes/font_size = 36
 text = "Rook"
 icon = ExtResource("13_promo_wr")
@@ -895,6 +896,7 @@ icon = ExtResource("13_promo_wr")
 custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
 size_flags_horizontal = 3
+theme = ExtResource("7_trtic")
 theme_override_font_sizes/font_size = 36
 text = "Bishop"
 icon = ExtResource("14_promo_wb")
@@ -903,6 +905,7 @@ icon = ExtResource("14_promo_wb")
 custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
 size_flags_horizontal = 3
+theme = ExtResource("7_trtic")
 theme_override_font_sizes/font_size = 36
 text = "Knight"
 icon = ExtResource("15_promo_wn")
