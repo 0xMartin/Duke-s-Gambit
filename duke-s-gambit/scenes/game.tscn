@@ -26,6 +26,7 @@
 [ext_resource type="Texture2D" uid="uid://dpa8nghhm2jva" path="res://assets/textures/pieces/white_bishop.svg" id="14_promo_wb"]
 [ext_resource type="Texture2D" uid="uid://uvf7mxoq5q70" path="res://assets/textures/pieces/white_knight.svg" id="15_promo_wn"]
 [ext_resource type="Theme" uid="uid://db33v6k81swqy" path="res://themes/table_value.tres" id="16_tablev"]
+[ext_resource type="Theme" uid="uid://bywhcekfwqmcu" path="res://themes/table.tres" id="17_history_scroll"]
 
 [sub_resource type="PanoramaSkyMaterial" id="SkyMat1"]
 panorama = ExtResource("6")
@@ -622,6 +623,7 @@ text = "◀"
 custom_minimum_size = Vector2(0, 120)
 layout_mode = 2
 size_flags_vertical = 3
+theme = ExtResource("17_history_scroll")
 
 [node name="HistoryList" type="VBoxContainer" parent="HUD/MoveHistoryPanel/Margin/VBox/HistoryScroll" unique_id=2085093791]
 layout_mode = 2
