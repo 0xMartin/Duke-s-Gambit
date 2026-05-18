@@ -31,7 +31,6 @@ extends Control
 @onready var _pvai_validation_label: Label = $MainPanel/PvAIVBox/ValidationLabel
 
 # Settings
-@onready var _settings_ai_row:    Control  = $MainPanel/SettingsVBox/AIStrengthRow
 @onready var _pan_sens_slider:    HSlider  = $MainPanel/SettingsVBox/PanSensRow/PanSensSlider
 @onready var _pan_sens_value_label: Label  = $MainPanel/SettingsVBox/PanSensRow/PanSensValueLabel
 @onready var _tilt_sens_slider:   HSlider  = $MainPanel/SettingsVBox/TiltSensRow/TiltSensSlider
@@ -68,8 +67,6 @@ func _ready() -> void:
 	_setup_settings_extra()
 	_connect_button_sounds()
 	call_deferred("_fit_title_font_size")
-	if _settings_ai_row:
-		_settings_ai_row.visible = false
 	_show_panel(_main_menu_panel)
 
 func _notification(what: int) -> void:

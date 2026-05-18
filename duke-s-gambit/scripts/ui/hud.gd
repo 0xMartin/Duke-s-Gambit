@@ -45,14 +45,14 @@ var _has_time_limit: bool = false  # true = countdown mode
 # ── Setup ──────────────────────────────────────────────────────────────────
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_name_lbl[ChessEnums.PieceColor.WHITE]  = get_node("TopBar/WhitePanel/Margin/MainHBox/InfoVBox/Row/Name") as Label
-	_name_lbl[ChessEnums.PieceColor.BLACK]  = get_node("TopBar/BlackPanel/Margin/MainHBox/InfoVBox/Row/Name") as Label
-	_elo_lbl[ChessEnums.PieceColor.WHITE]   = get_node("TopBar/WhitePanel/Margin/MainHBox/InfoVBox/Row/Elo") as Label
-	_elo_lbl[ChessEnums.PieceColor.BLACK]   = get_node("TopBar/BlackPanel/Margin/MainHBox/InfoVBox/Row/Elo") as Label
-	_timer_lbl[ChessEnums.PieceColor.WHITE] = get_node("TopBar/WhitePanel/Margin/MainHBox/InfoVBox/Row/Timer") as Label
-	_timer_lbl[ChessEnums.PieceColor.BLACK] = get_node("TopBar/BlackPanel/Margin/MainHBox/InfoVBox/Row/Timer") as Label
-	_captured_hf[ChessEnums.PieceColor.WHITE] = get_node("TopBar/WhitePanel/Margin/MainHBox/InfoVBox/CapturedPanel/CapturedFlow") as HFlowContainer
-	_captured_hf[ChessEnums.PieceColor.BLACK] = get_node("TopBar/BlackPanel/Margin/MainHBox/InfoVBox/CapturedPanel/CapturedFlow") as HFlowContainer
+	_name_lbl[ChessEnums.PieceColor.WHITE]  = get_node("TopBar/WhitePanel/MainHBox/InfoVBox/Row/Name") as Label
+	_name_lbl[ChessEnums.PieceColor.BLACK]  = get_node("TopBar/BlackPanel/MainHBox/InfoVBox/Row/Name") as Label
+	_elo_lbl[ChessEnums.PieceColor.WHITE]   = get_node("TopBar/WhitePanel/MainHBox/InfoVBox/Row/Elo") as Label
+	_elo_lbl[ChessEnums.PieceColor.BLACK]   = get_node("TopBar/BlackPanel/MainHBox/InfoVBox/Row/Elo") as Label
+	_timer_lbl[ChessEnums.PieceColor.WHITE] = get_node("TopBar/WhitePanel/MainHBox/InfoVBox/Row/Timer") as Label
+	_timer_lbl[ChessEnums.PieceColor.BLACK] = get_node("TopBar/BlackPanel/MainHBox/InfoVBox/Row/Timer") as Label
+	_captured_hf[ChessEnums.PieceColor.WHITE] = get_node("TopBar/WhitePanel/MainHBox/InfoVBox/CapturedPanel/CapturedFlow") as HFlowContainer
+	_captured_hf[ChessEnums.PieceColor.BLACK] = get_node("TopBar/BlackPanel/MainHBox/InfoVBox/CapturedPanel/CapturedFlow") as HFlowContainer
 
 	_history_panel = get_node_or_null("../MoveHistoryPanel") as PanelContainer
 	_history_scroll = get_node_or_null("../MoveHistoryPanel/Margin/VBox/HistoryScroll") as ScrollContainer
