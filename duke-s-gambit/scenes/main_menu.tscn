@@ -138,7 +138,6 @@ theme = ExtResource("9_5dd4i")
 metadata/_edit_use_anchors_ = true
 
 [node name="MainVBox" type="VBoxContainer" parent="MainPanel" unique_id=1054197032]
-visible = false
 layout_mode = 2
 size_flags_horizontal = 0
 theme_override_constants/separation = 25
@@ -413,6 +412,7 @@ theme = ExtResource("12_flqon")
 text = "Back"
 
 [node name="SettingsVBox" type="VBoxContainer" parent="MainPanel" unique_id=1103937944]
+visible = false
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
