@@ -304,7 +304,7 @@ point_count = 2
 [sub_resource type="CurveTexture" id="CurveTexture_ir15t"]
 curve = SubResource("Curve_trtic")
 
-[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_kvpfn"]
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_bhx41"]
 lifetime_randomness = 0.4
 emission_shape_offset = Vector3(0, 2.5, 0)
 emission_shape_scale = Vector3(8, 4, 8)
@@ -348,13 +348,6 @@ albedo_texture = SubResource("GradientTexture2D_dinhu")
 material = SubResource("StandardMaterial3D_kvuet")
 size = Vector2(0.15, 0.15)
 
-[sub_resource type="Curve" id="Curve_dinhu"]
-_data = [Vector2(0, 0), 0.0, 3.3448691, 0, 1, Vector2(0.2542373, 0.8503905), 0.0, 0.0, 0, 0, Vector2(1, 0.40957665), -0.5910913, 0.0, 1, 0]
-point_count = 3
-
-[sub_resource type="CurveTexture" id="CurveTexture_kvuet"]
-curve = SubResource("Curve_dinhu")
-
 [sub_resource type="Gradient" id="Gradient_trtic"]
 
 [sub_resource type="GradientTexture1D" id="GradientTexture1D_ir15t"]
@@ -380,10 +373,8 @@ gravity = Vector3(0, 0, 0)
 scale_curve = SubResource("CurveTexture_rysoc")
 color = Color(0.3801375, 0.16915777, 0.028219251, 1)
 color_initial_ramp = SubResource("GradientTexture1D_ir15t")
-alpha_curve = SubResource("CurveTexture_kvuet")
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_trtic"]
-transparency = 1
 vertex_color_use_as_albedo = true
 
 [sub_resource type="QuadMesh" id="QuadMesh_ir15t"]
@@ -1005,7 +996,7 @@ randomness = 0.26
 fixed_fps = 0
 visibility_aabb = AABB(-4, -4, -4, 80, 80, 80)
 transform_align = 1
-process_material = SubResource("ParticleProcessMaterial_kvpfn")
+process_material = SubResource("ParticleProcessMaterial_bhx41")
 draw_pass_1 = SubResource("QuadMesh_trtic")
 
 [node name="CupParticles1" type="GPUParticles3D" parent="Particles" unique_id=645091759]

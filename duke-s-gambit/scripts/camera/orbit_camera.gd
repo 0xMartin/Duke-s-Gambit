@@ -329,8 +329,8 @@ func set_intro_view(color: int, look_target: Vector3, duration: float) -> void:
 	_target_azimuth   = az
 	elevation         = 22.0    # half of the previous 45° → dramatic low angle
 	_target_elevation = 22.0
-	distance          = 8.0
-	_target_distance  = 8.0
+	distance          = 6.0
+	_target_distance  = 6.0
 	# Shift pivot slightly toward the showcased side so their pieces fill the frame.
 	var z_off := -1.5 if color == ChessEnums.PieceColor.WHITE else 1.5
 	# Start the pan at the left edge, end at right edge.
