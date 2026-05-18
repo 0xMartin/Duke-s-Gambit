@@ -27,8 +27,6 @@ var _name_lbl:    Array = [null, null]   # [white, black] Label
 var _elo_lbl:     Array = [null, null]
 var _timer_lbl:   Array = [null, null]
 var _captured_hf: Array = [null, null]  # HFlowContainer
-var _turn_ind:    Array = [null, null]  # ColorRect active stripe
-var _panel_style: Array = [null, null]  # StyleBoxFlat per player panel
 var _history_panel: PanelContainer = null
 var _history_list: VBoxContainer = null
 var _history_scroll: ScrollContainer = null
@@ -55,13 +53,6 @@ func _ready() -> void:
 	_timer_lbl[ChessEnums.PieceColor.BLACK] = get_node("TopBar/BlackPanel/Margin/MainHBox/InfoVBox/Row/Timer") as Label
 	_captured_hf[ChessEnums.PieceColor.WHITE] = get_node("TopBar/WhitePanel/Margin/MainHBox/InfoVBox/CapturedPanel/CapturedFlow") as HFlowContainer
 	_captured_hf[ChessEnums.PieceColor.BLACK] = get_node("TopBar/BlackPanel/Margin/MainHBox/InfoVBox/CapturedPanel/CapturedFlow") as HFlowContainer
-	_turn_ind[ChessEnums.PieceColor.WHITE] = get_node("TopBar/WhitePanel/Margin/MainHBox/InfoVBox/Row/TurnIndicator") as ColorRect
-	_turn_ind[ChessEnums.PieceColor.BLACK] = get_node("TopBar/BlackPanel/Margin/MainHBox/InfoVBox/Row/TurnIndicator") as ColorRect
-
-	var white_panel := get_node("TopBar/WhitePanel") as PanelContainer
-	var black_panel := get_node("TopBar/BlackPanel") as PanelContainer
-	_panel_style[ChessEnums.PieceColor.WHITE] = white_panel.get_theme_stylebox("panel") as StyleBoxFlat
-	_panel_style[ChessEnums.PieceColor.BLACK] = black_panel.get_theme_stylebox("panel") as StyleBoxFlat
 
 	_history_panel = get_node_or_null("../MoveHistoryPanel") as PanelContainer
 	_history_scroll = get_node_or_null("../MoveHistoryPanel/Margin/VBox/HistoryScroll") as ScrollContainer
@@ -306,30 +297,18 @@ func _set_history_minimized(minimized: bool, instant: bool = false) -> void:
 
 func set_active_player(color: int) -> void:
 	_active_color = color
-	for c in [ChessEnums.PieceColor.WHITE, ChessEnums.PieceColor.BLACK]:
-		var active: bool = (c == color)
-		# Side stripe indicator
-		(_turn_ind[c] as ColorRect).color = \
-			Color(1.0, 0.85, 0.1, 1.0) if active else Color.TRANSPARENT
-		# Name colour
-		(_name_lbl[c] as Label).add_theme_color_override("font_color",
-			Color(1.0, 0.92, 0.4) if active else Color(0.88, 0.88, 0.88))
-		   # No panel design manipulation; all theming is external now.
+	# All active player indication is now external
 
 ## color = which player's label to update.
 ## ms  = remaining time (countdown) or elapsed (count-up), depending on _has_time_limit.
 func update_timer(color: int, ms: int) -> void:
 	var lbl := _timer_lbl[color] as Label
 	if _has_time_limit:
-		# Countdown: show MM:SS, red when < 30 s
+		# Countdown: show MM:SS
 		var total_secs: int = int(ms / 1000.0)
 		var mins: int = int(total_secs / 60.0)
 		var secs: int = total_secs % 60
 		lbl.text = "%d:%02d" % [mins, secs]
-		if ms < 30000:
-			lbl.add_theme_color_override("font_color", Color(1, 0.25, 0.2))
-		else:
-			lbl.add_theme_color_override("font_color", Color(0.9, 0.85, 0.5))
 	else:
 		var secs: int = int(ms / 1000.0)
 		var frac: int = int((ms % 1000) / 100.0)
