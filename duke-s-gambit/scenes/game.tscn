@@ -22,6 +22,7 @@
 [ext_resource type="PackedScene" uid="uid://whiteflag" path="res://scenes/effects/white_flag.tscn" id="11_kvpfn"]
 [ext_resource type="Texture2D" uid="uid://creg7doi502rt" path="res://assets/textures/pieces/white_queen.svg" id="12_promo_wq"]
 [ext_resource type="Texture2D" uid="uid://d1dl1lcyflqnp" path="res://assets/textures/pieces/white_rook.svg" id="13_promo_wr"]
+[ext_resource type="Theme" uid="uid://cufxac8hjayal" path="res://themes/game_label.tres" id="14_pl11u"]
 [ext_resource type="Texture2D" uid="uid://dpa8nghhm2jva" path="res://assets/textures/pieces/white_bishop.svg" id="14_promo_wb"]
 [ext_resource type="Texture2D" uid="uid://uvf7mxoq5q70" path="res://assets/textures/pieces/white_knight.svg" id="15_promo_wn"]
 
@@ -200,6 +201,30 @@ corner_radius_top_right = 12
 corner_radius_bottom_right = 12
 corner_radius_bottom_left = 3
 corner_detail = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_sww3w"]
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+bg_color = Color(0.1, 0.1, 0.1, 0.3)
+corner_radius_top_left = 100
+corner_radius_top_right = 100
+corner_radius_bottom_right = 100
+corner_radius_bottom_left = 100
+corner_detail = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_suyxu"]
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+bg_color = Color(1, 1, 1, 0.4)
+corner_radius_top_left = 100
+corner_radius_top_right = 100
+corner_radius_bottom_right = 100
+corner_radius_bottom_left = 100
+corner_detail = 6
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_264po"]
 content_margin_left = 40.0
@@ -634,6 +659,7 @@ anchor_right = 0.5
 offset_top = 16.0
 offset_bottom = 48.0
 grow_horizontal = 2
+theme = ExtResource("14_pl11u")
 text = "AI is thinking..."
 horizontal_alignment = 1
 
@@ -644,11 +670,13 @@ layout_mode = 1
 anchors_preset = 5
 anchor_left = 0.5
 anchor_right = 0.5
-offset_left = -130.0
-offset_top = 54.0
-offset_right = 130.0
-offset_bottom = 70.0
+offset_left = -202.0
+offset_top = 78.0
+offset_right = 202.0
+offset_bottom = 104.0
 grow_horizontal = 2
+theme_override_styles/background = SubResource("StyleBoxFlat_sww3w")
+theme_override_styles/fill = SubResource("StyleBoxFlat_suyxu")
 show_percentage = false
 
 [node name="SurrenderButton" type="Button" parent="HUD" unique_id=1889013262]
