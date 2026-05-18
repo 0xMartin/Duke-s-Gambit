@@ -31,15 +31,15 @@ extends Control
 # Settings
 @onready var _settings_ai_row:    Control  = $MainPanel/SettingsVBox/AIStrengthRow
 @onready var _pan_sens_slider:    HSlider  = $MainPanel/SettingsVBox/PanSensRow/PanSensSlider
-@onready var _pan_sens_label:     Label    = $MainPanel/SettingsVBox/PanSensRow/PanSensLabel
+@onready var _pan_sens_value_label: Label  = $MainPanel/SettingsVBox/PanSensRow/PanSensValueLabel
 @onready var _tilt_sens_slider:   HSlider  = $MainPanel/SettingsVBox/TiltSensRow/TiltSensSlider
-@onready var _tilt_sens_label:    Label    = $MainPanel/SettingsVBox/TiltSensRow/TiltSensLabel
+@onready var _tilt_sens_value_label: Label = $MainPanel/SettingsVBox/TiltSensRow/TiltSensValueLabel
 @onready var _kill_cam_check:     CheckButton = $MainPanel/SettingsVBox/KillCamRow/KillCamCheck
 @onready var _face_player_check:  CheckButton = $MainPanel/SettingsVBox/FacePlayerRow/FacePlayerCheck
 @onready var _music_vol_slider:   HSlider  = $MainPanel/SettingsVBox/MusicVolRow/MusicVolSlider
-@onready var _music_vol_label:    Label    = $MainPanel/SettingsVBox/MusicVolRow/MusicVolLabel
+@onready var _music_vol_value_label: Label = $MainPanel/SettingsVBox/MusicVolRow/MusicVolValueLabel
 @onready var _sfx_vol_slider:     HSlider  = $MainPanel/SettingsVBox/SFXVolRow/SFXVolSlider
-@onready var _sfx_vol_label:      Label    = $MainPanel/SettingsVBox/SFXVolRow/SFXVolLabel
+@onready var _sfx_vol_value_label: Label   = $MainPanel/SettingsVBox/SFXVolRow/SFXVolValueLabel
 
 var _save: Node = null
 var _stats_table:       GridContainer = null
@@ -327,9 +327,9 @@ func _show_settings() -> void:
 	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
 	if cam_cfg:
 		_pan_sens_slider.value  = cam_cfg.pan_sensitivity
-		_pan_sens_label.text    = "Pan Sensitivity: %d" % cam_cfg.pan_sensitivity
+		_pan_sens_value_label.text = "%d" % cam_cfg.pan_sensitivity
 		_tilt_sens_slider.value = cam_cfg.tilt_sensitivity
-		_tilt_sens_label.text   = "Tilt Sensitivity: %d" % cam_cfg.tilt_sensitivity
+		_tilt_sens_value_label.text = "%d" % cam_cfg.tilt_sensitivity
 		_kill_cam_check.button_pressed = cam_cfg.kill_cam_enabled
 		if _face_player_check:
 			_face_player_check.button_pressed = cam_cfg.get("face_player_after_move") != false
@@ -338,10 +338,10 @@ func _show_settings() -> void:
 		var sv: int = int(cam_cfg.get("sfx_volume"))
 		if _music_vol_slider:
 			_music_vol_slider.set_value_no_signal(mv)
-			_music_vol_label.text = "Music Volume: %d%%" % mv
+			_music_vol_value_label.text = "%d%%" % mv
 		if _sfx_vol_slider:
 			_sfx_vol_slider.set_value_no_signal(sv)
-			_sfx_vol_label.text = "SFX Volume: %d%%" % sv
+			_sfx_vol_value_label.text = "%d%%" % sv
 	_show_panel(_settings_panel)
 
 
@@ -389,14 +389,14 @@ func _on_player_color_selected(index: int) -> void:
 		cam_cfg.save_config()
 
 func _on_pan_sens_changed(value: float) -> void:
-	_pan_sens_label.text = "Pan Sensitivity: %d" % int(value)
+	_pan_sens_value_label.text = "%d" % int(value)
 	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
 	if cam_cfg:
 		cam_cfg.pan_sensitivity = int(value)
 		cam_cfg.save_config()
 
 func _on_tilt_sens_changed(value: float) -> void:
-	_tilt_sens_label.text = "Tilt Sensitivity: %d" % int(value)
+	_tilt_sens_value_label.text = "%d" % int(value)
 	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
 	if cam_cfg:
 		cam_cfg.tilt_sensitivity = int(value)
@@ -415,8 +415,8 @@ func _setup_settings_extra() -> void:
 	var init_sv: int = int(cam_cfg.get("sfx_volume"))   if cam_cfg else 100
 	_music_vol_slider.set_value_no_signal(init_mv)
 	_sfx_vol_slider.set_value_no_signal(init_sv)
-	_music_vol_label.text = "Music Volume: %d%%" % init_mv
-	_sfx_vol_label.text = "SFX Volume: %d%%" % init_sv
+	_music_vol_value_label.text = "%d%%" % init_mv
+	_sfx_vol_value_label.text = "%d%%" % init_sv
 
 func _on_face_player_toggled(pressed: bool) -> void:
 	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
@@ -427,8 +427,8 @@ func _on_face_player_toggled(pressed: bool) -> void:
 
 func _on_music_vol_changed(value: float) -> void:
 	var pct := int(value)
-	if _music_vol_label:
-		_music_vol_label.text = "Music Volume: %d%%" % pct
+	if _music_vol_value_label:
+		_music_vol_value_label.text = "%d%%" % pct
 	MusicManager.set_music_volume(pct)
 	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
 	if cam_cfg:
@@ -437,8 +437,8 @@ func _on_music_vol_changed(value: float) -> void:
 
 func _on_sfx_vol_changed(value: float) -> void:
 	var pct := int(value)
-	if _sfx_vol_label:
-		_sfx_vol_label.text = "SFX Volume: %d%%" % pct
+	if _sfx_vol_value_label:
+		_sfx_vol_value_label.text = "%d%%" % pct
 	MusicManager.set_sfx_volume(pct)
 	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
 	if cam_cfg:
