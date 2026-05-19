@@ -208,7 +208,7 @@ func _sanitize_filename(s: String) -> String:
 	return out if out != "" else "Player"
 
 func _export_sq(sq: Vector2i) -> String:
-	return "%s%d" % [String.chr(97 + sq.x), sq.y + 1]
+	return "%s%d" % [String.chr(97 + (7 - sq.x)), sq.y + 1]
 
 func _export_piece_name(pt: int) -> String:
 	match pt:
@@ -243,7 +243,7 @@ func _export_notation(mv: ChessMove) -> String:
 	}
 	var piece_letter: String = String(LETTERS.get(mv.piece_type, ""))
 	if mv.piece_type == ChessEnums.PieceType.PAWN and mv.is_capture():
-		piece_letter = String.chr(97 + mv.from_sq.x)
+		piece_letter = String.chr(97 + (7 - mv.from_sq.x))
 	var cap := "x" if mv.is_capture() else ""
 	var to := _export_sq(mv.to_sq)
 	var notation := "%s%s%s" % [piece_letter, cap, to]

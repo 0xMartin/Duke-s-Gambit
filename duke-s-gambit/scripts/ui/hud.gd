@@ -409,7 +409,7 @@ func _move_notation(mv: ChessMove) -> String:
 			pass
 
 	var piece_letter: String = String(PIECE_LETTERS.get(mv.piece_type, ""))
-	var from_file := String.chr(97 + mv.from_sq.x)
+	var from_file := String.chr(97 + (7 - mv.from_sq.x))
 	var capture_mark := "x" if mv.is_capture() else ""
 	var to_sq := _sq_to_notation(mv.to_sq)
 
@@ -424,7 +424,7 @@ func _move_notation(mv: ChessMove) -> String:
 	return notation
 
 func _sq_to_notation(sq: Vector2i) -> String:
-	return "%s%d" % [String.chr(97 + sq.x), sq.y + 1]
+	return "%s%d" % [String.chr(97 + (7 - sq.x)), sq.y + 1]
 
 func _apply_history_theme() -> void:
 	if _history_panel != null:
