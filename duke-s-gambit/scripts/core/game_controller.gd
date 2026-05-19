@@ -29,58 +29,22 @@ var _hud: Node = null
 # ── Piece scenes (populated in _setup_piece_scenes) ────────────────────────
 var _piece_scenes: Dictionary = {}   # PieceType -> PackedScene
 
-# ── Runtime state ──────────────────────────────────────────────────────────
-var _chess:       ChessBoardState = null
-var _controllers: Array           = []  # [white_ctrl, black_ctrl]
-
-var _sq_pieces:   Dictionary = {}   # Vector2i -> BasePiece (live scene nodes)
-var _selected_sq: Vector2i   = Vector2i(-1, -1)
-var _selected_piece: BasePiece = null
-var _legal_from_selected: Array = []
-var _pending_promotion_moves: Array = []
-var _attack_outlined_pieces: Array[BasePiece] = []
-var _check_outlined_king: BasePiece = null
-
-var _busy:        bool = false   # true while piece animation is running
-var _move_start_time_ms: int = 0  # timestamp for avg-move-time tracking
-
-# Move counters per player for current game
-var _move_counts:       Array = [0, 0]
-var _move_times_ms:     Array = [0, 0]
-
-# Captured pieces: [white_captures[], black_captures[]]  (lists of PieceType ints)
-var _captured_by: Array = [[], []]
-
-var _player_names: Array = ["Player1", "Player2"]
-var _player_elos:  Array = [1200, 1200]
-var _is_player_vs_ai: bool = false
-
-# Chess clock (ms). 0 = no limit.
-var _time_control_ms:   int = 0
-var _time_remaining_ms: Array = [0, 0]  # [white, black]
-var _game_over_shown:   bool = false
-var _sfx_select: AudioStreamPlayer = null
-var _base_saturation: float = 0.9
-var _sat_tween: Tween = null
-
-# Intro overlay (built once in _ready, shown/hidden per phase)
-var _intro_overlay:     CanvasLayer = null
-var _intro_name_label:  Label       = null
-var _intro_left_icon:   TextureRect = null
-var _intro_right_icon:  TextureRect = null
-
+# ── Constants ──────────────────────────────────────────────────────────────
+# Piece outline colours (selection / attack target / king-in-check).
 const OUTLINE_SELECTED := Color(0.00, 1.00, 0.15, 1.0)
 const OUTLINE_ATTACK   := Color(1.00, 0.05, 0.00, 1.0)
 const OUTLINE_CHECK    := Color(1.00, 0.05, 0.00, 1.0)
 const OUTLINE_WIDTH    := 0.5
 
-# Promotion impact (same assets as BasePiece death effect)
+# Promotion impact (same assets as BasePiece death effect).
 const _PROMO_VFX_IMPACT_SCENE: PackedScene = preload("res://assets/BinbunVFX_Vol2/StylizedHitFX/effects/big_impact/vfx_big_impact_02.tscn")
 const _PROMO_SFX_SPELL: AudioStream = preload("res://assets/sounds/spell.mp3")
+
+# Game-over panel icons.
 const _GAMEOVER_KING_ICON: Texture2D = preload("res://assets/textures/pieces/white_king.svg")
 const _GAMEOVER_PAWN_ICON: Texture2D = preload("res://assets/textures/pieces/white_pawn.svg")
 
-# Intro animation timing
+# Intro animation / overlay assets.
 const _INTRO_PIECE_INTERVAL   := 0.25   # seconds between successive piece appearances
 const _INTRO_VFX_PIECE_DELAY  := 0.10   # seconds: VFX fires, then piece becomes visible
 const _INTRO_FONT: FontFile     = preload("res://assets/fonts/Montserrat-Bold.ttf")
@@ -89,11 +53,55 @@ const _INTRO_WHITE_KING: Texture2D  = preload("res://assets/textures/pieces/whit
 const _INTRO_BLACK_QUEEN: Texture2D = preload("res://assets/textures/pieces/black_queen.svg")
 const _INTRO_BLACK_KING: Texture2D  = preload("res://assets/textures/pieces/black_king.svg")
 
-# Signals
+# ── Signals ────────────────────────────────────────────────────────────────
 signal game_over(winner_color: int, reason: int)   # reason = ChessEnums.GameState
 signal promotion_needed(sq: Vector2i, color: int)
 
-# ──────────────────────────────────────────────────────────────────────────
+# ── Runtime state ──────────────────────────────────────────────────────────
+# Chess core.
+var _chess:       ChessBoardState = null
+var _controllers: Array           = []  # [white_ctrl, black_ctrl]
+var _sq_pieces:   Dictionary      = {}  # Vector2i -> BasePiece (live scene nodes)
+
+# Selection / highlights.
+var _selected_sq: Vector2i   = Vector2i(-1, -1)
+var _selected_piece: BasePiece = null
+var _legal_from_selected: Array = []
+var _pending_promotion_moves: Array = []
+var _attack_outlined_pieces: Array[BasePiece] = []
+var _check_outlined_king: BasePiece = null
+
+# Animation / move timing.
+var _busy: bool = false                  # true while piece animation is running
+var _move_start_time_ms: int = 0         # timestamp for avg-move-time tracking
+var _move_counts:   Array = [0, 0]       # per-player move counter
+var _move_times_ms: Array = [0, 0]       # cumulative thinking time per player
+
+# Captured pieces: [white_captures[], black_captures[]] (lists of PieceType ints).
+var _captured_by: Array = [[], []]
+
+# Players.
+var _player_names: Array = ["Player1", "Player2"]
+var _player_elos:  Array = [1200, 1200]
+var _is_player_vs_ai: bool = false
+
+# Chess clock (ms). 0 = no limit.
+var _time_control_ms:   int = 0
+var _time_remaining_ms: Array = [0, 0]  # [white, black]
+var _game_over_shown:   bool  = false
+
+# Audio / world FX.
+var _sfx_select: AudioStreamPlayer = null
+var _base_saturation: float = 0.9
+var _sat_tween: Tween = null
+
+# Intro overlay (built once in _ready, shown/hidden per phase).
+var _intro_overlay:    CanvasLayer = null
+var _intro_name_label: Label       = null
+var _intro_left_icon:  TextureRect = null
+var _intro_right_icon: TextureRect = null
+
+# ── Lifecycle ──────────────────────────────────────────────────────────────
 func _process(_delta: float) -> void:
 	if _chess == null or _busy or _move_start_time_ms == 0 or _game_over_shown:
 		return
@@ -119,7 +127,6 @@ func _process(_delta: float) -> void:
 		_hud.update_timer(active, _move_times_ms[active] + elapsed)
 		_hud.update_timer(inactive, _move_times_ms[inactive])
 
-# ──────────────────────────────────────────────────────────────────────────
 func _ready() -> void:
 	if _terrain != null and _board != null:
 		# Keep authored Y/Z so terrain can be fine-tuned manually in game.tscn.
@@ -384,13 +391,6 @@ func _hide_intro_label() -> void:
 	if _intro_overlay != null:
 		_intro_overlay.visible = false
 
-func _human_player_color() -> int:
-	for color in [ChessEnums.PieceColor.WHITE, ChessEnums.PieceColor.BLACK]:
-		var ctrl: PlayerController = _controllers[color] as PlayerController
-		if ctrl != null and not ctrl.is_ai:
-			return color
-	return ChessEnums.PieceColor.WHITE
-
 # ── Piece scene setup ──────────────────────────────────────────────────────
 func _setup_piece_scenes() -> void:
 	var types := {
@@ -496,6 +496,13 @@ func is_human_turn() -> bool:
 	var ctrl: PlayerController = _controllers[color] as PlayerController
 	return ctrl != null and not ctrl.is_ai
 
+func _human_player_color() -> int:
+	for color in [ChessEnums.PieceColor.WHITE, ChessEnums.PieceColor.BLACK]:
+		var ctrl: PlayerController = _controllers[color] as PlayerController
+		if ctrl != null and not ctrl.is_ai:
+			return color
+	return ChessEnums.PieceColor.WHITE
+
 func can_surrender() -> bool:
 	if _game_over_shown or _chess == null:
 		return false
@@ -543,7 +550,7 @@ func _animate_checkmate_end(loser_color: int) -> void:
 	_show_game_over(winner_color, "Checkmate")
 	_start_defeat_sequence(loser_color)
 
-# ── Time-out ───────────────────────────────────────────────────────────────
+# ── Surrender / time-out ───────────────────────────────────────────────────
 func _on_time_out(loser_color: int) -> void:
 	if _game_over_shown:
 		return
@@ -575,7 +582,7 @@ func _format_time(ms: int) -> String:
 		return "%d:%02d" % [mins, sec_rem]
 	return "%d s" % secs
 
-# ── Input (human clicks) ───────────────────────────────────────────────────
+# ── Input routing (human clicks) ───────────────────────────────────────────
 func _unhandled_input(event: InputEvent) -> void:
 	if _busy:
 		return
@@ -655,6 +662,7 @@ func _request_promotion(sq: Vector2i, color: int) -> void:
 	_deselect_piece()
 	emit_signal("promotion_needed", sq, color)
 
+# ── Selection & outline highlights ─────────────────────────────────────────
 func _select_piece(sq: Vector2i) -> void:
 	var bp: BasePiece = _sq_pieces.get(sq) as BasePiece
 	if bp:
@@ -701,6 +709,7 @@ func _clear_check_outline() -> void:
 		_check_outlined_king.clear_outline()
 	_check_outlined_king = null
 
+# ── Board raycast ──────────────────────────────────────────────────────────
 func _raycast_board(screen_pos: Vector2) -> Vector2i:
 	var camera := _camera.get_node("Camera3D") as Camera3D
 	if camera == null:
