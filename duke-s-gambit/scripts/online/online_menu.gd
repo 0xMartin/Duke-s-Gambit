@@ -286,7 +286,7 @@ func _make_room_row(room: Dictionary) -> Control:
 	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var has_pw := bool(room.get("has_password", false))
 	var status := str(room.get("state", "waiting"))
-	var players := int(room.get("player_count", 0))
+	var players := int(room.get("members", 0))
 	var time_ms := int(room.get("time_ms", 0))
 	var time_str := "no limit"
 	if time_ms > 0:
@@ -335,7 +335,7 @@ func _on_room_updated(room: Dictionary) -> void:
 
 func _show_wait_for(room: Dictionary) -> void:
 	_wait_room_title.text = "Room: %s" % str(room.get("name", "?"))
-	var members: Array = room.get("members", [])
+	var members: Array = room.get("members_detail", [])
 	var white_n := ""
 	var black_n := ""
 	for m in members:
