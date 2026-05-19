@@ -3,13 +3,11 @@
 
 #include "ai_state.h"
 
-#include <vector>
-
 namespace godot {
 namespace dukes_ai {
 
 int evaluate_position(SearchState &state);
-void order_moves(std::vector<Move> &moves);
+void order_moves(MoveList &moves);
 int quiescence(SearchState &state, int alpha, int beta, SearchContext &ctx, int depth);
 
 } // namespace dukes_ai

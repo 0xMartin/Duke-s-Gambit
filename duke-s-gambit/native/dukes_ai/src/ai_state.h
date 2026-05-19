@@ -7,7 +7,6 @@
 #include <cstdint>
 #include <string>
 #include <unordered_map>
-#include <vector>
 
 namespace godot {
 namespace dukes_ai {
@@ -24,6 +23,16 @@ struct Move {
 	bool is_capture() const {
 		return move_type == MOVE_CAPTURE || move_type == MOVE_EN_PASSANT || move_type == MOVE_PROMO_CAPTURE;
 	}
+};
+
+// Stack-allocated move list — zero heap allocation in the search tree.
+struct MoveList {
+	std::array<Move, 256> moves;
+	int count = 0;
+	inline void push(const Move &m) { moves[count++] = m; }
+	inline Move *begin() { return moves.data(); }
+	inline Move *end() { return moves.data() + count; }
+	inline size_t size() const { return static_cast<size_t>(count); }
 };
 
 struct UndoState {
@@ -44,6 +53,7 @@ struct UndoState {
 };
 
 struct TTEntry {
+	uint64_t key = 0;
 	int depth = -1;
 	int score = 0;
 	int flag = TT_EXACT;
@@ -58,7 +68,8 @@ struct SearchState {
 	int en_passant_index = -1;
 	int halfmove_clock = 0;
 	int fullmove_number = 1;
-	std::vector<UndoState> history;
+	std::array<UndoState, 512> history_stack;
+	int history_count = 0;
 	uint64_t zobrist_hash = 0;
 
 	static int sq_to_index(int col, int row);
@@ -77,24 +88,24 @@ struct SearchState {
 	void unmake_move();
 	bool can_castle_kingside(int color, int king_idx) const;
 	bool can_castle_queenside(int color, int king_idx) const;
-	std::vector<Move> pawn_moves(int idx, int color) const;
-	std::vector<Move> knight_moves(int idx, int color) const;
-	std::vector<Move> slider_moves(int idx, int color, const std::vector<std::array<int, 2>> &dirs) const;
-	std::vector<Move> king_moves(int idx, int color) const;
-	std::vector<Move> generate_pseudo_legal_moves_for_color(int color) const;
-	std::vector<Move> generate_legal_moves();
+	void pawn_moves(int idx, int color, MoveList &list) const;
+	void knight_moves(int idx, int color, MoveList &list) const;
+	void slider_moves(int idx, int color, const int (*dirs)[2], int ndir, MoveList &list) const;
+	void king_moves(int idx, int color, MoveList &list) const;
+	void generate_pseudo_legal_moves_for_color(int color, MoveList &list) const;
+	void generate_legal_moves(MoveList &list);
+	void generate_tactical_moves(MoveList &list);
 	int count_pseudo_moves(int color) const;
 	uint64_t hash_key() const;
 };
 
 struct SearchContext {
 	std::unordered_map<int, Move> killer_moves;
-	std::unordered_map<uint64_t, TTEntry> tt;
 	Move counter_moves[64][64]; // counter move for previous (from,to)
 	int history[64][64]; // history[from][to] for quiet move ordering
 	uint64_t deadline_ms = 0;
 	bool timed_out = false;
-	SearchContext() : killer_moves(), tt(), deadline_ms(0), timed_out(false) {
+	SearchContext() : killer_moves(), deadline_ms(0), timed_out(false) {
 		for (int i = 0; i < 64; ++i)
 			for (int j = 0; j < 64; ++j)
 				counter_moves[i][j] = Move();

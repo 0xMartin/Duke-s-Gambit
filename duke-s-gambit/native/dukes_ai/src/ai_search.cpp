@@ -9,84 +9,32 @@
 
 #include <algorithm>
 #include <atomic>
-#include <future>
-#include <mutex>
-#include <thread>
 #include <unordered_map>
+#include <vector>
 
 namespace godot {
 namespace dukes_ai {
 
-static std::unordered_map<uint64_t, TTEntry> G_PERSISTENT_TT;
-static std::mutex G_PERSISTENT_TT_MUTEX;
+static std::vector<TTEntry> G_PERSISTENT_TT(1048576);
 static std::atomic<uint32_t> G_TT_GENERATION{0};
-static std::atomic<uint32_t> G_TT_STORE_COUNTER{0};
-static constexpr size_t PERSISTENT_TT_MAX_ENTRIES = 350000;
-static constexpr uint32_t PERSISTENT_TT_KEEP_GENERATIONS = 6;
-static constexpr int PERSISTENT_TT_MIN_PROBE_DEPTH = 4;
-static constexpr uint32_t PERSISTENT_TT_PRUNE_PERIOD = 4096;
+static constexpr size_t TT_MASK = 1048575;
 
-static void prune_persistent_tt_if_needed(uint32_t current_generation) {
-	if (G_PERSISTENT_TT.size() <= PERSISTENT_TT_MAX_ENTRIES) {
-		return;
-	}
-
-	for (auto it = G_PERSISTENT_TT.begin(); it != G_PERSISTENT_TT.end();) {
-		const uint32_t entry_gen = it->second.generation;
-		const uint32_t age = current_generation >= entry_gen ? (current_generation - entry_gen) : 0;
-		if (age > PERSISTENT_TT_KEEP_GENERATIONS) {
-			it = G_PERSISTENT_TT.erase(it);
-		} else {
-			++it;
-		}
-	}
-
-	if (G_PERSISTENT_TT.size() <= PERSISTENT_TT_MAX_ENTRIES) {
-		return;
-	}
-
-	// Safety cap: drop oldest arbitrary tail if aging alone wasn't enough.
-	while (G_PERSISTENT_TT.size() > PERSISTENT_TT_MAX_ENTRIES) {
-		G_PERSISTENT_TT.erase(G_PERSISTENT_TT.begin());
-	}
-}
-
-static bool load_tt_entry(uint64_t key, int depth, SearchContext &ctx, TTEntry &out_entry) {
-	auto it_local = ctx.tt.find(key);
-	if (it_local != ctx.tt.end() && it_local->second.depth >= depth) {
-		out_entry = it_local->second;
+static bool load_tt_entry(uint64_t key, int depth, TTEntry &out_entry) {
+	const size_t index = key & TT_MASK;
+	const TTEntry &entry = G_PERSISTENT_TT[index]; // intentionally lockless
+	if (entry.key == key && entry.depth >= depth) {
+		out_entry = entry;
 		return true;
 	}
-
-	if (depth < PERSISTENT_TT_MIN_PROBE_DEPTH) {
-		return false;
-	}
-
-	std::lock_guard<std::mutex> lock(G_PERSISTENT_TT_MUTEX);
-	auto it_global = G_PERSISTENT_TT.find(key);
-	if (it_global == G_PERSISTENT_TT.end() || it_global->second.depth < depth) {
-		return false;
-	}
-	out_entry = it_global->second;
-	ctx.tt[key] = out_entry;
-	return true;
+	return false;
 }
 
-static void store_tt_entry(uint64_t key, const TTEntry &entry, SearchContext &ctx) {
-	ctx.tt[key] = entry;
-	if (entry.depth < PERSISTENT_TT_MIN_PROBE_DEPTH) {
-		return;
-	}
-
-	std::lock_guard<std::mutex> lock(G_PERSISTENT_TT_MUTEX);
-	auto it = G_PERSISTENT_TT.find(key);
-	if (it == G_PERSISTENT_TT.end() || entry.depth >= it->second.depth) {
-		G_PERSISTENT_TT[key] = entry;
-	}
-
-	const uint32_t stores = G_TT_STORE_COUNTER.fetch_add(1, std::memory_order_relaxed) + 1;
-	if (G_PERSISTENT_TT.size() > PERSISTENT_TT_MAX_ENTRIES && (stores % PERSISTENT_TT_PRUNE_PERIOD) == 0) {
-		prune_persistent_tt_if_needed(entry.generation);
+static void store_tt_entry(uint64_t key, TTEntry entry) {
+	entry.key = key;
+	const size_t index = key & TT_MASK;
+	TTEntry &slot = G_PERSISTENT_TT[index]; // intentionally lockless
+	if (entry.depth >= slot.depth || slot.key != key) {
+		slot = entry;
 	}
 }
 
@@ -201,7 +149,7 @@ static bool see_ge(SearchState &state, const Move &mv, int threshold) {
 	return false;
 }
 
-static void order_moves_with_context(const SearchState &state, std::vector<Move> &moves, const SearchContext &ctx, int depth, int prev_from = -1, int prev_to = -1) {
+static void order_moves_with_context(const SearchState &state, MoveList &moves, const SearchContext &ctx, int depth, int prev_from = -1, int prev_to = -1) {
 	int killer_from = -1, killer_to = -1;
 	auto kit = ctx.killer_moves.find(depth);
 	if (kit != ctx.killer_moves.end()) {
@@ -212,50 +160,46 @@ static void order_moves_with_context(const SearchState &state, std::vector<Move>
 	if (prev_from >= 0 && prev_from < 64 && prev_to >= 0 && prev_to < 64) {
 		counter = ctx.counter_moves[prev_from][prev_to];
 	}
-	std::sort(moves.begin(), moves.end(), [&](const Move &a, const Move &b) {
-		auto score = [&](const Move &mv) -> int {
-			if (mv.is_capture()) {
-				// Check if it's a safe capture (using SEE)
-				bool safe = see_ge(const_cast<SearchState &>(state), mv, 0);
-				
-				if (safe) {
-					// Safe captures: prioritize HEAVILY by material gain
-					// MVV-LVA: Most Valuable Victim, Least Valuable Attacker
-					int victim_value = PIECE_VALUES[mv.captured_type];
-					int attacker_value = PIECE_VALUES[mv.piece_type];
-					// Higher score = better move
-					// Big bonus for capturing queen/rook, small penalty for sacrificing them
-					int score_val = 20000 + victim_value * 100 - attacker_value;
-					return score_val;
-				} else {
-					// Unsafe captures: check if it's a sacrifice that's still worth it
-					// (e.g., sacrificing queen for mate threat would show in search depth)
-					int victim_value = PIECE_VALUES[mv.captured_type];
-					int attacker_value = PIECE_VALUES[mv.piece_type];
-					// Much lower score for bad trades
-					int loss = attacker_value - victim_value;
-					if (loss > 300) {
-						// Big material loss - put it at the end
-						return 1000 + victim_value;
-					} else if (loss > 100) {
-						// Moderate loss - low priority
-						return 2000 + victim_value;
-					} else {
-						// Small loss or queen sacrifice - might be intentional
-						return 3000 + victim_value;
-					}
-				}
+
+	// Pass 1: pre-calculate a score for every move (including SEE for captures).
+	int move_scores[256];
+	for (int i = 0; i < moves.count; ++i) {
+		const Move &mv = moves.moves[i];
+		if (mv.is_capture()) {
+			const bool safe = see_ge(const_cast<SearchState &>(state), mv, 0);
+			const int victim_value   = PIECE_VALUES[mv.captured_type];
+			const int attacker_value = PIECE_VALUES[mv.piece_type];
+			if (safe) {
+				// Safe captures: MVV-LVA with large bonus.
+				move_scores[i] = 20000 + victim_value * 100 - attacker_value;
+			} else {
+				const int loss = attacker_value - victim_value;
+				if (loss > 300) move_scores[i] = 1000 + victim_value;
+				else if (loss > 100) move_scores[i] = 2000 + victim_value;
+				else move_scores[i] = 3000 + victim_value;
 			}
-			if (mv.from == killer_from && mv.to == killer_to) {
-				return 9000;
-			}
-			if (counter.from >= 0 && mv.from == counter.from && mv.to == counter.to) {
-				return 8500;
-			}
-			return ctx.history[mv.from][mv.to];
-		};
-		return score(a) > score(b);
-	});
+		} else if (mv.from == killer_from && mv.to == killer_to) {
+			move_scores[i] = 9000;
+		} else if (counter.from >= 0 && mv.from == counter.from && mv.to == counter.to) {
+			move_scores[i] = 8500;
+		} else {
+			move_scores[i] = ctx.history[mv.from][mv.to];
+		}
+	}
+
+	// Pass 2: insertion sort descending by pre-calculated score.
+	for (int i = 1; i < moves.count; ++i) {
+		Move  key_move  = moves.moves[i];
+		int   key_score = move_scores[i];
+		int j = i - 1;
+		while (j >= 0 && move_scores[j] < key_score) {
+			moves.moves[j + 1]  = moves.moves[j];
+			move_scores[j + 1] = move_scores[j];
+			--j;
+		}
+		moves.moves[j + 1]  = key_move;
+		move_scores[j + 1] = key_score;
+	}
 }
 
 static int minimax(SearchState &state, int depth, int alpha, int beta, SearchContext &ctx) {
@@ -271,7 +215,7 @@ static int minimax(SearchState &state, int depth, int alpha, int beta, SearchCon
 	const int alpha_orig = alpha;
 	const uint64_t key = state.hash_key();
 	TTEntry e;
-	if (load_tt_entry(key, depth, ctx, e)) {
+	if (load_tt_entry(key, depth, e)) {
 		if (e.flag == TT_EXACT) {
 			return e.score;
 		}
@@ -324,15 +268,17 @@ static int minimax(SearchState &state, int depth, int alpha, int beta, SearchCon
 		}
 	}
 
-	std::vector<Move> legal = state.generate_legal_moves();
-	if (legal.empty()) {
+	MoveList legal;
+	state.generate_pseudo_legal_moves_for_color(state.active_color, legal);
+	const int moving_color = state.active_color;
+	if (legal.count == 0) {
 		return in_check ? -MATE_SCORE : 0;
 	}
 
 	int prev_from = -1;
 	int prev_to = -1;
-	if (!state.history.empty()) {
-		const UndoState &last = state.history.back();
+	if (state.history_count > 0) {
+		const UndoState &last = state.history_stack[state.history_count - 1];
 		prev_from = last.from_idx;
 		prev_to = last.to_idx;
 	}
@@ -340,27 +286,30 @@ static int minimax(SearchState &state, int depth, int alpha, int beta, SearchCon
 	order_moves_with_context(state, legal, ctx, depth, prev_from, prev_to);
 
 	int best_score = -100000;
-	for (int i = 0; i < (int)legal.size(); ++i) {
+	int legal_move_count = 0;
+	for (int i = 0; i < legal.count; ++i) {
 		if (godot::Time::get_singleton()->get_ticks_msec() >= ctx.deadline_ms) {
 			ctx.timed_out = true;
 			break;
 		}
-		const Move &mv = legal[i];
-		if (can_futility && i >= 4 && !mv.is_capture()) {
+		const Move &mv = legal.moves[i];
+		if (can_futility && legal_move_count >= 4 && !mv.is_capture()) {
 			const int move_margin = (depth == 1) ? 120 : 260;
 			if (static_eval + move_margin <= alpha) {
 				continue;
 			}
 		}
 		state.make_move(mv);
+		if (state.is_in_check(moving_color)) { state.unmake_move(); continue; }
+		const int this_legal_idx = legal_move_count++;
 		int score;
-		if (i == 0) {
-			// First move: full window search
+		if (this_legal_idx == 0) {
+			// First legal move: full window search
 			score = -minimax(state, depth - 1, -beta, -alpha, ctx);
 		} else {
 			// Late move reduction: reduce depth for quiet non-critical moves
 			int new_depth = depth - 1;
-			if (!mv.is_capture() && !in_check && depth >= 3 && i >= 4) {
+			if (!mv.is_capture() && !in_check && depth >= 3 && this_legal_idx >= 4) {
 				new_depth = depth - 2;
 			}
 			// PVS: null window search, then re-search if promising
@@ -387,6 +336,10 @@ static int minimax(SearchState &state, int depth, int alpha, int beta, SearchCon
 		}
 	}
 
+	if (legal_move_count == 0) {
+		return in_check ? -MATE_SCORE : 0;
+	}
+
 	if (!ctx.timed_out && best_score > -100000) {
 		TTEntry store;
 		store.depth = depth;
@@ -395,7 +348,7 @@ static int minimax(SearchState &state, int depth, int alpha, int beta, SearchCon
 		store.generation = G_TT_GENERATION.load(std::memory_order_relaxed);
 		if (best_score <= alpha_orig) store.flag = TT_UPPER;
 		else if (best_score >= beta) store.flag = TT_LOWER;
-		store_tt_entry(key, store, ctx);
+		store_tt_entry(key, store);
 	}
 
 	return best_score > -100000 ? best_score : alpha_orig;
@@ -496,15 +449,16 @@ Dictionary find_best_move_internal(Dictionary position, int32_t depth, int32_t t
 	const uint64_t search_start_ms = now_ms();
 	uint64_t last_iteration_ms = 0;
 
-	std::vector<Move> root_moves = state.generate_legal_moves();
-	if (root_moves.empty()) {
+	MoveList root_moves;
+	state.generate_legal_moves(root_moves);
+	if (root_moves.count == 0) {
 		Dictionary none;
 		none["ok"] = false;
 		none["error"] = String("No legal moves");
 		return none;
 	}
 
-	Move best_move = root_moves[0];
+	Move best_move = root_moves.moves[0];
 	int best_score = -100000;
 	int reached_depth = 0;
 
@@ -528,7 +482,7 @@ Dictionary find_best_move_internal(Dictionary position, int32_t depth, int32_t t
 		auto search_root_with_window = [&](int alpha, int beta, int &out_score, Move &out_move) {
 			int local_alpha = alpha;
 			int local_best_score = -100000;
-			Move local_best_move = root_moves[0];
+			Move local_best_move = root_moves.moves[0];
 
 			// Keep principal variation move on the main thread.
 			if (now_ms() >= ctx.deadline_ms) {
@@ -538,7 +492,7 @@ Dictionary find_best_move_internal(Dictionary position, int32_t depth, int32_t t
 				return;
 			}
 			{
-				const Move &mv = root_moves[0];
+				const Move &mv = root_moves.moves[0];
 				state.make_move(mv);
 				int mv_score = -minimax(state, current_depth - 1, -beta, -local_alpha, ctx);
 				state.unmake_move();
@@ -555,131 +509,28 @@ Dictionary find_best_move_internal(Dictionary position, int32_t depth, int32_t t
 				}
 			}
 
-			const uint64_t now = now_ms();
-			const uint64_t time_left_ms = (ctx.deadline_ms > now) ? (ctx.deadline_ms - now) : 0;
-			const bool enable_parallel = (current_depth >= 4 && root_moves.size() >= 6 && time_left_ms >= 25);
-			const unsigned hw = std::thread::hardware_concurrency();
-			const unsigned physical_like = (hw == 0) ? 2u : hw;
-			const unsigned max_workers = std::max(1u, physical_like - 1u);
-
-			if (enable_parallel && max_workers > 1) {
-				struct RootTaskResult {
-					int score;
-					Move move;
-					bool timed_out;
-				};
-
-				SearchState root_state = state;
-				const int alpha_snapshot = local_alpha;
-				std::vector<std::future<RootTaskResult>> futures;
-				futures.reserve(root_moves.size() - 1);
-				std::vector<RootTaskResult> probe_results;
-				probe_results.reserve(root_moves.size() - 1);
-				std::vector<RootTaskResult> promising;
-				promising.reserve(root_moves.size() - 1);
-
-				auto consume_probe_result = [&](RootTaskResult result) {
-					if (result.timed_out) {
-						ctx.timed_out = true;
-						return;
-					}
-					probe_results.push_back(result);
-				};
-
-				for (int i = 1; i < (int)root_moves.size(); ++i) {
-					if (now_ms() >= ctx.deadline_ms) {
-						ctx.timed_out = true;
-						break;
-					}
-
-					const Move mv = root_moves[i];
-					futures.push_back(std::async(std::launch::async, [&root_state, mv, current_depth, alpha_snapshot, deadline_ms = ctx.deadline_ms]() -> RootTaskResult {
-						SearchState local_state = root_state;
-						SearchContext local_ctx;
-						local_ctx.deadline_ms = deadline_ms;
-						local_state.make_move(mv);
-						// Null-window probe first. Full re-search is only done for promising moves.
-						const int score = -minimax(local_state, current_depth - 1, -alpha_snapshot - 1, -alpha_snapshot, local_ctx);
-						return {score, mv, local_ctx.timed_out};
-					}));
-
-					if (futures.size() >= max_workers) {
-						RootTaskResult result = futures.front().get();
-						futures.erase(futures.begin());
-						consume_probe_result(result);
-						if (ctx.timed_out) {
-							break;
-						}
-					}
+			for (int i = 1; i < root_moves.count; ++i) {
+				if (now_ms() >= ctx.deadline_ms) {
+					ctx.timed_out = true;
+					break;
+				}
+				const Move &mv = root_moves.moves[i];
+				state.make_move(mv);
+				int mv_score = -minimax(state, current_depth - 1, -local_alpha - 1, -local_alpha, ctx);
+				if (!ctx.timed_out && mv_score > local_alpha && mv_score < beta) {
+					mv_score = -minimax(state, current_depth - 1, -beta, -local_alpha, ctx);
+				}
+				state.unmake_move();
+				if (ctx.timed_out) {
+					break;
 				}
 
-				for (auto &fut : futures) {
-					RootTaskResult result = fut.get();
-					consume_probe_result(result);
-					if (ctx.timed_out) {
-						break;
-					}
+				if (mv_score > local_best_score) {
+					local_best_score = mv_score;
+					local_best_move = mv;
 				}
-
-				if (!ctx.timed_out) {
-					for (const RootTaskResult &r : probe_results) {
-						if (r.score > local_best_score) {
-							local_best_score = r.score;
-							local_best_move = r.move;
-						}
-						if (r.score > local_alpha) {
-							promising.push_back(r);
-						}
-					}
-
-					std::sort(promising.begin(), promising.end(), [](const RootTaskResult &a, const RootTaskResult &b) {
-						return a.score > b.score;
-					});
-
-					for (const RootTaskResult &r : promising) {
-						if (now_ms() >= ctx.deadline_ms) {
-							ctx.timed_out = true;
-							break;
-						}
-						SearchState verify_state = state;
-						verify_state.make_move(r.move);
-						int full_score = -minimax(verify_state, current_depth - 1, -beta, -local_alpha, ctx);
-						if (ctx.timed_out) {
-							break;
-						}
-						if (full_score > local_best_score) {
-							local_best_score = full_score;
-							local_best_move = r.move;
-						}
-						if (full_score > local_alpha) {
-							local_alpha = full_score;
-						}
-					}
-				}
-			} else {
-				for (int i = 1; i < (int)root_moves.size(); ++i) {
-					if (now_ms() >= ctx.deadline_ms) {
-						ctx.timed_out = true;
-						break;
-					}
-					const Move &mv = root_moves[i];
-					state.make_move(mv);
-					int mv_score = -minimax(state, current_depth - 1, -local_alpha - 1, -local_alpha, ctx);
-					if (!ctx.timed_out && mv_score > local_alpha && mv_score < beta) {
-						mv_score = -minimax(state, current_depth - 1, -beta, -local_alpha, ctx);
-					}
-					state.unmake_move();
-					if (ctx.timed_out) {
-						break;
-					}
-
-					if (mv_score > local_best_score) {
-						local_best_score = mv_score;
-						local_best_move = mv;
-					}
-					if (mv_score > local_alpha) {
-						local_alpha = mv_score;
-					}
+				if (mv_score > local_alpha) {
+					local_alpha = mv_score;
 				}
 			}
 
@@ -724,9 +575,9 @@ Dictionary find_best_move_internal(Dictionary position, int32_t depth, int32_t t
 		last_iteration_ms = now_ms() - iteration_start_ms;
 
 		// Move best move to front for better ordering in next iteration
-		for (int i = 1; i < (int)root_moves.size(); ++i) {
-			if (root_moves[i].from == best_move.from && root_moves[i].to == best_move.to) {
-				std::swap(root_moves[0], root_moves[i]);
+		for (int i = 1; i < root_moves.count; ++i) {
+			if (root_moves.moves[i].from == best_move.from && root_moves.moves[i].to == best_move.to) {
+				std::swap(root_moves.moves[0], root_moves.moves[i]);
 				break;
 			}
 		}

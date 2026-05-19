@@ -1,5 +1,6 @@
 #include "ai_state.h"
 
+#include <bit>
 #include <cstdlib>
 
 namespace godot {
@@ -65,43 +66,43 @@ bool SearchState::is_square_attacked(int idx, int by_color) const {
 	const int col = idx_col(idx);
 	const int row = idx_row(idx);
 
-	static const int knight_offsets[8][2] = {{2,1},{2,-1},{-2,1},{-2,-1},{1,2},{1,-2},{-1,2},{-1,-2}};
-	for (const auto &off : knight_offsets) {
-		const int c = col + off[0];
-		const int r = row + off[1];
-		if (c < 0 || c > 7 || r < 0 || r > 7) {
-			continue;
+	{
+		static const int knight_offsets[8][2] = {{2,1},{2,-1},{-2,1},{-2,-1},{1,2},{1,-2},{-1,2},{-1,-2}};
+		uint64_t knight_attacks = 0;
+		for (const auto &off : knight_offsets) {
+			const int c = col + off[0];
+			const int r = row + off[1];
+			if (c >= 0 && c < 8 && r >= 0 && r < 8) {
+				knight_attacks |= uint64_t(1) << sq_to_index(c, r);
+			}
 		}
-		const int code = board[sq_to_index(c, r)];
-		if (code != 0 && piece_color_from_code(code) == by_color && piece_type_from_code(code) == PIECE_KNIGHT) {
-			return true;
-		}
+		if (knight_attacks & piece_bb[piece_code(PIECE_KNIGHT, by_color)]) return true;
 	}
 
-	const int pawn_dir = by_color == WHITE ? -1 : 1;
-	for (int dc : {-1, 1}) {
-		const int c = col + dc;
-		const int r = row + pawn_dir;
-		if (c < 0 || c > 7 || r < 0 || r > 7) {
-			continue;
+	{
+		const int pawn_dir = by_color == WHITE ? -1 : 1;
+		uint64_t pawn_attacks = 0;
+		for (int dc : {-1, 1}) {
+			const int c = col + dc;
+			const int r = row + pawn_dir;
+			if (c >= 0 && c < 8 && r >= 0 && r < 8) {
+				pawn_attacks |= uint64_t(1) << sq_to_index(c, r);
+			}
 		}
-		const int code = board[sq_to_index(c, r)];
-		if (code != 0 && piece_color_from_code(code) == by_color && piece_type_from_code(code) == PIECE_PAWN) {
-			return true;
-		}
+		if (pawn_attacks & piece_bb[piece_code(PIECE_PAWN, by_color)]) return true;
 	}
 
-	static const int king_offsets[8][2] = {{1,0},{-1,0},{0,1},{0,-1},{1,1},{1,-1},{-1,1},{-1,-1}};
-	for (const auto &off : king_offsets) {
-		const int c = col + off[0];
-		const int r = row + off[1];
-		if (c < 0 || c > 7 || r < 0 || r > 7) {
-			continue;
+	{
+		static const int king_offsets[8][2] = {{1,0},{-1,0},{0,1},{0,-1},{1,1},{1,-1},{-1,1},{-1,-1}};
+		uint64_t king_attacks = 0;
+		for (const auto &off : king_offsets) {
+			const int c = col + off[0];
+			const int r = row + off[1];
+			if (c >= 0 && c < 8 && r >= 0 && r < 8) {
+				king_attacks |= uint64_t(1) << sq_to_index(c, r);
+			}
 		}
-		const int code = board[sq_to_index(c, r)];
-		if (code != 0 && piece_color_from_code(code) == by_color && piece_type_from_code(code) == PIECE_KING) {
-			return true;
-		}
+		if (king_attacks & piece_bb[piece_code(PIECE_KING, by_color)]) return true;
 	}
 
 	static const int rook_dirs[4][2] = {{1,0},{-1,0},{0,1},{0,-1}};
@@ -153,16 +154,7 @@ bool SearchState::is_in_check(int color) const {
 	if (bb == 0) {
 		return false;
 	}
-	int king_idx = -1;
-	for (int i = 0; i < 64; ++i) {
-		if ((bb >> i) & 1ULL) {
-			king_idx = i;
-			break;
-		}
-	}
-	if (king_idx < 0) {
-		return false;
-	}
+	const int king_idx = std::countr_zero(bb);
 	return is_square_attacked(king_idx, 1 - color);
 }
 
@@ -218,7 +210,7 @@ void SearchState::make_move(const Move &mv) {
 		st.rook_code = board[st.rook_from];
 	}
 
-	history.push_back(st);
+	history_stack[history_count++] = st;
 
 	if (mv.piece_type == PIECE_PAWN || mv.is_capture()) {
 		halfmove_clock = 0;
@@ -298,11 +290,10 @@ void SearchState::make_move(const Move &mv) {
 }
 
 void SearchState::unmake_move() {
-	if (history.empty()) {
+	if (history_count == 0) {
 		return;
 	}
-	UndoState st = history.back();
-	history.pop_back();
+	const UndoState &st = history_stack[--history_count];
 
 	active_color = 1 - active_color;
 	castling_rights = st.prev_castling;
@@ -362,8 +353,7 @@ bool SearchState::can_castle_queenside(int color, int king_idx) const {
 	return true;
 }
 
-std::vector<Move> SearchState::pawn_moves(int idx, int color) const {
-	std::vector<Move> moves;
+void SearchState::pawn_moves(int idx, int color, MoveList &list) const {
 	const int col = idx_col(idx);
 	const int row = idx_row(idx);
 	const int dir = color == WHITE ? 1 : -1;
@@ -376,16 +366,16 @@ std::vector<Move> SearchState::pawn_moves(int idx, int color) const {
 		if (board[one_idx] == 0) {
 			if (one_row == promo_row) {
 				for (int pt : {PIECE_QUEEN, PIECE_ROOK, PIECE_BISHOP, PIECE_KNIGHT}) {
-					moves.push_back({idx, one_idx, MOVE_PROMOTION, PIECE_PAWN, color, PIECE_NONE, pt});
+					list.push({idx, one_idx, MOVE_PROMOTION, PIECE_PAWN, color, PIECE_NONE, pt});
 				}
 			} else {
-				moves.push_back({idx, one_idx, MOVE_NORMAL, PIECE_PAWN, color, PIECE_NONE, PIECE_QUEEN});
+				list.push({idx, one_idx, MOVE_NORMAL, PIECE_PAWN, color, PIECE_NONE, PIECE_QUEEN});
 			}
 			if (row == start_row) {
 				const int two_row = row + dir * 2;
 				const int two_idx = sq_to_index(col, two_row);
 				if (board[two_idx] == 0) {
-					moves.push_back({idx, two_idx, MOVE_NORMAL, PIECE_PAWN, color, PIECE_NONE, PIECE_QUEEN});
+					list.push({idx, two_idx, MOVE_NORMAL, PIECE_PAWN, color, PIECE_NONE, PIECE_QUEEN});
 				}
 			}
 		}
@@ -403,24 +393,20 @@ std::vector<Move> SearchState::pawn_moves(int idx, int color) const {
 			const int cap_type = piece_type_from_code(cap_code);
 			if (r == promo_row) {
 				for (int pt : {PIECE_QUEEN, PIECE_ROOK, PIECE_BISHOP, PIECE_KNIGHT}) {
-					moves.push_back({idx, cap_idx, MOVE_PROMO_CAPTURE, PIECE_PAWN, color, cap_type, pt});
+					list.push({idx, cap_idx, MOVE_PROMO_CAPTURE, PIECE_PAWN, color, cap_type, pt});
 				}
 			} else {
-				moves.push_back({idx, cap_idx, MOVE_CAPTURE, PIECE_PAWN, color, cap_type, PIECE_QUEEN});
+				list.push({idx, cap_idx, MOVE_CAPTURE, PIECE_PAWN, color, cap_type, PIECE_QUEEN});
 			}
 		} else if (en_passant_index == cap_idx) {
-			moves.push_back({idx, cap_idx, MOVE_EN_PASSANT, PIECE_PAWN, color, PIECE_PAWN, PIECE_QUEEN});
+			list.push({idx, cap_idx, MOVE_EN_PASSANT, PIECE_PAWN, color, PIECE_PAWN, PIECE_QUEEN});
 		}
 	}
-
-	return moves;
 }
-
-std::vector<Move> SearchState::knight_moves(int idx, int color) const {
-	std::vector<Move> moves;
+void SearchState::knight_moves(int idx, int color, MoveList &list) const {
 	const int col = idx_col(idx);
 	const int row = idx_row(idx);
-	static const int offsets[8][2] = {{2,1},{2,-1},{-2,1},{-2,-1},{1,2},{1,-2},{-1,2},{-1,-2}};
+	static constexpr int offsets[8][2] = {{2,1},{2,-1},{-2,1},{-2,-1},{1,2},{1,-2},{-1,2},{-1,-2}};
 	for (const auto &off : offsets) {
 		const int c = col + off[0];
 		const int r = row + off[1];
@@ -430,45 +416,41 @@ std::vector<Move> SearchState::knight_moves(int idx, int color) const {
 		const int t_idx = sq_to_index(c, r);
 		const int target = board[t_idx];
 		if (target == 0) {
-			moves.push_back({idx, t_idx, MOVE_NORMAL, PIECE_KNIGHT, color, PIECE_NONE, PIECE_QUEEN});
+			list.push({idx, t_idx, MOVE_NORMAL, PIECE_KNIGHT, color, PIECE_NONE, PIECE_QUEEN});
 		} else if (piece_color_from_code(target) != color) {
-			moves.push_back({idx, t_idx, MOVE_CAPTURE, PIECE_KNIGHT, color, piece_type_from_code(target), PIECE_QUEEN});
+			list.push({idx, t_idx, MOVE_CAPTURE, PIECE_KNIGHT, color, piece_type_from_code(target), PIECE_QUEEN});
 		}
 	}
-	return moves;
 }
 
-std::vector<Move> SearchState::slider_moves(int idx, int color, const std::vector<std::array<int, 2>> &dirs) const {
-	std::vector<Move> moves;
+void SearchState::slider_moves(int idx, int color, const int (*dirs)[2], int ndir, MoveList &list) const {
 	const int col = idx_col(idx);
 	const int row = idx_row(idx);
 	const int piece_type = piece_type_from_code(board[idx]);
-	for (const auto &d : dirs) {
-		int c = col + d[0];
-		int r = row + d[1];
+	for (int di = 0; di < ndir; ++di) {
+		int c = col + dirs[di][0];
+		int r = row + dirs[di][1];
 		while (c >= 0 && c < 8 && r >= 0 && r < 8) {
 			const int t_idx = sq_to_index(c, r);
 			const int target = board[t_idx];
 			if (target == 0) {
-				moves.push_back({idx, t_idx, MOVE_NORMAL, piece_type, color, PIECE_NONE, PIECE_QUEEN});
+				list.push({idx, t_idx, MOVE_NORMAL, piece_type, color, PIECE_NONE, PIECE_QUEEN});
 			} else if (piece_color_from_code(target) != color) {
-				moves.push_back({idx, t_idx, MOVE_CAPTURE, piece_type, color, piece_type_from_code(target), PIECE_QUEEN});
+				list.push({idx, t_idx, MOVE_CAPTURE, piece_type, color, piece_type_from_code(target), PIECE_QUEEN});
 				break;
 			} else {
 				break;
 			}
-			c += d[0];
-			r += d[1];
+			c += dirs[di][0];
+			r += dirs[di][1];
 		}
 	}
-	return moves;
 }
 
-std::vector<Move> SearchState::king_moves(int idx, int color) const {
-	std::vector<Move> moves;
+void SearchState::king_moves(int idx, int color, MoveList &list) const {
 	const int col = idx_col(idx);
 	const int row = idx_row(idx);
-	static const int offsets[8][2] = {{1,0},{-1,0},{0,1},{0,-1},{1,1},{1,-1},{-1,1},{-1,-1}};
+	static constexpr int offsets[8][2] = {{1,0},{-1,0},{0,1},{0,-1},{1,1},{1,-1},{-1,1},{-1,-1}};
 	for (const auto &off : offsets) {
 		const int c = col + off[0];
 		const int r = row + off[1];
@@ -478,73 +460,229 @@ std::vector<Move> SearchState::king_moves(int idx, int color) const {
 		const int t_idx = sq_to_index(c, r);
 		const int target = board[t_idx];
 		if (target == 0) {
-			moves.push_back({idx, t_idx, MOVE_NORMAL, PIECE_KING, color, PIECE_NONE, PIECE_QUEEN});
+			list.push({idx, t_idx, MOVE_NORMAL, PIECE_KING, color, PIECE_NONE, PIECE_QUEEN});
 		} else if (piece_color_from_code(target) != color) {
-			moves.push_back({idx, t_idx, MOVE_CAPTURE, PIECE_KING, color, piece_type_from_code(target), PIECE_QUEEN});
+			list.push({idx, t_idx, MOVE_CAPTURE, PIECE_KING, color, piece_type_from_code(target), PIECE_QUEEN});
 		}
 	}
 	const int ks_bit = color == WHITE ? 0 : 2;
 	const int qs_bit = color == WHITE ? 1 : 3;
 	if (((castling_rights >> ks_bit) & 1) == 1 && can_castle_kingside(color, idx)) {
-		moves.push_back({idx, sq_to_index(1, row), MOVE_CASTLE_K, PIECE_KING, color, PIECE_NONE, PIECE_QUEEN});
+		list.push({idx, sq_to_index(1, row), MOVE_CASTLE_K, PIECE_KING, color, PIECE_NONE, PIECE_QUEEN});
 	}
 	if (((castling_rights >> qs_bit) & 1) == 1 && can_castle_queenside(color, idx)) {
-		moves.push_back({idx, sq_to_index(5, row), MOVE_CASTLE_Q, PIECE_KING, color, PIECE_NONE, PIECE_QUEEN});
+		list.push({idx, sq_to_index(5, row), MOVE_CASTLE_Q, PIECE_KING, color, PIECE_NONE, PIECE_QUEEN});
 	}
-	return moves;
 }
 
-std::vector<Move> SearchState::generate_pseudo_legal_moves_for_color(int color) const {
-	std::vector<Move> moves;
+void SearchState::generate_pseudo_legal_moves_for_color(int color, MoveList &list) const {
+	static constexpr int ROOK_DIRS[4][2]   = {{1,0},{-1,0},{0,1},{0,-1}};
+	static constexpr int BISHOP_DIRS[4][2] = {{1,1},{1,-1},{-1,1},{-1,-1}};
+	static constexpr int QUEEN_DIRS[8][2]  = {{1,0},{-1,0},{0,1},{0,-1},{1,1},{1,-1},{-1,1},{-1,-1}};
+
 	const int start_code = color == WHITE ? 1 : 7;
 	for (int code = start_code; code < start_code + 6; ++code) {
 		uint64_t bb = piece_bb[code];
-		for (int idx = 0; idx < 64; ++idx) {
-			if (((bb >> idx) & 1ULL) == 0ULL) {
-				continue;
-			}
+		while (bb) {
+			const int idx = std::countr_zero(bb);
+			bb &= bb - 1;
 			const int pt = piece_type_from_code(code);
-			if (pt == PIECE_PAWN) {
-				auto pm = pawn_moves(idx, color);
-				moves.insert(moves.end(), pm.begin(), pm.end());
-			} else if (pt == PIECE_KNIGHT) {
-				auto km = knight_moves(idx, color);
-				moves.insert(moves.end(), km.begin(), km.end());
-			} else if (pt == PIECE_BISHOP) {
-				auto sm = slider_moves(idx, color, {{{1,1}, {1,-1}, {-1,1}, {-1,-1}}});
-				moves.insert(moves.end(), sm.begin(), sm.end());
-			} else if (pt == PIECE_ROOK) {
-				auto sm = slider_moves(idx, color, {{{1,0}, {-1,0}, {0,1}, {0,-1}}});
-				moves.insert(moves.end(), sm.begin(), sm.end());
-			} else if (pt == PIECE_QUEEN) {
-				auto sm = slider_moves(idx, color, {{{1,0}, {-1,0}, {0,1}, {0,-1}, {1,1}, {1,-1}, {-1,1}, {-1,-1}}});
-				moves.insert(moves.end(), sm.begin(), sm.end());
-			} else if (pt == PIECE_KING) {
-				auto km = king_moves(idx, color);
-				moves.insert(moves.end(), km.begin(), km.end());
-			}
+			if      (pt == PIECE_PAWN)   pawn_moves(idx, color, list);
+			else if (pt == PIECE_ROOK)   slider_moves(idx, color, ROOK_DIRS, 4, list);
+			else if (pt == PIECE_KNIGHT) knight_moves(idx, color, list);
+			else if (pt == PIECE_BISHOP) slider_moves(idx, color, BISHOP_DIRS, 4, list);
+			else if (pt == PIECE_QUEEN)  slider_moves(idx, color, QUEEN_DIRS, 8, list);
+			else if (pt == PIECE_KING)   king_moves(idx, color, list);
 		}
 	}
-	return moves;
 }
 
-std::vector<Move> SearchState::generate_legal_moves() {
-	std::vector<Move> pseudo = generate_pseudo_legal_moves_for_color(active_color);
-	std::vector<Move> legal;
-	legal.reserve(pseudo.size());
-	for (const Move &mv : pseudo) {
-		const int moving_color = active_color;
-		make_move(mv);
+void SearchState::generate_legal_moves(MoveList &list) {
+	MoveList pseudo;
+	generate_pseudo_legal_moves_for_color(active_color, pseudo);
+	const int moving_color = active_color;
+	for (int i = 0; i < pseudo.count; ++i) {
+		make_move(pseudo.moves[i]);
 		if (!is_in_check(moving_color)) {
-			legal.push_back(mv);
+			list.push(pseudo.moves[i]);
 		}
 		unmake_move();
 	}
-	return legal;
+}
+
+// Generates only captures and promotions (no quiet moves).
+// Returns pseudo-legal moves; caller must verify legality via make_move + is_in_check.
+void SearchState::generate_tactical_moves(MoveList &list) {
+	const int color = active_color;
+	const int dir    = color == WHITE ? 1 : -1;
+	const int promo_row = color == WHITE ? 7 : 0;
+
+	// Pawns: quiet promotions + diagonal captures (including promo-captures + en-passant)
+	{
+		uint64_t bb = piece_bb[piece_code(PIECE_PAWN, color)];
+		while (bb) {
+			const int idx = std::countr_zero(bb);
+			bb &= bb - 1;
+			const int col = idx_col(idx);
+			const int row = idx_row(idx);
+
+			// Quiet promotion (single push to back rank)
+			const int one_row = row + dir;
+			if (one_row == promo_row && one_row >= 0 && one_row < 8) {
+				const int one_idx = sq_to_index(col, one_row);
+				if (board[one_idx] == 0) {
+					for (int pt : {PIECE_QUEEN, PIECE_ROOK, PIECE_BISHOP, PIECE_KNIGHT}) {
+						list.push({idx, one_idx, MOVE_PROMOTION, PIECE_PAWN, color, PIECE_NONE, pt});
+					}
+				}
+			}
+
+			// Diagonal captures
+			for (int dc : {-1, 1}) {
+				const int c = col + dc;
+				const int r = row + dir;
+				if (c < 0 || c > 7 || r < 0 || r > 7) continue;
+				const int cap_idx = sq_to_index(c, r);
+				const int cap_code = board[cap_idx];
+				if (cap_code != 0 && piece_color_from_code(cap_code) != color) {
+					const int cap_type = piece_type_from_code(cap_code);
+					if (r == promo_row) {
+						for (int pt : {PIECE_QUEEN, PIECE_ROOK, PIECE_BISHOP, PIECE_KNIGHT}) {
+							list.push({idx, cap_idx, MOVE_PROMO_CAPTURE, PIECE_PAWN, color, cap_type, pt});
+						}
+					} else {
+						list.push({idx, cap_idx, MOVE_CAPTURE, PIECE_PAWN, color, cap_type, PIECE_QUEEN});
+					}
+				} else if (en_passant_index == cap_idx) {
+					list.push({idx, cap_idx, MOVE_EN_PASSANT, PIECE_PAWN, color, PIECE_PAWN, PIECE_QUEEN});
+				}
+			}
+		}
+	}
+
+	// Knights: captures only
+	{
+		uint64_t bb = piece_bb[piece_code(PIECE_KNIGHT, color)];
+		static constexpr int offsets[8][2] = {{2,1},{2,-1},{-2,1},{-2,-1},{1,2},{1,-2},{-1,2},{-1,-2}};
+		while (bb) {
+			const int idx = std::countr_zero(bb);
+			bb &= bb - 1;
+			const int col = idx_col(idx);
+			const int row = idx_row(idx);
+			for (const auto &off : offsets) {
+				const int c = col + off[0];
+				const int r = row + off[1];
+				if (c < 0 || c > 7 || r < 0 || r > 7) continue;
+				const int t_idx = sq_to_index(c, r);
+				const int target = board[t_idx];
+				if (target != 0 && piece_color_from_code(target) != color) {
+					list.push({idx, t_idx, MOVE_CAPTURE, PIECE_KNIGHT, color, piece_type_from_code(target), PIECE_QUEEN});
+				}
+			}
+		}
+	}
+
+	// Bishops: captures only
+	{
+		uint64_t bb = piece_bb[piece_code(PIECE_BISHOP, color)];
+		static constexpr int dirs[4][2] = {{1,1},{1,-1},{-1,1},{-1,-1}};
+		while (bb) {
+			const int idx = std::countr_zero(bb);
+			bb &= bb - 1;
+			const int col = idx_col(idx);
+			const int row = idx_row(idx);
+			for (const auto &d : dirs) {
+				int c = col + d[0]; int r = row + d[1];
+				while (c >= 0 && c < 8 && r >= 0 && r < 8) {
+					const int t_idx = sq_to_index(c, r);
+					const int target = board[t_idx];
+					if (target != 0) {
+						if (piece_color_from_code(target) != color)
+							list.push({idx, t_idx, MOVE_CAPTURE, PIECE_BISHOP, color, piece_type_from_code(target), PIECE_QUEEN});
+						break;
+					}
+					c += d[0]; r += d[1];
+				}
+			}
+		}
+	}
+
+	// Rooks: captures only
+	{
+		uint64_t bb = piece_bb[piece_code(PIECE_ROOK, color)];
+		static constexpr int dirs[4][2] = {{1,0},{-1,0},{0,1},{0,-1}};
+		while (bb) {
+			const int idx = std::countr_zero(bb);
+			bb &= bb - 1;
+			const int col = idx_col(idx);
+			const int row = idx_row(idx);
+			for (const auto &d : dirs) {
+				int c = col + d[0]; int r = row + d[1];
+				while (c >= 0 && c < 8 && r >= 0 && r < 8) {
+					const int t_idx = sq_to_index(c, r);
+					const int target = board[t_idx];
+					if (target != 0) {
+						if (piece_color_from_code(target) != color)
+							list.push({idx, t_idx, MOVE_CAPTURE, PIECE_ROOK, color, piece_type_from_code(target), PIECE_QUEEN});
+						break;
+					}
+					c += d[0]; r += d[1];
+				}
+			}
+		}
+	}
+
+	// Queens: captures only
+	{
+		uint64_t bb = piece_bb[piece_code(PIECE_QUEEN, color)];
+		static constexpr int dirs[8][2] = {{1,0},{-1,0},{0,1},{0,-1},{1,1},{1,-1},{-1,1},{-1,-1}};
+		while (bb) {
+			const int idx = std::countr_zero(bb);
+			bb &= bb - 1;
+			const int col = idx_col(idx);
+			const int row = idx_row(idx);
+			for (const auto &d : dirs) {
+				int c = col + d[0]; int r = row + d[1];
+				while (c >= 0 && c < 8 && r >= 0 && r < 8) {
+					const int t_idx = sq_to_index(c, r);
+					const int target = board[t_idx];
+					if (target != 0) {
+						if (piece_color_from_code(target) != color)
+							list.push({idx, t_idx, MOVE_CAPTURE, PIECE_QUEEN, color, piece_type_from_code(target), PIECE_QUEEN});
+						break;
+					}
+					c += d[0]; r += d[1];
+				}
+			}
+		}
+	}
+
+	// King: captures only
+	{
+		uint64_t bb = piece_bb[piece_code(PIECE_KING, color)];
+		if (bb) {
+			const int idx = std::countr_zero(bb);
+			const int col = idx_col(idx);
+			const int row = idx_row(idx);
+			static constexpr int offsets[8][2] = {{1,0},{-1,0},{0,1},{0,-1},{1,1},{1,-1},{-1,1},{-1,-1}};
+			for (const auto &off : offsets) {
+				const int c = col + off[0];
+				const int r = row + off[1];
+				if (c < 0 || c > 7 || r < 0 || r > 7) continue;
+				const int t_idx = sq_to_index(c, r);
+				const int target = board[t_idx];
+				if (target != 0 && piece_color_from_code(target) != color) {
+					list.push({idx, t_idx, MOVE_CAPTURE, PIECE_KING, color, piece_type_from_code(target), PIECE_QUEEN});
+				}
+			}
+		}
+	}
 }
 
 int SearchState::count_pseudo_moves(int color) const {
-	return static_cast<int>(generate_pseudo_legal_moves_for_color(color).size());
+	MoveList list;
+	generate_pseudo_legal_moves_for_color(color, list);
+	return list.count;
 }
 
 uint64_t SearchState::hash_key() const {

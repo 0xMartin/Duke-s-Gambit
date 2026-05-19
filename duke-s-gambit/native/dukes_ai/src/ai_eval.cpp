@@ -340,113 +340,112 @@ int evaluate_position(SearchState &state) {
 	return score;
 }
 
-void order_moves(std::vector<Move> &moves) {
-	std::sort(moves.begin(), moves.end(), [](const Move &a, const Move &b) {
-		if (a.is_capture() != b.is_capture()) {
-			return a.is_capture();
+// Sort by captures first (MVV: most-valuable victim first), then non-captures.
+// Uses insertion sort — cache-friendly and fast for small lists (< ~50 moves).
+void order_moves(MoveList &moves) {
+	for (int i = 1; i < moves.count; ++i) {
+		Move key = moves.moves[i];
+		int j = i - 1;
+		while (j >= 0) {
+			const Move &m = moves.moves[j];
+			// key should go before m if: key is capture and m is not, or both captures and key victim > m victim
+			bool key_goes_before = false;
+			if (key.is_capture() && !m.is_capture()) {
+				key_goes_before = true;
+			} else if (key.is_capture() && m.is_capture()) {
+				key_goes_before = PIECE_VALUES[key.captured_type] > PIECE_VALUES[m.captured_type];
+			}
+			if (!key_goes_before) break;
+			moves.moves[j + 1] = moves.moves[j];
+			--j;
 		}
-		if (a.is_capture() && b.is_capture()) {
-			return PIECE_VALUES[a.captured_type] > PIECE_VALUES[b.captured_type];
-		}
-		return false;
-	});
+		moves.moves[j + 1] = key;
+	}
 }
 
 int quiescence(SearchState &state, int alpha, int beta, SearchContext &ctx, int depth) {
-	// Timeout check
+	// Timeout: return static eval immediately, no move generation.
 	if (godot::Time::get_singleton()->get_ticks_msec() >= ctx.deadline_ms) {
-		int eval = evaluate_position(state);
-		std::vector<Move> legal = state.generate_legal_moves();
-		eval += (legal.size() > 0 ? (legal.size() >> 3) : 0) * (state.active_color == WHITE ? 1 : -1);
+		const int eval = evaluate_position(state);
 		return state.active_color == WHITE ? eval : -eval;
 	}
-	
-	// Depth limit - but ONLY if we're not in check (extend checks)
+
 	const bool in_check = state.is_in_check(state.active_color);
+
+	// Depth limit (only when not in check — checks are always extended).
 	if (depth <= -QSEARCH_MAX_DEPTH && !in_check) {
-		int eval = evaluate_position(state);
-		std::vector<Move> legal = state.generate_legal_moves();
-		eval += (legal.size() > 0 ? (legal.size() >> 3) : 0) * (state.active_color == WHITE ? 1 : -1);
+		const int eval = evaluate_position(state);
 		return state.active_color == WHITE ? eval : -eval;
 	}
 
 	int best_value = -100000;
 
-	// Standing pat is only valid when not in check.
+	// Standing pat: valid only when not in check.
 	if (!in_check) {
-		int stand_pat = evaluate_position(state);
-		// Mobility bonus: more options is slightly better
-		std::vector<Move> legal = state.generate_legal_moves();
-		stand_pat += (legal.size() > 0 ? (legal.size() >> 3) : 0) * (state.active_color == WHITE ? 1 : -1);
-		int negamax_stand = state.active_color == WHITE ? stand_pat : -stand_pat;
+		const int stand_pat = evaluate_position(state);
+		const int negamax_stand = state.active_color == WHITE ? stand_pat : -stand_pat;
 		best_value = negamax_stand;
 		if (negamax_stand >= beta) {
-			return beta;  // Beta cutoff
+			return beta;
 		}
 		if (alpha < negamax_stand) {
 			alpha = negamax_stand;
 		}
 	}
 
-	std::vector<Move> legal = state.generate_legal_moves();
-	if (legal.empty()) {
-		if (in_check) {
+	// Generate moves: all legal evasions when in check; tactical only otherwise.
+	MoveList qmoves;
+	const int moving_color = state.active_color;
+	if (in_check) {
+		state.generate_pseudo_legal_moves_for_color(state.active_color, qmoves);
+		if (qmoves.count == 0) {
 			return -MATE_SCORE;
 		}
-		return best_value;
-	}
-
-	std::vector<Move> qmoves;
-	if (in_check) {
-		// In check, all legal evasions must be searched.
-		qmoves = std::move(legal);
 	} else {
-		// Not in check: only search captures and some promotions
-		for (const Move &mv : legal) {
-			if (mv.is_capture() || mv.move_type == MOVE_PROMOTION) {
-				qmoves.push_back(mv);
-			}
-		}
-		if (qmoves.empty()) {
-			return best_value;
+		state.generate_tactical_moves(qmoves);
+		if (qmoves.count == 0) {
+			return best_value; // Standing pat
 		}
 	}
 
 	order_moves(qmoves);
-	
-	// Delta pruning & hanging piece detection: skip moves unlikely to affect score.
-	const int delta_margin = 150;  // Increased from 100 for more aggressive pruning
 
-	for (const Move &mv : qmoves) {
-		// Delta pruning: if best_value + capture_value + margin < alpha, skip
-		// BUT: Never prune checks - they must be searched!
+	const int delta_margin = 150;
+
+	for (int i = 0; i < qmoves.count; ++i) {
+		const Move &mv = qmoves.moves[i];
+
+		// Delta pruning: skip captures unlikely to raise alpha (not in check only).
 		if (!in_check && mv.is_capture() && depth <= -1) {
-			const int capture_gain = PIECE_VALUES[mv.captured_type];
-			if (best_value + capture_gain + delta_margin <= alpha) {
+			if (best_value + PIECE_VALUES[mv.captured_type] + delta_margin <= alpha) {
 				continue;
 			}
 		}
-		
-		// Hanging piece detection in quiescence: avoid capturing undefended pieces if we can be attacked back.
-		if (mv.is_capture() && depth >= -2) {
-			state.make_move(mv);
-			const bool to_sq_attacked = state.is_square_attacked(mv.to, 1 - state.active_color);
+
+		state.make_move(mv);
+
+		// Legality filter: all paths now use pseudo-legal generation.
+		if (state.is_in_check(moving_color)) {
 			state.unmake_move();
-			// If captured piece is defended after capture, reduce penalty.
-			if (to_sq_attacked && PIECE_VALUES[mv.captured_type] < PIECE_VALUES[mv.piece_type]) {
-				continue; // Skip bad trades in shallow qsearch
+			continue;
+		}
+
+		// Hanging piece heuristic: skip bad trades in shallow qsearch.
+		if (mv.is_capture() && depth >= -2) {
+			// After make_move, active_color is the opponent; check if they defend mv.to.
+			const bool defended = state.is_square_attacked(mv.to, state.active_color);
+			if (defended && PIECE_VALUES[mv.captured_type] < PIECE_VALUES[mv.piece_type]) {
+				state.unmake_move();
+				continue;
 			}
 		}
-		
-		state.make_move(mv);
-		// Check extensions: if we're giving check, search deeper
-		int check_ext = 0;
-		if (state.is_in_check(1 - state.active_color)) {
-			check_ext = 1;  // One ply extension for checks
-		}
+
+		// Check extension: if our move gives check, search one ply deeper.
+		const int check_ext = state.is_in_check(state.active_color) ? 1 : 0;
+
 		const int score = -quiescence(state, -beta, -alpha, ctx, depth - 1 + check_ext);
 		state.unmake_move();
-		
+
 		if (score >= beta) {
 			return beta;
 		}
@@ -457,7 +456,7 @@ int quiescence(SearchState &state, int alpha, int beta, SearchContext &ctx, int 
 			alpha = score;
 		}
 	}
-	
+
 	return best_value;
 }
 
