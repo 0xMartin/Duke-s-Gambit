@@ -524,10 +524,11 @@ static ::godot::Dictionary serialize_move(const SearchState &before, Move m,
 	} else {
 		d["promotion_type"] = 0;
 	}
-	d["score"]   = score;
-	d["depth"]   = depth;
-	d["nodes"]   = int64_t(nodes);
-	d["time_ms"] = time_ms;
+	d["score"]         = score;
+	d["depth"]         = depth;
+	d["reached_depth"] = depth;
+	d["nodes"]         = int64_t(nodes);
+	d["time_ms"]       = time_ms;
 	return d;
 }
 
@@ -599,10 +600,11 @@ static bool load_state_from_dict(const ::godot::Dictionary &position,
 			std::chrono::steady_clock::now() - ctx.start_time).count();
 
 	if (best.is_null()) {
-		result["ok"]      = false;
-		result["nodes"]   = int64_t(ctx.nodes);
-		result["time_ms"] = elapsed;
-		result["depth"]   = ctx.completed_depth;
+		result["ok"]            = false;
+		result["nodes"]         = int64_t(ctx.nodes);
+		result["time_ms"]       = elapsed;
+		result["depth"]         = ctx.completed_depth;
+		result["reached_depth"] = ctx.completed_depth;
 		return result;
 	}
 
