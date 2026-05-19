@@ -25,7 +25,7 @@ var _result_mutex := Mutex.new()
 
 func _init() -> void:
 	is_ai = true
-	player_name = "AI"
+	player_name = "Duke's AI"
 	_native_available = ClassDB.class_exists(_NATIVE_CLASS)
 
 func request_move(board: ChessBoardState, legal_moves: Array) -> void:

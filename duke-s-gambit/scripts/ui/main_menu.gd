@@ -238,7 +238,7 @@ func _on_pvai_start_pressed() -> void:
 		return
 
 	var player_name: String = _nick_get_value(_pvai_player_input)
-	var ai_name := "AI"
+	var ai_name := "Duke's AI"
 	if _save and not _save.player_exists(player_name):
 		_save.create_player(player_name)
 
@@ -288,12 +288,12 @@ func _pvp_dialog_error() -> String:
 	if p1.is_empty():
 		return "Enter the white player's name"
 	if _is_ai_reserved_name(p1):
-		return "Nickname 'AI' is not allowed for a human player"
+		return "Nickname '%s' is not allowed for a human player" % p1
 	var p2: String = _nick_get_value(_pvp_p2_input)
 	if p2.is_empty():
 		return "Enter the black player's name"
 	if _is_ai_reserved_name(p2):
-		return "Nickname 'AI' is not allowed for a human player"
+		return "Nickname '%s' is not allowed for a human player" % p2
 	if p1.to_lower() == p2.to_lower():
 		return "Selected players must have different names"
 	return ""
@@ -303,12 +303,17 @@ func _pvai_dialog_error() -> String:
 	if p1.is_empty():
 		return "Enter your name"
 	if _is_ai_reserved_name(p1):
-		return "Nickname 'AI' is not allowed for a human player"
+		return "Nickname '%s' is not allowed for a human player" % p1
 	return ""
 
 func _is_ai_reserved_name(candidate_name: String) -> bool:
 	var normalized := candidate_name.strip_edges().to_lower()
-	return normalized == "ai" or normalized == "computer" or normalized == "bot"
+	return normalized == "ai" \
+		or normalized == "computer" \
+		or normalized == "bot" \
+		or normalized == "duke's ai" \
+		or normalized == "dukes ai" \
+		or normalized == "duke ai"
 
 func _nick_set_profiles(input_node: Node, profiles: Array[Dictionary]) -> void:
 	if input_node != null and input_node.has_method("set_profiles"):
