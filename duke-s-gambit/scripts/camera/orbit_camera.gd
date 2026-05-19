@@ -75,6 +75,9 @@ const INTRO_SWAY_HALF_RANGE := 1.5   # X units: pivot sweeps from -1.5 to +1.5
 var _levitate_tween: Tween = null
 var _defeat_cam_active: bool = false
 var _defeat_look_target: Vector3 = Vector3.ZERO
+var _defeat_cam_quat_start: Quaternion = Quaternion.IDENTITY
+var _defeat_cam_quat_end: Quaternion = Quaternion.IDENTITY
+var _defeat_cam_gaze_t: float = -1.0  # -1 = slerp done, use look_at
 
 # ── Ready ──────────────────────────────────────────────────────────────────
 func _ready() -> void:
@@ -171,8 +174,13 @@ func _apply_transform() -> void:
 			# Intro: always look at the fixed player-edge target, not the moving pivot.
 			_cam.look_at(_intro_look_target, Vector3.UP)
 		elif _defeat_cam_active:
-			# Defeat cam: look at the losing base, not the pivot.
-			_cam.look_at(_defeat_look_target, Vector3.UP)
+			if _defeat_cam_gaze_t >= 0.0:
+				# Quaternion slerp — no gimbal lock / Z-flip
+				_cam.quaternion = _defeat_cam_quat_start.slerp(
+						_defeat_cam_quat_end, _defeat_cam_gaze_t)
+			else:
+				# Gaze locked on base; pivot may levitate
+				_cam.look_at(_defeat_look_target, Vector3.UP)
 		else:
 			_cam.look_at(global_position, Vector3.UP)
 		# Apply camera shake as a small post-look rotation
@@ -375,14 +383,27 @@ func defeat_cam(base_world_pos: Vector3) -> void:
 	_target_azimuth   = _azimuth
 	_target_elevation = elevation
 	_target_distance  = distance
-	# Defeat look starts at current pivot (= where camera already looks)
-	_defeat_look_target = global_position
+	# Apply transform once in normal mode to settle camera at its frozen spot
+	_apply_transform()
+	# Capture start orientation (camera currently looks at pivot)
+	_defeat_cam_quat_start = _cam.global_transform.basis.get_rotation_quaternion()
+	# Compute end orientation: camera looks at base from its CURRENT world position
+	var cam_world_pos := _cam.global_transform.origin
+	var look_dir := base_world_pos - cam_world_pos
+	if look_dir.length_squared() > 1e-4:
+		_defeat_cam_quat_end = Basis.looking_at(
+				look_dir.normalized(), Vector3.UP).get_rotation_quaternion()
+	else:
+		_defeat_cam_quat_end = _defeat_cam_quat_start
+	_defeat_look_target = base_world_pos
+	_defeat_cam_gaze_t  = 0.0
 	_defeat_cam_active  = true
-	# Smoothly sweep gaze toward the losing base
+	# Slerp gaze from current orientation to looking-at-base
 	var tw := create_tween()
-	tw.tween_property(self, "_defeat_look_target", base_world_pos, 1.5) \
+	tw.tween_property(self, "_defeat_cam_gaze_t", 1.0, 1.5) \
 		.set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_CUBIC)
 	await tw.finished
+	_defeat_cam_gaze_t = -1.0  # switch to look_at mode for levitation
 	# Gentle levitation: pivot Y bobs, camera follows while keeping gaze on base
 	_start_levitate_loop(position.y)
 
