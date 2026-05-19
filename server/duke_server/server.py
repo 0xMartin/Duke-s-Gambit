@@ -38,6 +38,7 @@ Connection drops always go through :meth:`Server._on_disconnect`.
 from __future__ import annotations
 
 import asyncio
+import http
 import json
 import logging
 import re
@@ -120,6 +121,9 @@ class Server:
         self._room_watchers: dict[str, asyncio.Task] = {}
         # Per-room reconnect timers.
         self._reconnect_timers: dict[tuple[str, str], asyncio.Task] = {}
+        # TLS bootstrap data served via HTTP for TOFU certificate pinning.
+        self._cert_pem: Optional[bytes] = None
+        self._fingerprint: Optional[str] = None
 
     # ── Lifecycle ──────────────────────────────────────────────────────────
     async def run(self) -> None:
@@ -136,8 +140,14 @@ class Server:
             cert_path, key_path, fingerprint = ensure_cert(self.config.cert_dir)
             ssl_context = make_ssl_context(cert_path, key_path)
             scheme = "wss"
+            self._cert_pem = cert_path.read_bytes()
+            self._fingerprint = fingerprint
             logger.info("TLS enabled. Cert: %s", cert_path)
             logger.info("Cert SHA-256 fingerprint: %s", fingerprint)
+            logger.info(
+                "Clients can auto-fetch the cert at http://%s:%d/cert",
+                self.config.host, self.config.port,
+            )
         else:
             logger.warning("TLS DISABLED — server speaks plain ws://. Use only on trusted LAN.")
 
@@ -151,6 +161,7 @@ class Server:
             max_size=MAX_MESSAGE_SIZE,
             ping_interval=self.config.heartbeat_interval_s,
             ping_timeout=self.config.heartbeat_interval_s * 2,
+            process_request=self._http_process_request,
         ):
             await self._stop_event.wait()
         logger.info("Server stopped.")
@@ -158,6 +169,35 @@ class Server:
     def stop(self) -> None:
         """Signal :meth:`run` to exit; safe to call from a signal handler."""
         self._stop_event.set()
+
+    # ── HTTP bootstrap endpoint ────────────────────────────────────────────
+    async def _http_process_request(
+        self, path: str, request_headers
+    ) -> Optional[tuple]:
+        """Intercept plain HTTP GET requests for TOFU certificate distribution.
+
+        Clients that connect over WSS with a self-signed cert can call
+        ``GET http://host:port/cert`` (plain HTTP, same port) once to
+        download the PEM and pin it for all subsequent TLS connections.
+        ``GET /fingerprint`` returns just the SHA-256 fingerprint line.
+
+        Any other path falls through (returns ``None``) so WebSocket
+        upgrades are handled normally.
+        """
+        if path == "/cert" and self._cert_pem is not None:
+            return (
+                http.HTTPStatus.OK,
+                {"Content-Type": "application/x-pem-file"},
+                self._cert_pem,
+            )
+        if path == "/fingerprint" and self._fingerprint is not None:
+            body = (self._fingerprint + "\n").encode()
+            return (
+                http.HTTPStatus.OK,
+                {"Content-Type": "text/plain; charset=utf-8"},
+                body,
+            )
+        return None
 
     # ── Connection handler ──────────────────────────────────────────────────────
     async def _handler(self, conn: WebSocketServerProtocol) -> None:

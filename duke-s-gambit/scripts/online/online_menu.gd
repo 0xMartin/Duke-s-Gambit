@@ -19,8 +19,6 @@ var wait_panel:     VBoxContainer = null
 # Connect panel widgets
 var _url_input:       LineEdit
 var _nick_input:      LineEdit
-var _cert_input:      LineEdit
-var _insecure_check:  CheckButton
 var _connect_btn:     Button
 var _connect_back_btn: Button
 var _connect_status:  Label
@@ -82,8 +80,6 @@ func _bind_nodes() -> void:
 	connect_panel = _menu.get_node("MainPanel/OnlineConnectVBox") as VBoxContainer
 	_url_input      = connect_panel.get_node("URLRow/URLInput") as LineEdit
 	_nick_input     = connect_panel.get_node("NickRow/NickInput") as LineEdit
-	_cert_input     = connect_panel.get_node("CertRow/CertInput") as LineEdit
-	_insecure_check = connect_panel.get_node("InsecureRow/InsecureCheck") as CheckButton
 	_connect_status = connect_panel.get_node("StatusLabel") as Label
 	_connect_btn    = connect_panel.get_node("ConnectBtn") as Button
 	_connect_back_btn = connect_panel.get_node("BackBtn") as Button
@@ -198,8 +194,7 @@ func _on_connect_pressed() -> void:
 		_connect_status.text = "OnlineClient autoload missing."
 		_connect_btn.disabled = false
 		return
-	oc.connect_to_server(url, nick, _cert_input.text.strip_edges(),
-		"", _insecure_check.button_pressed)
+	oc.connect_to_server(url, nick)
 
 func _on_create_confirm() -> void:
 	var nm: String = _room_name_input.text.strip_edges()

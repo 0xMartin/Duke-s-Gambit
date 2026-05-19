@@ -657,38 +657,6 @@ theme = ExtResource("25_3wgol")
 placeholder_text = "Your nickname (1–15 chars)"
 max_length = 15
 
-[node name="CertRow" type="HBoxContainer" parent="MainPanel/OnlineConnectVBox" unique_id=844466612]
-layout_mode = 2
-theme_override_constants/separation = 40
-
-[node name="Label" type="Label" parent="MainPanel/OnlineConnectVBox/CertRow" unique_id=2112012807]
-custom_minimum_size = Vector2(320, 0)
-layout_mode = 2
-theme = ExtResource("16_a8gd2")
-text = "Trusted cert (path)"
-
-[node name="CertInput" type="LineEdit" parent="MainPanel/OnlineConnectVBox/CertRow" unique_id=1658774091]
-custom_minimum_size = Vector2(300, 40)
-layout_mode = 2
-size_flags_horizontal = 3
-theme = ExtResource("25_3wgol")
-placeholder_text = "Optional: absolute path to server cert (.crt)"
-
-[node name="InsecureRow" type="HBoxContainer" parent="MainPanel/OnlineConnectVBox" unique_id=31715837]
-layout_mode = 2
-theme_override_constants/separation = 40
-
-[node name="Label" type="Label" parent="MainPanel/OnlineConnectVBox/InsecureRow" unique_id=80203000]
-custom_minimum_size = Vector2(320, 0)
-layout_mode = 2
-theme = ExtResource("16_a8gd2")
-text = "Skip cert verification"
-
-[node name="InsecureCheck" type="CheckButton" parent="MainPanel/OnlineConnectVBox/InsecureRow" unique_id=384573270]
-layout_mode = 2
-size_flags_horizontal = 3
-theme = ExtResource("22_svtp6")
-
 [node name="StatusLabel" type="Label" parent="MainPanel/OnlineConnectVBox" unique_id=871274573]
 layout_mode = 2
 theme = ExtResource("16_a8gd2")

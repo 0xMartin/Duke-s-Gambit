@@ -39,5 +39,3 @@ https://freesound.org/people/PhreaKsAccount/sounds/46272/
 todo:
 - ikona hry
 - splash screen
-
-- Server + moznost hrat online

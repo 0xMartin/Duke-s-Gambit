@@ -45,6 +45,9 @@ const DEFAULT_START_LAYOUT: Array[String] = [
 	"rnbqkbnr",
 ]
 
+# ── Signals (connected by GameController) ──────────────────────────────────
+signal pawn_promotion_required(sq: Vector2i, color: int)
+
 # ──────────────────────────────────────────────────────────────────────────
 func _init() -> void:
 	_init_board()

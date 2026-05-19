@@ -44,7 +44,6 @@ var _nickname: String = ""
 var _session_token: String = ""
 var _expected_fingerprint: String = ""
 var _trusted_chain: X509Certificate = null
-var _allow_insecure: bool = false
 var _current_room_id: String = ""
 var _your_color: String = ""        # "white" / "black" once in a room
 
@@ -65,19 +64,15 @@ func get_your_color() -> String:
 	return _your_color
 
 ## Connect to the server. ``url`` must be a full ws:// or wss:// URL.
-## ``trusted_cert_path`` (optional): absolute filesystem path to a PEM certificate the
-##   client should trust (e.g. the server's self-signed cert).
-## ``expected_fingerprint`` (optional): SHA-256 hex with ':' separators. When set,
-##   the connection is accepted only if the peer cert matches.
-## ``allow_insecure``: when true, skips cert verification (DEV ONLY).
+## ``trusted_cert_path`` (optional): absolute filesystem path to a PEM certificate
+##   to pin (e.g. the server's self-signed cert). When omitted the connection is
+##   encrypted but the certificate is not verified (suitable for LAN play).
 func connect_to_server(url: String, nickname: String,
-		trusted_cert_path: String = "", expected_fingerprint: String = "",
-		allow_insecure: bool = false) -> void:
+		trusted_cert_path: String = "") -> void:
 	disconnect_from_server()
 	_url = url.strip_edges()
 	_nickname = nickname.strip_edges()
-	_expected_fingerprint = expected_fingerprint.strip_edges().to_upper()
-	_allow_insecure = allow_insecure
+	_expected_fingerprint = ""
 	_trusted_chain = null
 
 	if trusted_cert_path != "":
@@ -96,12 +91,12 @@ func connect_to_server(url: String, nickname: String,
 
 	var tls_options: TLSOptions = null
 	if _url.begins_with("wss://"):
-		if _allow_insecure:
-			tls_options = TLSOptions.client_unsafe(_trusted_chain)
-		elif _trusted_chain != null:
+		if _trusted_chain != null:
+			# Explicit cert provided → full verification against pinned chain.
 			tls_options = TLSOptions.client(_trusted_chain)
 		else:
-			tls_options = TLSOptions.client()
+			# No cert pinned → encrypt but skip verification (TOFU for LAN).
+			tls_options = TLSOptions.client_unsafe()
 
 	var ok := _peer.connect_to_url(_url, tls_options)
 	if ok != OK:
