@@ -68,15 +68,12 @@ bool SearchState::is_square_attacked(int idx, int by_color) const {
 
 	{
 		static const int knight_offsets[8][2] = {{2,1},{2,-1},{-2,1},{-2,-1},{1,2},{1,-2},{-1,2},{-1,-2}};
-		uint64_t knight_attacks = 0;
+		const int knight_code = piece_code(PIECE_KNIGHT, by_color);
 		for (const auto &off : knight_offsets) {
 			const int c = col + off[0];
 			const int r = row + off[1];
-			if (c >= 0 && c < 8 && r >= 0 && r < 8) {
-				knight_attacks |= uint64_t(1) << sq_to_index(c, r);
-			}
+			if (c >= 0 && c < 8 && r >= 0 && r < 8 && board[sq_to_index(c, r)] == knight_code) return true;
 		}
-		if (knight_attacks & piece_bb[piece_code(PIECE_KNIGHT, by_color)]) return true;
 	}
 
 	{
@@ -94,15 +91,12 @@ bool SearchState::is_square_attacked(int idx, int by_color) const {
 
 	{
 		static const int king_offsets[8][2] = {{1,0},{-1,0},{0,1},{0,-1},{1,1},{1,-1},{-1,1},{-1,-1}};
-		uint64_t king_attacks = 0;
+		const int king_code = piece_code(PIECE_KING, by_color);
 		for (const auto &off : king_offsets) {
 			const int c = col + off[0];
 			const int r = row + off[1];
-			if (c >= 0 && c < 8 && r >= 0 && r < 8) {
-				king_attacks |= uint64_t(1) << sq_to_index(c, r);
-			}
+			if (c >= 0 && c < 8 && r >= 0 && r < 8 && board[sq_to_index(c, r)] == king_code) return true;
 		}
-		if (king_attacks & piece_bb[piece_code(PIECE_KING, by_color)]) return true;
 	}
 
 	static const int rook_dirs[4][2] = {{1,0},{-1,0},{0,1},{0,-1}};

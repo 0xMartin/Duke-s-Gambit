@@ -185,139 +185,86 @@ static int evaluate_piece_bonuses(const SearchState &state, int material) {
 		}
 	}
 
-	// --- Mobility + King Tropism ---
-	// Mobility: bonus for the number of squares each piece can reach.
-	// Tropism: bonus for pieces close to the enemy king (Manhattan distance).
-	// Weights from CPW-engine: knight*3, bishop*2, rook*2, queen*3.
+	// --- King Tropism ---
+	// Bonus for pieces close to the enemy king (Manhattan distance).
+	// Weights: knight*3, bishop*2, rook*2, queen*3.
 
 	const int wk_sq = std::countr_zero(state.piece_bb[PIECE_KING]);
 	const int bk_sq = std::countr_zero(state.piece_bb[PIECE_KING + 6]);
 	const int wkc = SearchState::idx_col(wk_sq), wkr = SearchState::idx_row(wk_sq);
 	const int bkc = SearchState::idx_col(bk_sq), bkr = SearchState::idx_row(bk_sq);
 
-	// Sliding piece directions
-	static constexpr int BISH_DIRS[4][2] = {{1,1},{1,-1},{-1,1},{-1,-1}};
-	static constexpr int ROOK_DIRS[4][2] = {{1,0},{-1,0},{0,1},{0,-1}};
-	static constexpr int KNIT_DIRS[8][2] = {{2,1},{2,-1},{-2,1},{-2,-1},{1,2},{1,-2},{-1,2},{-1,-2}};
-
-	// Count reachable squares for a sliding piece; own-color squares are walls
-	auto slide_mob = [&](int col, int row, int own_color, const int (*dirs)[2], int ndir) -> int {
-		int mob = 0;
-		for (int d = 0; d < ndir; ++d) {
-			int c = col + dirs[d][0], r = row + dirs[d][1];
-			while (c >= 0 && c <= 7 && r >= 0 && r <= 7) {
-				const int code2 = state.board[SearchState::sq_to_index(c, r)];
-				if (code2 == 0) {
-					mob++;
-				} else {
-					if (SearchState::piece_color_from_code(code2) != own_color) mob++;
-					break;
-				}
-				c += dirs[d][0];
-				r += dirs[d][1];
-			}
-		}
-		return mob;
-	};
-
-	// White knights: mobility 4*(mob-4), tropism*3 towards black king
+	// White knights: tropism*3 towards black king
 	uint64_t bb = state.piece_bb[PIECE_KNIGHT];
 	while (bb) {
 		const int idx = std::countr_zero(bb); bb &= bb - 1;
 		const int col = SearchState::idx_col(idx), row = SearchState::idx_row(idx);
-		int mob = 0;
-		for (const auto &d : KNIT_DIRS) {
-			const int c = col + d[0], r = row + d[1];
-			if (c >= 0 && c <= 7 && r >= 0 && r <= 7) {
-				const int code2 = state.board[SearchState::sq_to_index(c, r)];
-				if (code2 == 0 || SearchState::piece_color_from_code(code2) == BLACK) mob++;
-			}
-		}
-		score += 4 * (mob - 4);
 		score += 3 * std::max(0, 7 - (std::abs(row - bkr) + std::abs(col - bkc)));
 	}
 
-	// Black knights: mobility, tropism towards white king
+	// Black knights: tropism*3 towards white king
 	bb = state.piece_bb[PIECE_KNIGHT + 6];
 	while (bb) {
 		const int idx = std::countr_zero(bb); bb &= bb - 1;
 		const int col = SearchState::idx_col(idx), row = SearchState::idx_row(idx);
-		int mob = 0;
-		for (const auto &d : KNIT_DIRS) {
-			const int c = col + d[0], r = row + d[1];
-			if (c >= 0 && c <= 7 && r >= 0 && r <= 7) {
-				const int code2 = state.board[SearchState::sq_to_index(c, r)];
-				if (code2 == 0 || SearchState::piece_color_from_code(code2) == WHITE) mob++;
-			}
-		}
-		score -= 4 * (mob - 4);
 		score -= 3 * std::max(0, 7 - (std::abs(row - wkr) + std::abs(col - wkc)));
 	}
 
-	// White bishops: mobility 3*(mob-7), tropism*2
+	// White bishops: tropism*2
 	bb = state.piece_bb[PIECE_BISHOP];
 	while (bb) {
 		const int idx = std::countr_zero(bb); bb &= bb - 1;
 		const int col = SearchState::idx_col(idx), row = SearchState::idx_row(idx);
-		score += 3 * (slide_mob(col, row, WHITE, BISH_DIRS, 4) - 7);
 		score += 2 * std::max(0, 7 - (std::abs(row - bkr) + std::abs(col - bkc)));
 	}
 
-	// Black bishops: mobility, tropism towards white king
+	// Black bishops: tropism*2
 	bb = state.piece_bb[PIECE_BISHOP + 6];
 	while (bb) {
 		const int idx = std::countr_zero(bb); bb &= bb - 1;
 		const int col = SearchState::idx_col(idx), row = SearchState::idx_row(idx);
-		score -= 3 * (slide_mob(col, row, BLACK, BISH_DIRS, 4) - 7);
 		score -= 2 * std::max(0, 7 - (std::abs(row - wkr) + std::abs(col - wkc)));
 	}
 
-	// White rooks: mobility 3*(mob-7), tropism*2
+	// White rooks: tropism*2
 	bb = state.piece_bb[PIECE_ROOK];
 	while (bb) {
 		const int idx = std::countr_zero(bb); bb &= bb - 1;
 		const int col = SearchState::idx_col(idx), row = SearchState::idx_row(idx);
-		score += 3 * (slide_mob(col, row, WHITE, ROOK_DIRS, 4) - 7);
 		score += 2 * std::max(0, 7 - (std::abs(row - bkr) + std::abs(col - bkc)));
 	}
 
-	// Black rooks: mobility, tropism towards white king
+	// Black rooks: tropism*2
 	bb = state.piece_bb[PIECE_ROOK + 6];
 	while (bb) {
 		const int idx = std::countr_zero(bb); bb &= bb - 1;
 		const int col = SearchState::idx_col(idx), row = SearchState::idx_row(idx);
-		score -= 3 * (slide_mob(col, row, BLACK, ROOK_DIRS, 4) - 7);
 		score -= 2 * std::max(0, 7 - (std::abs(row - wkr) + std::abs(col - wkc)));
 	}
 
-	// White queens: mobility 1*(mob-14), tropism*3
+	// White queens: tropism*3
 	bb = state.piece_bb[PIECE_QUEEN];
 	while (bb) {
 		const int idx = std::countr_zero(bb); bb &= bb - 1;
 		const int col = SearchState::idx_col(idx), row = SearchState::idx_row(idx);
-		const int mob = slide_mob(col, row, WHITE, BISH_DIRS, 4)
-		              + slide_mob(col, row, WHITE, ROOK_DIRS, 4);
-		score += 1 * (mob - 14);
 		score += 3 * std::max(0, 7 - (std::abs(row - bkr) + std::abs(col - bkc)));
 	}
 
-	// Black queens: mobility, tropism towards white king
+	// Black queens: tropism*3
 	bb = state.piece_bb[PIECE_QUEEN + 6];
 	while (bb) {
 		const int idx = std::countr_zero(bb); bb &= bb - 1;
 		const int col = SearchState::idx_col(idx), row = SearchState::idx_row(idx);
-		const int mob = slide_mob(col, row, BLACK, BISH_DIRS, 4)
-		              + slide_mob(col, row, BLACK, ROOK_DIRS, 4);
-		score -= 1 * (mob - 14);
 		score -= 3 * std::max(0, 7 - (std::abs(row - wkr) + std::abs(col - wkc)));
 	}
 
-	// Queen out early penalty (queen advanced without enough support in middlegame)
+	// Queen out early penalty: bitboard traversal, 5x5 box only when queen is advanced
 	if (material > 3000) {
-		for (int idx = 0; idx < 64; ++idx) {
-			const int col = SearchState::idx_col(idx);
-			const int row = SearchState::idx_row(idx);
-			if (state.board[idx] == PIECE_QUEEN && row >= 5) {
+		uint64_t wq_bb = state.piece_bb[PIECE_QUEEN];
+		while (wq_bb) {
+			const int idx = std::countr_zero(wq_bb); wq_bb &= wq_bb - 1;
+			const int col = SearchState::idx_col(idx), row = SearchState::idx_row(idx);
+			if (row >= 5) {
 				int defenders = 0;
 				for (int dr = -2; dr <= 2; ++dr) {
 					for (int dc = -2; dc <= 2; ++dc) {
@@ -330,7 +277,12 @@ static int evaluate_piece_bonuses(const SearchState &state, int material) {
 				}
 				if (defenders <= 2) score -= 10;
 			}
-			if (state.board[idx] == PIECE_QUEEN + 6 && row <= 2) {
+		}
+		uint64_t bq_bb = state.piece_bb[PIECE_QUEEN + 6];
+		while (bq_bb) {
+			const int idx = std::countr_zero(bq_bb); bq_bb &= bq_bb - 1;
+			const int col = SearchState::idx_col(idx), row = SearchState::idx_row(idx);
+			if (row <= 2) {
 				int defenders = 0;
 				for (int dr = -2; dr <= 2; ++dr) {
 					for (int dc = -2; dc <= 2; ++dc) {
