@@ -39,6 +39,5 @@ https://freesound.org/people/PhreaKsAccount/sounds/46272/
 todo:
 - ikona hry
 - splash screen
-- lepsi AI (muze tahnout 2x dele nez ted)
 
 - Server + moznost hrat online
