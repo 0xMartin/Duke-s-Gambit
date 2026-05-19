@@ -214,6 +214,8 @@ func setup_online(white_name: String, black_name: String,
 			oc.move_applied.connect(_on_server_move_applied)
 		if not oc.game_over_received.is_connected(_on_server_game_over):
 			oc.game_over_received.connect(_on_server_game_over)
+		if not oc.server_error.is_connected(_on_server_error_online):
+			oc.server_error.connect(_on_server_error_online)
 
 ## Called from MainMenu before adding this node to the scene tree.
 func setup(p1_name: String, p2_name: String,
@@ -799,8 +801,29 @@ func _on_local_move_chosen(mv: ChessMove) -> void:
 		if oc == null:
 			return
 		oc.send_move(_move_to_uci(mv))
+		# Lock input until the server's authoritative echo arrives and the
+		# local animation finishes. Without this, the player can click other
+		# pieces during the roundtrip and hit a stale empty `_pending_legal`
+		# (HumanController.try_move clears it on send), or accidentally
+		# re-trigger a move via the still-populated `_legal_from_selected`.
+		_legal_from_selected.clear()
+		_selected_sq = Vector2i(-1, -1)
+		_deselect_piece()
+		_board.clear_highlights()
+		_busy = true
 		return
 	_on_move_chosen(mv)
+
+## Release the input lock if the server rejects a move we just sent. Without
+## this, an illegal/not-your-turn rejection would leave the client stuck
+## with `_busy = true` and no way to retry.
+func _on_server_error_online(code: String, _message: String) -> void:
+	if not _online_mode or _game_over_shown:
+		return
+	match code:
+		"illegal_move", "not_your_turn", "bad_state", "bad_request":
+			_busy = false
+			_start_turn()
 
 func _on_move_chosen(mv: ChessMove) -> void:
 	if _game_over_shown:
@@ -1133,10 +1156,15 @@ const _CHAR_TO_PROMO := {
 	"n": ChessEnums.PieceType.KNIGHT,
 }
 
+# Engine stores files mirrored vs. standard chess (king at internal col=3,
+# queen at col=4); visual rendering + native AI are consistent with that
+# layout. UCI is standard-chess-frame, so files must be flipped both ways
+# when crossing the boundary — otherwise asymmetric moves (e.g. d8 queen)
+# get rejected by python-chess on the server.
 func _move_to_uci(mv: ChessMove) -> String:
 	var s := "%s%d%s%d" % [
-		_FILES[mv.from_sq.x], mv.from_sq.y + 1,
-		_FILES[mv.to_sq.x],   mv.to_sq.y + 1,
+		_FILES[7 - mv.from_sq.x], mv.from_sq.y + 1,
+		_FILES[7 - mv.to_sq.x],   mv.to_sq.y + 1,
 	]
 	if mv.move_type == ChessEnums.MoveType.PROMOTION \
 	or mv.move_type == ChessEnums.MoveType.PROMOTION_CAPTURE:
@@ -1173,9 +1201,10 @@ func _parse_uci(uci: String) -> Dictionary:
 	if uci.length() >= 5:
 		var ch := uci.substr(4, 1).to_lower()
 		promo_type = _CHAR_TO_PROMO.get(ch, ChessEnums.PieceType.NONE)
+	# Flip files back into the engine's mirrored frame (see `_move_to_uci`).
 	return {
-		"from": Vector2i(ff, fr),
-		"to":   Vector2i(tf, trank),
+		"from": Vector2i(7 - ff, fr),
+		"to":   Vector2i(7 - tf, trank),
 		"promotion": promo_type,
 	}
 
