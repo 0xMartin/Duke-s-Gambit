@@ -1,0 +1,17 @@
+[gd_scene format=3 uid="uid://bugscene"]
+
+[ext_resource type="Script" uid="uid://gd4pljxe0obv" path="res://scripts/npc/bug_npc.gd" id="1"]
+[ext_resource type="PackedScene" uid="uid://cup5nbdnbrw6x" path="res://assets/models/npc/bug.fbx" id="2"]
+
+[node name="Bug" type="Node3D" unique_id=578763509]
+script = ExtResource("1")
+
+[node name="NavigationAgent3D" type="NavigationAgent3D" parent="." unique_id=692702807]
+path_desired_distance = 0.5
+target_desired_distance = 0.5
+
+[node name="Model" type="Node3D" parent="." unique_id=199283716]
+transform = Transform3D(0.04, 0, 0, 0, 0.04, 0, 0, 0, 0.04, 0, 0, 0)
+
+[node name="BugMesh" parent="Model" unique_id=772241259 instance=ExtResource("2")]
+transform = Transform3D(3, 0, 0, 0, 4.977, 0, 0, 0, 3, 0, -3.0916092, 0)
