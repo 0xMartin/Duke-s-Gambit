@@ -13,6 +13,10 @@ const _NATIVE_CLASS := "DukesAINative"
 const _LOG_TIMINGS := true
 
 var difficulty: int = Difficulty.CASUAL
+# Clock snapshot pushed by GameController right before request_move(). Zero
+# means "no clock info available" — MASTER falls back to a fixed budget.
+var time_left_ms: int = 0
+var increment_ms: int = 0
 var _native_available: bool = false
 var _search_in_progress: bool = false
 var _search_payload: Dictionary = {}
@@ -37,15 +41,6 @@ func request_move(board: ChessBoardState, legal_moves: Array) -> void:
 	var search_depth := 4
 	var time_limit_ms := 2000
 	var selected_difficulty := maxi(Difficulty.CASUAL, mini(Difficulty.MASTER, difficulty))
-
-	# TODO: rename `time_left_ms` / `increment_ms` to match your actual clock
-	# variables on PlayerController (e.g. _time_remaining_ms[color], increment).
-	# `get()` returns null if the property doesn't exist, so this stays safe
-	# until the values are wired through.
-	var clock_left_variant: Variant = get("time_left_ms")
-	var clock_inc_variant:  Variant = get("increment_ms")
-	var time_left_ms: int = int(clock_left_variant) if clock_left_variant != null else 0
-	var increment_ms: int = int(clock_inc_variant)  if clock_inc_variant  != null else 0
 
 	var budget := _compute_search_budget(board, legal_moves.size(), selected_difficulty,
 			time_left_ms, increment_ms)
@@ -102,11 +97,12 @@ func _difficulty_name(diff: int) -> String:
 			return "Unknown"
 
 func _compute_search_budget(board: ChessBoardState, legal_count: int, selected_difficulty: int,
-		time_left_ms: int, increment_ms: int) -> Dictionary:
+		clock_left_ms: int, clock_inc_ms: int) -> Dictionary:
 	var depth := 4
 	var time_ms := 1000
 	# -1 means "no clock-based ceiling" (CASUAL/CHALLENGER).
 	var max_safe_time := -1
+	print("Computing search budget for difficulty %d with %dms left and %dms increment" % [selected_difficulty, clock_left_ms, clock_inc_ms])
 
 	match selected_difficulty:
 		Difficulty.CASUAL:
@@ -118,9 +114,9 @@ func _compute_search_budget(board: ChessBoardState, legal_count: int, selected_d
 		Difficulty.MASTER:
 			# Infinite depth — the C++ Soft/Hard time limits decide when to stop.
 			depth = 64
-			if time_left_ms > 0:
-				max_safe_time = int(float(time_left_ms) * 0.2)
-				var target_time := (float(time_left_ms) / 40.0) + (float(increment_ms) * 0.8)
+			if clock_left_ms > 0:
+				max_safe_time = int(float(clock_left_ms) * 0.2)
+				var target_time := (float(clock_left_ms) / 40.0) + (float(clock_inc_ms) * 0.8)
 				target_time = clampf(target_time, 100.0, float(max(max_safe_time, 100)))
 				time_ms = int(target_time)
 			else:

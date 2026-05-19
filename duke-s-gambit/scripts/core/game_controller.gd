@@ -355,7 +355,7 @@ func _build_intro_overlay() -> void:
 	_intro_name_label.add_theme_font_override("font", _INTRO_FONT)
 	_intro_name_label.add_theme_font_size_override("font_size", 50)
 	_intro_name_label.add_theme_color_override("font_color", Color.WHITE)
-	_intro_name_label.add_theme_constant_override("outline_size", 4)
+	_intro_name_label.add_theme_constant_override("outline_size", 20)
 	_intro_name_label.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.75))
 	_intro_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_intro_name_label.vertical_alignment   = VERTICAL_ALIGNMENT_CENTER
@@ -450,9 +450,6 @@ func _start_turn() -> void:
 	var legal  := _chess.get_legal_moves(color)
 	_update_surrender_ui()
 
-	if _hud != null:
-		_hud.set_active_player(color)
-
 	# Check / checkmate / stalemate
 	if state == ChessEnums.GameState.CHECKMATE:
 		MusicManager.set_checkmate_tension(true)
@@ -479,6 +476,12 @@ func _start_turn() -> void:
 
 	_move_start_time_ms = Time.get_ticks_msec()
 	var ctrl: PlayerController = _controllers[color] as PlayerController
+	# Push current clock snapshot into the AI so it can do real time management.
+	# 0 ms == "no clock info" (count-up game) — AIController treats this as such.
+	if ctrl is AIController:
+		var ai_ctrl := ctrl as AIController
+		ai_ctrl.time_left_ms = _time_remaining_ms[color] if _time_control_ms > 0 else 0
+		ai_ctrl.increment_ms = 0  # no increment system yet; wire when added.
 	# Show AI thinking indicator
 	if ctrl.is_ai and _ui != null:
 		var game_ui = _ui as Control

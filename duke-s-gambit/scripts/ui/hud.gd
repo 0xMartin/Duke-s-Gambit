@@ -60,7 +60,6 @@ var _history_panel_left_expanded: float = 8.0
 var _history_panel_width: float = 300.0
 var _history_scroll_retry_count: int = 0
 
-var _active_color: int = ChessEnums.PieceColor.WHITE
 var _has_time_limit: bool = false  # true = countdown mode
 
 # ── Setup ──────────────────────────────────────────────────────────────────
@@ -129,7 +128,6 @@ func setup(white_name: String, white_elo: int,
 		_captured_refresh_queued[c] = false
 		_captured_refresh_in_progress[c] = false
 
-	set_active_player(ChessEnums.PieceColor.WHITE)
 	reset_move_history()
 
 	# Count-up mode: prime both timer labels so the inactive player doesn't
@@ -486,10 +484,6 @@ func _set_history_minimized(minimized: bool, instant: bool = false) -> void:
 	_history_tween.tween_property(_history_panel, "offset_left", _history_panel_left_expanded, 0.20)
 	_history_tween.parallel().tween_property(_history_panel, "offset_right", _history_panel_left_expanded + _history_panel_width, 0.20)
 	_history_tween.finished.connect(_scroll_history_to_bottom)
-
-func set_active_player(color: int) -> void:
-	_active_color = color
-	# All active player indication is now external
 
 ## color = which player's label to update.
 ## ms  = remaining time (countdown) or elapsed (count-up), depending on _has_time_limit.
