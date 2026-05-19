@@ -22,4 +22,5 @@ An arcade-styled 3D chess game built in Godot, featuring animated piece combat, 
 - [dukes_ai](native/dukes_ai) - C++ chess AI module used by the game.
 
 ## Author
-- 0xM4R71N
+
+**0xM4R71N** — [github.com/0xMartin](https://github.com/0xMartin)
