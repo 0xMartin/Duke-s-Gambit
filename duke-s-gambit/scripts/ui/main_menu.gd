@@ -24,7 +24,6 @@ extends Control
 # PvAI panel
 @onready var _pvai_player_input: Node = $MainPanel/PvAIVBox/PlayerRow/Input
 @onready var _pvai_time_opt: OptionButton = $MainPanel/PvAIVBox/TimeControlRow/TimeOption
-@onready var _pvai_ai_label: Label = $MainPanel/PvAIVBox/AIStrengthRow/AIDifficultyLabel
 @onready var _pvai_ai_option: OptionButton = $MainPanel/PvAIVBox/AIStrengthRow/AIDifficultyOption
 @onready var _pvai_color_opt: OptionButton = $MainPanel/PvAIVBox/ColorRow/ColorOption
 @onready var _pvai_start_btn: Button = $MainPanel/PvAIVBox/StartBtn
@@ -95,7 +94,8 @@ func _fit_title_font_size() -> void:
 	var best := _TITLE_FONT_MIN_SIZE
 
 	while low <= high:
-		var mid := int((low + high) / 2)
+		@warning_ignore("integer_division")
+		var mid := (low + high) / 2
 		var text_size := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, mid)
 		var text_height := font.get_height(mid)
 		if text_size.x <= available_width and text_height <= available_height:

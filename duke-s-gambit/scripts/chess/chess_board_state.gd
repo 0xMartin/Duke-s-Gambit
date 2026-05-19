@@ -45,9 +45,6 @@ const DEFAULT_START_LAYOUT: Array[String] = [
 	"rnbqkbnr",
 ]
 
-# ── Signals (connected by GameController) ──────────────────────────────────
-signal pawn_promotion_required(sq: Vector2i, color: int)
-
 # ──────────────────────────────────────────────────────────────────────────
 func _init() -> void:
 	_init_board()
@@ -416,6 +413,7 @@ func _apply_move_internal(mv: ChessMove) -> void:
 	en_passant_sq = Vector2i(-1, -1)
 	if mv.piece_type == ChessEnums.PieceType.PAWN \
 	and abs(mv.to_sq.y - mv.from_sq.y) == 2:
+		@warning_ignore("integer_division")
 		en_passant_sq = Vector2i(mv.from_sq.x, (mv.from_sq.y + mv.to_sq.y) / 2)
 
 	# Remove captured piece (en passant special case)
