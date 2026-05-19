@@ -37,8 +37,6 @@ https://freesound.org/people/magnuswaker/sounds/524956/
 https://freesound.org/people/PhreaKsAccount/sounds/46272/
 
 todo:
-- animace na konci jak vybuchne / zachne horet server
-
 - ikona hry
 - splash screen
 - lepsi AI (muze tahnout 2x dele nez ted)
