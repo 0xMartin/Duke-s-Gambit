@@ -712,9 +712,9 @@ text = "Surrender"
 visible = false
 layout_mode = 1
 anchors_preset = -1
-anchor_left = 0.29739583
+anchor_left = 0.284375
 anchor_top = 0.26481482
-anchor_right = 0.7026042
+anchor_right = 0.715625
 anchor_bottom = 0.7351852
 grow_horizontal = 2
 grow_vertical = 2
@@ -862,12 +862,25 @@ text = "0.0 s"
 custom_minimum_size = Vector2(0, 20)
 layout_mode = 2
 
-[node name="BackButton" type="Button" parent="HUD/GameOverPanel/VBox/ContentCenter/ContentVBox" unique_id=998528934]
+[node name="ButtonsRow" type="HBoxContainer" parent="HUD/GameOverPanel/VBox/ContentCenter/ContentVBox" unique_id=612483920]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="BackButton" type="Button" parent="HUD/GameOverPanel/VBox/ContentCenter/ContentVBox/ButtonsRow" unique_id=998528934]
 custom_minimum_size = Vector2(0, 64)
 layout_mode = 2
-size_flags_horizontal = 4
+size_flags_horizontal = 3
 theme = ExtResource("7_trtic")
 text = "Back to Menu"
+
+[node name="ExportButton" type="Button" parent="HUD/GameOverPanel/VBox/ContentCenter/ContentVBox/ButtonsRow" unique_id=734182657]
+visible = false
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("7_trtic")
+text = "Export Moves"
 
 [node name="SurrenderConfirmPanel" type="PanelContainer" parent="HUD" unique_id=448641579]
 visible = false
