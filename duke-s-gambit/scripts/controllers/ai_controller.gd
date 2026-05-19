@@ -37,7 +37,18 @@ func request_move(board: ChessBoardState, legal_moves: Array) -> void:
 	var search_depth := 4
 	var time_limit_ms := 2000
 	var selected_difficulty := maxi(Difficulty.CASUAL, mini(Difficulty.MASTER, difficulty))
-	var budget := _compute_search_budget(board, legal_moves.size(), selected_difficulty)
+
+	# TODO: rename `time_left_ms` / `increment_ms` to match your actual clock
+	# variables on PlayerController (e.g. _time_remaining_ms[color], increment).
+	# `get()` returns null if the property doesn't exist, so this stays safe
+	# until the values are wired through.
+	var clock_left_variant: Variant = get("time_left_ms")
+	var clock_inc_variant:  Variant = get("increment_ms")
+	var time_left_ms: int = int(clock_left_variant) if clock_left_variant != null else 0
+	var increment_ms: int = int(clock_inc_variant)  if clock_inc_variant  != null else 0
+
+	var budget := _compute_search_budget(board, legal_moves.size(), selected_difficulty,
+			time_left_ms, increment_ms)
 	search_depth = int(budget.get("depth", search_depth))
 	time_limit_ms = int(budget.get("time_ms", time_limit_ms))
 
@@ -90,38 +101,42 @@ func _difficulty_name(diff: int) -> String:
 		_:
 			return "Unknown"
 
-func _compute_search_budget(board: ChessBoardState, legal_count: int, selected_difficulty: int) -> Dictionary:
-	var base_depth := 4
-	var base_time_ms := 2000
-	var min_time_ms := 900
-	var max_time_ms := 2600
+func _compute_search_budget(board: ChessBoardState, legal_count: int, selected_difficulty: int,
+		time_left_ms: int, increment_ms: int) -> Dictionary:
+	var depth := 4
+	var time_ms := 1000
+	# -1 means "no clock-based ceiling" (CASUAL/CHALLENGER).
+	var max_safe_time := -1
 
 	match selected_difficulty:
 		Difficulty.CASUAL:
-			base_depth = 4
-			base_time_ms = 500
-			min_time_ms = 300
-			max_time_ms = 800
+			depth = 4
+			time_ms = randi_range(300, 800)
 		Difficulty.CHALLENGER:
-			base_depth = 8
-			base_time_ms = 3300
-			min_time_ms = 1400
-			max_time_ms = 5200
+			depth = 8
+			time_ms = randi_range(1000, 2500)
 		Difficulty.MASTER:
-			base_depth = 64 # unlimited, will be clamped by depth adjustments below
-			base_time_ms = 5200
-			min_time_ms = 1800
-			max_time_ms = 7200
+			# Infinite depth — the C++ Soft/Hard time limits decide when to stop.
+			depth = 64
+			if time_left_ms > 0:
+				max_safe_time = int(float(time_left_ms) * 0.2)
+				var target_time := (float(time_left_ms) / 40.0) + (float(increment_ms) * 0.8)
+				target_time = clampf(target_time, 100.0, float(max(max_safe_time, 100)))
+				time_ms = int(target_time)
+			else:
+				# No clock info available: fall back to a sane fixed budget.
+				time_ms = 2500
 
+	# ---- Phase / position multiplier (applied to all difficulties) ----
 	var multiplier := 1.0
 
-	# Opening positions are usually theory-heavy and less tactical in this project,
-	# so we spend less time there and keep more budget for complex middlegames.
+	# Openings are theory-heavy; spend a bit less, save budget for middlegame.
 	if board.fullmove_number <= 6:
 		multiplier *= 0.72
 	elif board.fullmove_number <= 10:
 		multiplier *= 0.84
 
+	# Branching factor: complex positions deserve more thought.
 	if legal_count >= 34:
 		multiplier *= 1.25
 	elif legal_count >= 26:
@@ -129,32 +144,28 @@ func _compute_search_budget(board: ChessBoardState, legal_count: int, selected_d
 	elif legal_count <= 10:
 		multiplier *= 0.84
 
-	if selected_difficulty == Difficulty.MASTER and legal_count >= 28:
-		multiplier *= 0.90
-
 	if board.is_in_check(board.active_color):
 		multiplier *= 1.18
 
+	# Approaching the 50-move rule: don't burn extra time.
 	if board.halfmove_clock >= 70:
 		multiplier *= 0.88
 
+	# Slight ramp from opening to middlegame.
 	var phase := clampf(float(board.fullmove_number) / 24.0, 0.0, 1.0)
-	var phase_scale := lerpf(0.95, 1.08, phase)
-	var computed_time := int(round(float(base_time_ms) * multiplier * phase_scale))
-	computed_time = clampi(computed_time, min_time_ms, max_time_ms)
+	multiplier *= lerpf(0.95, 1.08, phase)
 
-	var depth_adjust := 0
-	if legal_count >= 34:
-		depth_adjust -= 1
-	if selected_difficulty == Difficulty.MASTER and board.fullmove_number <= 10 and legal_count >= 26:
-		depth_adjust -= 1
-	elif legal_count <= 9 and board.fullmove_number >= 10:
-		depth_adjust += 1
+	time_ms = int(round(float(time_ms) * multiplier))
 
-	var computed_depth := clampi(base_depth + depth_adjust, 3, base_depth + 1)
+	# Final safety clamp: never let the phase modifier drain the clock.
+	if max_safe_time > 0:
+		time_ms = clampi(time_ms, 100, max_safe_time)
+	else:
+		time_ms = maxi(time_ms, 100)
+
 	return {
-		"depth": computed_depth,
-		"time_ms": computed_time,
+		"depth": depth,
+		"time_ms": time_ms,
 	}
 
 func _run_native_search(position_payload: Dictionary, search_depth: int, time_limit_ms: int, fallback_payload: Dictionary, tree: SceneTree) -> void:
