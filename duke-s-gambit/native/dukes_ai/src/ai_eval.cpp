@@ -12,35 +12,26 @@ namespace dukes_ai {
 
 static int count_material(const SearchState &state) {
 	int total = 0;
-	for (int i = 0; i < 64; ++i) {
-		const int code = state.board[i];
-		if (code == 0) {
-			continue;
-		}
-		const int pt = SearchState::piece_type_from_code(code);
-		if (pt != PIECE_KING) {
-			total += PIECE_VALUES[pt];
-		}
+	for (int pt : {PIECE_PAWN, PIECE_KNIGHT, PIECE_BISHOP, PIECE_ROOK, PIECE_QUEEN}) {
+		total += std::popcount(state.piece_bb[pt])     * PIECE_VALUES[pt];
+		total += std::popcount(state.piece_bb[pt + 6]) * PIECE_VALUES[pt];
 	}
 	return total;
 }
 
-static int pst_value(int piece_type, int color, int col, int row, const SearchState &state) {
+static int pst_value(int piece_type, int color, int col, int row, int material) {
 	// PST tables are indexed rank8→rank1 (top to bottom from white's view).
 	// Board uses row 0=rank1, row 7=rank8, so white needs (7-row), black needs row.
 	const int table_row = color == WHITE ? (7 - row) : row;
 	const int table_col = col;
 	switch (piece_type) {
-		case PIECE_PAWN: return PAWN_PST[table_row][table_col];
+		case PIECE_PAWN:   return PAWN_PST[table_row][table_col];
 		case PIECE_KNIGHT: return KNIGHT_PST[table_row][table_col];
 		case PIECE_BISHOP: return BISHOP_PST[table_row][table_col];
-		case PIECE_ROOK: return ROOK_PST[table_row][table_col];
-		case PIECE_QUEEN: return QUEEN_PST[table_row][table_col];
-		case PIECE_KING: {
-			const int material = count_material(state);
-			return material < 1000 ? KING_END[table_row][table_col] : KING_EARLY[table_row][table_col];
-		}
-		default: return 0;
+		case PIECE_ROOK:   return ROOK_PST[table_row][table_col];
+		case PIECE_QUEEN:  return QUEEN_PST[table_row][table_col];
+		case PIECE_KING:   return material < 1000 ? KING_END[table_row][table_col] : KING_EARLY[table_row][table_col];
+		default:           return 0;
 	}
 }
 
@@ -97,8 +88,7 @@ static int passed_pawn_bonus(int pawn_idx, int pawn_color) {
 // Evaluate pawn structure
 static int evaluate_pawn_structure(const SearchState &state) {
 	int score = 0;
-	const int wp_code = PIECE_PAWN;
-	const int bp_code = PIECE_PAWN + 6;
+	static constexpr uint64_t FILE_A = 0x0101010101010101ULL;
 
 	// Scan white pawns via bitboard
 	uint64_t bb = state.piece_bb[PIECE_PAWN];
@@ -107,36 +97,22 @@ static int evaluate_pawn_structure(const SearchState &state) {
 		bb &= bb - 1;
 
 		const int col = SearchState::idx_col(idx);
-		const int row = SearchState::idx_row(idx);
 
 		// Passed pawn
 		if (is_passed_pawn(idx, WHITE, state)) {
 			score += passed_pawn_bonus(idx, WHITE) * 2;
 		}
 
-		// Doubled pawns (penalty)
-		int doubled_count = 0;
-		for (int r = row + 1; r <= 7; ++r) {
-			if (state.board[SearchState::sq_to_index(col, r)] == wp_code) {
-				doubled_count++;
-			}
-		}
+		// Doubled pawns: white pawns on this file strictly above this pawn
+		const uint64_t file_mask    = FILE_A << col;
+		const uint64_t above_mask   = ~((uint64_t(2) << idx) - 1);
+		const int doubled_count = std::popcount(state.piece_bb[PIECE_PAWN] & file_mask & above_mask);
 		if (doubled_count > 0) score -= 20 * doubled_count;
 
-		// Isolated pawn
-		bool isolated = true;
-		for (int c = col - 1; c <= col + 1; c += 2) {
-			if (c >= 0 && c <= 7) {
-				for (int r = 0; r <= 7; ++r) {
-					if (state.board[SearchState::sq_to_index(c, r)] == wp_code) {
-						isolated = false;
-						break;
-					}
-				}
-			}
-			if (!isolated) break;
-		}
-		if (isolated) score -= 15;
+		// Isolated pawn: no white pawn on adjacent files
+		const uint64_t left_file  = (col > 0) ? (file_mask >> 1) : 0ULL;
+		const uint64_t right_file = (col < 7) ? (file_mask << 1) : 0ULL;
+		if ((state.piece_bb[PIECE_PAWN] & (left_file | right_file)) == 0) score -= 15;
 	}
 
 	// Scan black pawns via bitboard
@@ -146,102 +122,76 @@ static int evaluate_pawn_structure(const SearchState &state) {
 		bb &= bb - 1;
 
 		const int col = SearchState::idx_col(idx);
-		const int row = SearchState::idx_row(idx);
 
 		// Passed pawn
 		if (is_passed_pawn(idx, BLACK, state)) {
 			score -= passed_pawn_bonus(idx, BLACK) * 2;
 		}
 
-		// Doubled pawns (penalty)
-		int doubled_count = 0;
-		for (int r = row - 1; r >= 0; --r) {
-			if (state.board[SearchState::sq_to_index(col, r)] == bp_code) {
-				doubled_count++;
-			}
-		}
+		// Doubled pawns: black pawns on this file strictly below this pawn
+		const uint64_t file_mask    = FILE_A << col;
+		const uint64_t below_mask   = (uint64_t(1) << idx) - 1;
+		const int doubled_count = std::popcount(state.piece_bb[PIECE_PAWN + 6] & file_mask & below_mask);
 		if (doubled_count > 0) score += 20 * doubled_count;
 
-		// Isolated pawn
-		bool isolated = true;
-		for (int c = col - 1; c <= col + 1; c += 2) {
-			if (c >= 0 && c <= 7) {
-				for (int r = 0; r <= 7; ++r) {
-					if (state.board[SearchState::sq_to_index(c, r)] == bp_code) {
-						isolated = false;
-						break;
-					}
-				}
-			}
-			if (!isolated) break;
-		}
-		if (isolated) score += 15;
+		// Isolated pawn: no black pawn on adjacent files
+		const uint64_t left_file  = (col > 0) ? (file_mask >> 1) : 0ULL;
+		const uint64_t right_file = (col < 7) ? (file_mask << 1) : 0ULL;
+		if ((state.piece_bb[PIECE_PAWN + 6] & (left_file | right_file)) == 0) score += 15;
 	}
 
 	return score;
 }
 
 // Evaluate piece bonuses
-static int evaluate_piece_bonuses(const SearchState &state) {
+static int evaluate_piece_bonuses(const SearchState &state, int material) {
 	int score = 0;
-	
+
 	// Bishop pair bonus
-	int white_bishops = __builtin_popcountll(state.piece_bb[PIECE_BISHOP]);
-	int black_bishops = __builtin_popcountll(state.piece_bb[PIECE_BISHOP + 6]);
-	if (white_bishops >= 2) score += 30;
-	if (black_bishops >= 2) score -= 30;
-	
-	// Rook on 7th rank bonus
-	const int wr_code = PIECE_ROOK;
-	const int br_code = PIECE_ROOK + 6;
-	for (int idx = 0; idx < 64; ++idx) {
-		const int row = SearchState::idx_row(idx);
-		if (state.board[idx] == wr_code && row == 6) score += 20;  // White rook on 7th
-		if (state.board[idx] == br_code && row == 1) score -= 20;  // Black rook on 2nd
-	}
-	
-	// Rook in open/semi-open file
+	if (std::popcount(state.piece_bb[PIECE_BISHOP])     >= 2) score += 30;
+	if (std::popcount(state.piece_bb[PIECE_BISHOP + 6]) >= 2) score -= 30;
+
+	// Rook on 7th/2nd rank bonus (rank masks: row 6 = bits 48-55, row 1 = bits 8-15)
+	static constexpr uint64_t RANK7_MASK = 0x00FF000000000000ULL;
+	static constexpr uint64_t RANK2_MASK = 0x000000000000FF00ULL;
+	score += std::popcount(state.piece_bb[PIECE_ROOK]     & RANK7_MASK) * 20;
+	score -= std::popcount(state.piece_bb[PIECE_ROOK + 6] & RANK2_MASK) * 20;
+
+	// Rook on open/semi-open file (file masks)
+	static constexpr uint64_t FILE_A = 0x0101010101010101ULL;
 	for (int col = 0; col < 8; ++col) {
-		int pawn_count = 0;
-		for (int row = 0; row < 8; ++row) {
-			const int code = state.board[SearchState::sq_to_index(col, row)];
-			if (code == PIECE_PAWN || code == PIECE_PAWN + 6) {
-				pawn_count++;
-			}
-		}
-		
+		const uint64_t file_mask   = FILE_A << col;
+		const int pawn_count   = std::popcount((state.piece_bb[PIECE_PAWN] | state.piece_bb[PIECE_PAWN + 6]) & file_mask);
+		const int wr_on_file   = std::popcount(state.piece_bb[PIECE_ROOK]     & file_mask);
+		const int br_on_file   = std::popcount(state.piece_bb[PIECE_ROOK + 6] & file_mask);
 		if (pawn_count == 0) {
-			// Open file: rook gets bonus
-			for (int row = 0; row < 8; ++row) {
-				if (state.board[SearchState::sq_to_index(col, row)] == wr_code) score += 10;
-				if (state.board[SearchState::sq_to_index(col, row)] == br_code) score -= 10;
-			}
+			score += wr_on_file * 10;
+			score -= br_on_file * 10;
 		} else if (pawn_count == 1) {
-			// Semi-open file: slight bonus
-			for (int row = 0; row < 8; ++row) {
-				if (state.board[SearchState::sq_to_index(col, row)] == wr_code) score += 5;
-				if (state.board[SearchState::sq_to_index(col, row)] == br_code) score -= 5;
-			}
+			score += wr_on_file * 5;
+			score -= br_on_file * 5;
 		}
 	}
-	
-	// Knight centrality: knights are better in center
-	for (int idx = 0; idx < 64; ++idx) {
-		if (state.board[idx] == PIECE_KNIGHT) {
-			const int col = SearchState::idx_col(idx);
-			const int row = SearchState::idx_row(idx);
-			const int center_dist = std::abs(col - 3.5) + std::abs(row - 3.5);
-			score += (8 - center_dist) * 2;  // Bonus for centrality
-		} else if (state.board[idx] == PIECE_KNIGHT + 6) {
-			const int col = SearchState::idx_col(idx);
-			const int row = SearchState::idx_row(idx);
-			const int center_dist = std::abs(col - 3.5) + std::abs(row - 3.5);
-			score -= (8 - center_dist) * 2;
-		}
+
+	// Knight centrality: iterate via bitboard (integer equivalent of (8 - |col-3.5| - |row-3.5|) * 2)
+	uint64_t wn_bb = state.piece_bb[PIECE_KNIGHT];
+	while (wn_bb) {
+		const int idx = std::countr_zero(wn_bb);
+		wn_bb &= wn_bb - 1;
+		const int col = SearchState::idx_col(idx);
+		const int row = SearchState::idx_row(idx);
+		score += 16 - std::abs(2 * col - 7) - std::abs(2 * row - 7);
 	}
-	
+	uint64_t bn_bb = state.piece_bb[PIECE_KNIGHT + 6];
+	while (bn_bb) {
+		const int idx = std::countr_zero(bn_bb);
+		bn_bb &= bn_bb - 1;
+		const int col = SearchState::idx_col(idx);
+		const int row = SearchState::idx_row(idx);
+		score -= 16 - std::abs(2 * col - 7) - std::abs(2 * row - 7);
+	}
+
 	// Queen out early penalty (simple heuristic: queen in opponent's half early is bad)
-	const int material = count_material(state);
 	if (material > 3000) {  // Early/middlegame
 		for (int idx = 0; idx < 64; ++idx) {
 			const int col = SearchState::idx_col(idx);
@@ -282,13 +232,14 @@ static int evaluate_piece_bonuses(const SearchState &state) {
 			}
 		}
 	}
-	
+
 	return score;
 }
 
 int evaluate_position(SearchState &state) {
 	int score = 0;
-	
+	const int material = count_material(state);
+
 	// Material + PST
 	for (int idx = 0; idx < 64; ++idx) {
 		const int code = state.board[idx];
@@ -299,7 +250,7 @@ int evaluate_position(SearchState &state) {
 		const int color = SearchState::piece_color_from_code(code);
 		const int col = SearchState::idx_col(idx);
 		const int row = SearchState::idx_row(idx);
-		const int ps = PIECE_VALUES[pt] + pst_value(pt, color, col, row, state);
+		const int ps = PIECE_VALUES[pt] + pst_value(pt, color, col, row, material);
 		if (color == WHITE) {
 			score += ps;
 		} else {
@@ -311,21 +262,14 @@ int evaluate_position(SearchState &state) {
 	score += evaluate_pawn_structure(state);
 	
 	// Piece bonuses
-	score += evaluate_piece_bonuses(state);
-	
+	score += evaluate_piece_bonuses(state, material);
+
 	// King safety: pawn shield bonus
-	const int material = count_material(state);
 	if (material > 1200) {
-		// White king shield
-		const int wk_code = PIECE_KING; // white king = code 6
-		const int bk_code = PIECE_KING + 6; // black king = code 12
-		const int wp_code = PIECE_PAWN; // white pawn = code 1
-		const int bp_code = PIECE_PAWN + 6; // black pawn = code 7
-		int wk_idx = -1, bk_idx = -1;
-		for (int i = 0; i < 64; ++i) {
-			if (state.board[i] == wk_code) wk_idx = i;
-			else if (state.board[i] == bk_code) bk_idx = i;
-		}
+		const int wp_code = PIECE_PAWN;
+		const int bp_code = PIECE_PAWN + 6;
+		const int wk_idx = state.piece_bb[PIECE_KING]     ? std::countr_zero(state.piece_bb[PIECE_KING])     : -1;
+		const int bk_idx = state.piece_bb[PIECE_KING + 6] ? std::countr_zero(state.piece_bb[PIECE_KING + 6]) : -1;
 		if (wk_idx >= 0) {
 			const int kc = SearchState::idx_col(wk_idx);
 			const int kr = SearchState::idx_row(wk_idx);

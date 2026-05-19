@@ -44,111 +44,6 @@ static uint64_t now_ms() {
 
 // Move ordering: captures (MVV-LVA) > killer > history heuristic > quiet
 
-// Static Exchange Evaluation - returns true if SEE(move) >= threshold
-// Simulates piece trades on capture square by finding all attackers/defenders
-static bool see_ge(SearchState &state, const Move &mv, int threshold) {
-	if (!mv.is_capture()) {
-		return true;
-	}
-	
-	int to_sq = mv.to;
-	int captured_value = PIECE_VALUES[mv.captured_type];
-	int attacking_value = PIECE_VALUES[mv.piece_type];
-	
-	// Simple exchange: if we capture and can't be recaptured
-	if (captured_value - threshold >= 0) {
-		// Try to find the weakest defending piece
-		// Check for pawn defenders first (cheapest)
-		int to_col = SearchState::idx_col(to_sq);
-		int to_row = SearchState::idx_row(to_sq);
-		int enemy_color = 1 - state.active_color;
-		int enemy_pawn_code = (enemy_color == WHITE) ? 1 : 7;
-		
-		// Pawn can defend from diagonals
-		for (int dc = -1; dc <= 1; dc += 2) {
-			int c = to_col + dc;
-			if (c >= 0 && c <= 7) {
-				int pawn_row = to_row + (enemy_color == WHITE ? -1 : 1);
-				if (pawn_row >= 0 && pawn_row <= 7) {
-					int idx = SearchState::sq_to_index(c, pawn_row);
-					if (state.board[idx] == enemy_pawn_code) {
-						// Pawn can recapture
-						int pawn_value = PIECE_VALUES[PIECE_PAWN];
-						if (attacking_value - pawn_value <= threshold) {
-							return false;  // We lose the exchange
-						}
-						// Continue searching for other defenders
-					}
-				}
-			}
-		}
-		
-		// Check for knight defenders (can attack from L-shape)
-		int knight_code = (enemy_color == WHITE) ? PIECE_KNIGHT : PIECE_KNIGHT + 6;
-		static const int knight_offsets[8][2] = {{2,1},{2,-1},{-2,1},{-2,-1},{1,2},{1,-2},{-1,2},{-1,-2}};
-		for (const auto &off : knight_offsets) {
-			int c = to_col + off[0];
-			int r = to_row + off[1];
-			if (c >= 0 && c <= 7 && r >= 0 && r <= 7) {
-				if (state.board[SearchState::sq_to_index(c, r)] == knight_code) {
-					int knight_value = PIECE_VALUES[PIECE_KNIGHT];
-					if (attacking_value - knight_value <= threshold) {
-						return false;
-					}
-				}
-			}
-		}
-		
-		// Check for bishop/queen diagonal defenders
-		int bishop_code = (enemy_color == WHITE) ? PIECE_BISHOP : PIECE_BISHOP + 6;
-		int queen_code = (enemy_color == WHITE) ? PIECE_QUEEN : PIECE_QUEEN + 6;
-		static const int bishop_dirs[4][2] = {{1,1},{1,-1},{-1,1},{-1,-1}};
-		for (const auto &dir : bishop_dirs) {
-			for (int dist = 1; dist < 8; ++dist) {
-				int c = to_col + dir[0] * dist;
-				int r = to_row + dir[1] * dist;
-				if (c < 0 || c > 7 || r < 0 || r > 7) break;
-				int code = state.board[SearchState::sq_to_index(c, r)];
-				if (code != 0) {
-					if (code == bishop_code || code == queen_code) {
-						int piece_val = (code == bishop_code) ? PIECE_VALUES[PIECE_BISHOP] : PIECE_VALUES[PIECE_QUEEN];
-						if (attacking_value - piece_val <= threshold) {
-							return false;
-						}
-					}
-					break;  // Blocked by a piece
-				}
-			}
-		}
-		
-		// Check for rook/queen straight defenders
-		int rook_code = (enemy_color == WHITE) ? PIECE_ROOK : PIECE_ROOK + 6;
-		static const int rook_dirs[4][2] = {{1,0},{-1,0},{0,1},{0,-1}};
-		for (const auto &dir : rook_dirs) {
-			for (int dist = 1; dist < 8; ++dist) {
-				int c = to_col + dir[0] * dist;
-				int r = to_row + dir[1] * dist;
-				if (c < 0 || c > 7 || r < 0 || r > 7) break;
-				int code = state.board[SearchState::sq_to_index(c, r)];
-				if (code != 0) {
-					if (code == rook_code || code == queen_code) {
-						int piece_val = (code == rook_code) ? PIECE_VALUES[PIECE_ROOK] : PIECE_VALUES[PIECE_QUEEN];
-						if (attacking_value - piece_val <= threshold) {
-							return false;
-						}
-					}
-					break;
-				}
-			}
-		}
-		
-		// If no strong defenders found, capture is safe
-		return true;
-	}
-	
-	return false;
-}
-
 static void order_moves_with_context(const SearchState &state, MoveList &moves, const SearchContext &ctx, int depth, int prev_from = -1, int prev_to = -1) {
 	int killer_from = -1, killer_to = -1;
 	if (depth >= 0 && depth < 64) {
@@ -160,23 +55,12 @@ static void order_moves_with_context(const SearchState &state, MoveList &moves, 
 		counter = ctx.counter_moves[prev_from][prev_to];
 	}
 
-	// Pass 1: pre-calculate a score for every move (including SEE for captures).
+	// Pass 1: score every move — pure MVV-LVA for captures.
 	int move_scores[256];
 	for (int i = 0; i < moves.count; ++i) {
 		const Move &mv = moves.moves[i];
 		if (mv.is_capture()) {
-			const bool safe = see_ge(const_cast<SearchState &>(state), mv, 0);
-			const int victim_value   = PIECE_VALUES[mv.captured_type];
-			const int attacker_value = PIECE_VALUES[mv.piece_type];
-			if (safe) {
-				// Safe captures: MVV-LVA with large bonus.
-				move_scores[i] = 20000 + victim_value * 100 - attacker_value;
-			} else {
-				const int loss = attacker_value - victim_value;
-				if (loss > 300) move_scores[i] = 1000 + victim_value;
-				else if (loss > 100) move_scores[i] = 2000 + victim_value;
-				else move_scores[i] = 3000 + victim_value;
-			}
+			move_scores[i] = 20000 + PIECE_VALUES[mv.captured_type] * 100 - PIECE_VALUES[mv.piece_type];
 		} else if (mv.from == killer_from && mv.to == killer_to) {
 			move_scores[i] = 9000;
 		} else if (counter.from >= 0 && mv.from == counter.from && mv.to == counter.to) {
