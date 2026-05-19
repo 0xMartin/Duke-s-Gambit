@@ -4,7 +4,6 @@
 
 import os
 import shutil
-import sys
 
 PLATFORM_BINARIES = {
     "windows": "dukes_ai_native.windows.template_release.dll",
