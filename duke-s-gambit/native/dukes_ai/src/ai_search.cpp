@@ -46,9 +46,12 @@ static uint64_t now_ms() {
 
 static void order_moves_with_context(const SearchState &state, MoveList &moves, const SearchContext &ctx, int depth, int prev_from = -1, int prev_to = -1) {
 	int killer_from = -1, killer_to = -1;
+	int killer2_from = -1, killer2_to = -1;
 	if (depth >= 0 && depth < 64) {
-		killer_from = ctx.killer_moves[depth].from;
-		killer_to   = ctx.killer_moves[depth].to;
+		killer_from  = ctx.killer_moves[depth].from;
+		killer_to    = ctx.killer_moves[depth].to;
+		killer2_from = ctx.killer_moves_2[depth].from;
+		killer2_to   = ctx.killer_moves_2[depth].to;
 	}
 	Move counter;
 	if (prev_from >= 0 && prev_from < 64 && prev_to >= 0 && prev_to < 64) {
@@ -63,6 +66,8 @@ static void order_moves_with_context(const SearchState &state, MoveList &moves, 
 			move_scores[i] = 20000 + PIECE_VALUES[mv.captured_type] * 100 - PIECE_VALUES[mv.piece_type];
 		} else if (mv.from == killer_from && mv.to == killer_to) {
 			move_scores[i] = 9000;
+		} else if (mv.from == killer2_from && mv.to == killer2_to) {
+			move_scores[i] = 8700;
 		} else if (counter.from >= 0 && mv.from == counter.from && mv.to == counter.to) {
 			move_scores[i] = 8500;
 		} else {
@@ -207,9 +212,15 @@ static int minimax(SearchState &state, int depth, int alpha, int beta, SearchCon
 		if (score > best_score) best_score = score;
 		if (best_score > alpha) alpha = best_score;
 		if (alpha >= beta) {
-			// Beta cutoff: update killer and history for quiet moves
+			// Beta cutoff: update killers and history for quiet moves
 			if (!mv.is_capture()) {
-				if (depth >= 0 && depth < 64) ctx.killer_moves[depth] = mv;
+				if (depth >= 0 && depth < 64) {
+					// Rotate: shift primary to secondary if different, then set new primary
+					if (mv.from != ctx.killer_moves[depth].from || mv.to != ctx.killer_moves[depth].to) {
+						ctx.killer_moves_2[depth] = ctx.killer_moves[depth];
+						ctx.killer_moves[depth] = mv;
+					}
+				}
 				ctx.history[mv.from][mv.to] += depth * depth;
 				if (prev_from >= 0 && prev_from < 64 && prev_to >= 0 && prev_to < 64) {
 					ctx.counter_moves[prev_from][prev_to] = mv;

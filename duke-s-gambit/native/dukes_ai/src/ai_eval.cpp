@@ -147,9 +147,21 @@ static int evaluate_pawn_structure(const SearchState &state) {
 static int evaluate_piece_bonuses(const SearchState &state, int material) {
 	int score = 0;
 
+	// Pawn counts for material adjustments
+	const int w_pawns = std::popcount(state.piece_bb[PIECE_PAWN]);
+	const int b_pawns = std::popcount(state.piece_bb[PIECE_PAWN + 6]);
+
 	// Bishop pair bonus
 	if (std::popcount(state.piece_bb[PIECE_BISHOP])     >= 2) score += 30;
 	if (std::popcount(state.piece_bb[PIECE_BISHOP + 6]) >= 2) score -= 30;
+
+	// Knight gains value with more pawns; rook gains value with fewer pawns (CPW n_adj/r_adj)
+	static constexpr int n_adj[9] = {-20, -16, -12, -8, -4,  0,  4,  8, 12};
+	static constexpr int r_adj[9] = { 15,  12,   9,  6,  3,  0, -3, -6, -9};
+	score += std::popcount(state.piece_bb[PIECE_KNIGHT])     * n_adj[w_pawns];
+	score -= std::popcount(state.piece_bb[PIECE_KNIGHT + 6]) * n_adj[b_pawns];
+	score += std::popcount(state.piece_bb[PIECE_ROOK])       * r_adj[w_pawns];
+	score -= std::popcount(state.piece_bb[PIECE_ROOK + 6])   * r_adj[b_pawns];
 
 	// Rook on 7th/2nd rank bonus (rank masks: row 6 = bits 48-55, row 1 = bits 8-15)
 	static constexpr uint64_t RANK7_MASK = 0x00FF000000000000ULL;
@@ -160,10 +172,10 @@ static int evaluate_piece_bonuses(const SearchState &state, int material) {
 	// Rook on open/semi-open file (file masks)
 	static constexpr uint64_t FILE_A = 0x0101010101010101ULL;
 	for (int col = 0; col < 8; ++col) {
-		const uint64_t file_mask   = FILE_A << col;
-		const int pawn_count   = std::popcount((state.piece_bb[PIECE_PAWN] | state.piece_bb[PIECE_PAWN + 6]) & file_mask);
-		const int wr_on_file   = std::popcount(state.piece_bb[PIECE_ROOK]     & file_mask);
-		const int br_on_file   = std::popcount(state.piece_bb[PIECE_ROOK + 6] & file_mask);
+		const uint64_t file_mask = FILE_A << col;
+		const int pawn_count = std::popcount((state.piece_bb[PIECE_PAWN] | state.piece_bb[PIECE_PAWN + 6]) & file_mask);
+		const int wr_on_file = std::popcount(state.piece_bb[PIECE_ROOK]     & file_mask);
+		const int br_on_file = std::popcount(state.piece_bb[PIECE_ROOK + 6] & file_mask);
 		if (pawn_count == 0) {
 			score += wr_on_file * 10;
 			score -= br_on_file * 10;
@@ -173,65 +185,235 @@ static int evaluate_piece_bonuses(const SearchState &state, int material) {
 		}
 	}
 
-	// Knight centrality: iterate via bitboard (integer equivalent of (8 - |col-3.5| - |row-3.5|) * 2)
-	uint64_t wn_bb = state.piece_bb[PIECE_KNIGHT];
-	while (wn_bb) {
-		const int idx = std::countr_zero(wn_bb);
-		wn_bb &= wn_bb - 1;
-		const int col = SearchState::idx_col(idx);
-		const int row = SearchState::idx_row(idx);
-		score += 16 - std::abs(2 * col - 7) - std::abs(2 * row - 7);
-	}
-	uint64_t bn_bb = state.piece_bb[PIECE_KNIGHT + 6];
-	while (bn_bb) {
-		const int idx = std::countr_zero(bn_bb);
-		bn_bb &= bn_bb - 1;
-		const int col = SearchState::idx_col(idx);
-		const int row = SearchState::idx_row(idx);
-		score -= 16 - std::abs(2 * col - 7) - std::abs(2 * row - 7);
+	// --- Mobility + King Tropism ---
+	// Mobility: bonus for the number of squares each piece can reach.
+	// Tropism: bonus for pieces close to the enemy king (Manhattan distance).
+	// Weights from CPW-engine: knight*3, bishop*2, rook*2, queen*3.
+
+	const int wk_sq = std::countr_zero(state.piece_bb[PIECE_KING]);
+	const int bk_sq = std::countr_zero(state.piece_bb[PIECE_KING + 6]);
+	const int wkc = SearchState::idx_col(wk_sq), wkr = SearchState::idx_row(wk_sq);
+	const int bkc = SearchState::idx_col(bk_sq), bkr = SearchState::idx_row(bk_sq);
+
+	// Sliding piece directions
+	static constexpr int BISH_DIRS[4][2] = {{1,1},{1,-1},{-1,1},{-1,-1}};
+	static constexpr int ROOK_DIRS[4][2] = {{1,0},{-1,0},{0,1},{0,-1}};
+	static constexpr int KNIT_DIRS[8][2] = {{2,1},{2,-1},{-2,1},{-2,-1},{1,2},{1,-2},{-1,2},{-1,-2}};
+
+	// Count reachable squares for a sliding piece; own-color squares are walls
+	auto slide_mob = [&](int col, int row, int own_color, const int (*dirs)[2], int ndir) -> int {
+		int mob = 0;
+		for (int d = 0; d < ndir; ++d) {
+			int c = col + dirs[d][0], r = row + dirs[d][1];
+			while (c >= 0 && c <= 7 && r >= 0 && r <= 7) {
+				const int code2 = state.board[SearchState::sq_to_index(c, r)];
+				if (code2 == 0) {
+					mob++;
+				} else {
+					if (SearchState::piece_color_from_code(code2) != own_color) mob++;
+					break;
+				}
+				c += dirs[d][0];
+				r += dirs[d][1];
+			}
+		}
+		return mob;
+	};
+
+	// White knights: mobility 4*(mob-4), tropism*3 towards black king
+	uint64_t bb = state.piece_bb[PIECE_KNIGHT];
+	while (bb) {
+		const int idx = std::countr_zero(bb); bb &= bb - 1;
+		const int col = SearchState::idx_col(idx), row = SearchState::idx_row(idx);
+		int mob = 0;
+		for (const auto &d : KNIT_DIRS) {
+			const int c = col + d[0], r = row + d[1];
+			if (c >= 0 && c <= 7 && r >= 0 && r <= 7) {
+				const int code2 = state.board[SearchState::sq_to_index(c, r)];
+				if (code2 == 0 || SearchState::piece_color_from_code(code2) == BLACK) mob++;
+			}
+		}
+		score += 4 * (mob - 4);
+		score += 3 * std::max(0, 7 - (std::abs(row - bkr) + std::abs(col - bkc)));
 	}
 
-	// Queen out early penalty (simple heuristic: queen in opponent's half early is bad)
-	if (material > 3000) {  // Early/middlegame
+	// Black knights: mobility, tropism towards white king
+	bb = state.piece_bb[PIECE_KNIGHT + 6];
+	while (bb) {
+		const int idx = std::countr_zero(bb); bb &= bb - 1;
+		const int col = SearchState::idx_col(idx), row = SearchState::idx_row(idx);
+		int mob = 0;
+		for (const auto &d : KNIT_DIRS) {
+			const int c = col + d[0], r = row + d[1];
+			if (c >= 0 && c <= 7 && r >= 0 && r <= 7) {
+				const int code2 = state.board[SearchState::sq_to_index(c, r)];
+				if (code2 == 0 || SearchState::piece_color_from_code(code2) == WHITE) mob++;
+			}
+		}
+		score -= 4 * (mob - 4);
+		score -= 3 * std::max(0, 7 - (std::abs(row - wkr) + std::abs(col - wkc)));
+	}
+
+	// White bishops: mobility 3*(mob-7), tropism*2
+	bb = state.piece_bb[PIECE_BISHOP];
+	while (bb) {
+		const int idx = std::countr_zero(bb); bb &= bb - 1;
+		const int col = SearchState::idx_col(idx), row = SearchState::idx_row(idx);
+		score += 3 * (slide_mob(col, row, WHITE, BISH_DIRS, 4) - 7);
+		score += 2 * std::max(0, 7 - (std::abs(row - bkr) + std::abs(col - bkc)));
+	}
+
+	// Black bishops: mobility, tropism towards white king
+	bb = state.piece_bb[PIECE_BISHOP + 6];
+	while (bb) {
+		const int idx = std::countr_zero(bb); bb &= bb - 1;
+		const int col = SearchState::idx_col(idx), row = SearchState::idx_row(idx);
+		score -= 3 * (slide_mob(col, row, BLACK, BISH_DIRS, 4) - 7);
+		score -= 2 * std::max(0, 7 - (std::abs(row - wkr) + std::abs(col - wkc)));
+	}
+
+	// White rooks: mobility 3*(mob-7), tropism*2
+	bb = state.piece_bb[PIECE_ROOK];
+	while (bb) {
+		const int idx = std::countr_zero(bb); bb &= bb - 1;
+		const int col = SearchState::idx_col(idx), row = SearchState::idx_row(idx);
+		score += 3 * (slide_mob(col, row, WHITE, ROOK_DIRS, 4) - 7);
+		score += 2 * std::max(0, 7 - (std::abs(row - bkr) + std::abs(col - bkc)));
+	}
+
+	// Black rooks: mobility, tropism towards white king
+	bb = state.piece_bb[PIECE_ROOK + 6];
+	while (bb) {
+		const int idx = std::countr_zero(bb); bb &= bb - 1;
+		const int col = SearchState::idx_col(idx), row = SearchState::idx_row(idx);
+		score -= 3 * (slide_mob(col, row, BLACK, ROOK_DIRS, 4) - 7);
+		score -= 2 * std::max(0, 7 - (std::abs(row - wkr) + std::abs(col - wkc)));
+	}
+
+	// White queens: mobility 1*(mob-14), tropism*3
+	bb = state.piece_bb[PIECE_QUEEN];
+	while (bb) {
+		const int idx = std::countr_zero(bb); bb &= bb - 1;
+		const int col = SearchState::idx_col(idx), row = SearchState::idx_row(idx);
+		const int mob = slide_mob(col, row, WHITE, BISH_DIRS, 4)
+		              + slide_mob(col, row, WHITE, ROOK_DIRS, 4);
+		score += 1 * (mob - 14);
+		score += 3 * std::max(0, 7 - (std::abs(row - bkr) + std::abs(col - bkc)));
+	}
+
+	// Black queens: mobility, tropism towards white king
+	bb = state.piece_bb[PIECE_QUEEN + 6];
+	while (bb) {
+		const int idx = std::countr_zero(bb); bb &= bb - 1;
+		const int col = SearchState::idx_col(idx), row = SearchState::idx_row(idx);
+		const int mob = slide_mob(col, row, BLACK, BISH_DIRS, 4)
+		              + slide_mob(col, row, BLACK, ROOK_DIRS, 4);
+		score -= 1 * (mob - 14);
+		score -= 3 * std::max(0, 7 - (std::abs(row - wkr) + std::abs(col - wkc)));
+	}
+
+	// Queen out early penalty (queen advanced without enough support in middlegame)
+	if (material > 3000) {
 		for (int idx = 0; idx < 64; ++idx) {
 			const int col = SearchState::idx_col(idx);
 			const int row = SearchState::idx_row(idx);
-			// White queen advanced too much without support
 			if (state.board[idx] == PIECE_QUEEN && row >= 5) {
 				int defenders = 0;
 				for (int dr = -2; dr <= 2; ++dr) {
 					for (int dc = -2; dc <= 2; ++dc) {
 						if (dr == 0 && dc == 0) continue;
-						const int c = col + dc;
-						const int r = row + dr;
+						const int c = col + dc, r = row + dr;
 						if (c < 0 || c > 7 || r < 0 || r > 7) continue;
 						const int code = state.board[SearchState::sq_to_index(c, r)];
-						if (code != 0 && SearchState::piece_color_from_code(code) == WHITE) {
-							defenders++;
-						}
+						if (code != 0 && SearchState::piece_color_from_code(code) == WHITE) defenders++;
 					}
 				}
 				if (defenders <= 2) score -= 10;
 			}
-			// Black queen symmetrical
 			if (state.board[idx] == PIECE_QUEEN + 6 && row <= 2) {
 				int defenders = 0;
 				for (int dr = -2; dr <= 2; ++dr) {
 					for (int dc = -2; dc <= 2; ++dc) {
 						if (dr == 0 && dc == 0) continue;
-						const int c = col + dc;
-						const int r = row + dr;
+						const int c = col + dc, r = row + dr;
 						if (c < 0 || c > 7 || r < 0 || r > 7) continue;
 						const int code = state.board[SearchState::sq_to_index(c, r)];
-						if (code != 0 && SearchState::piece_color_from_code(code) == BLACK) {
-							defenders++;
-						}
+						if (code != 0 && SearchState::piece_color_from_code(code) == BLACK) defenders++;
 					}
 				}
 				if (defenders <= 2) score += 10;
 			}
 		}
 	}
+
+	return score;
+}
+
+// Detect structurally trapped pieces and penalize them.
+// Board index: idx = row*8 + col, row 0 = rank 1 (white side), col 0 = file a.
+// e.g. a1=0, h1=7, a8=56, h8=63.
+static int evaluate_blockages(const SearchState &state) {
+	int score = 0;
+
+	const int WP = PIECE_PAWN,       BP = PIECE_PAWN + 6;
+	const int WN = PIECE_KNIGHT,     BN = PIECE_KNIGHT + 6;
+	const int WB = PIECE_BISHOP,     BB_CODE = PIECE_BISHOP + 6;
+	const int WK = PIECE_KING,       BK_CODE = PIECE_KING + 6;
+	const int WR = PIECE_ROOK,       BR = PIECE_ROOK + 6;
+
+	// --- White pieces ---
+	// Bishop on C1(2)/F1(5) can't develop: central pawn on D2(11)/E2(12) is blocked
+	if (state.board[2]  == WB && state.board[11] == WP && state.board[19] != 0) score -= 24;
+	if (state.board[5]  == WB && state.board[12] == WP && state.board[20] != 0) score -= 24;
+	// Knight trapped on A8(56): black pawn on A7(48) or C7(50)
+	if (state.board[56] == WN && (state.board[48] == BP || state.board[50] == BP)) score -= 150;
+	// Knight trapped on H8(63): black pawn on H7(55) or F7(53)
+	if (state.board[63] == WN && (state.board[55] == BP || state.board[53] == BP)) score -= 150;
+	// Knight trapped on A7(48): black pawns on A6(40) and B7(49)
+	if (state.board[48] == WN && state.board[40] == BP && state.board[49] == BP) score -= 100;
+	// Knight trapped on H7(55): black pawns on H6(47) and G7(54)
+	if (state.board[55] == WN && state.board[47] == BP && state.board[54] == BP) score -= 100;
+	// Bishop trapped on A7(48): black pawn on B6(41)
+	if (state.board[48] == WB && state.board[41] == BP) score -= 150;
+	// Bishop trapped on H7(55): black pawn on G6(46)
+	if (state.board[55] == WB && state.board[46] == BP) score -= 150;
+	// Bishop trapped on A6(40): black pawn on B5(33)
+	if (state.board[40] == WB && state.board[33] == BP) score -= 50;
+	// Bishop trapped on H6(47): black pawn on G5(38)
+	if (state.board[47] == WB && state.board[38] == BP) score -= 50;
+	// King on F1(5)/G1(6) blocking own rook on G1(6)/H1(7) — kingside
+	if ((state.board[5] == WK || state.board[6] == WK) &&
+	    (state.board[6] == WR || state.board[7] == WR)) score -= 24;
+	// King on B1(1)/C1(2) blocking own rook on A1(0)/B1(1) — queenside
+	if ((state.board[1] == WK || state.board[2] == WK) &&
+	    (state.board[0] == WR || state.board[1] == WR)) score -= 24;
+
+	// --- Black pieces (mirrored) ---
+	// Bishop on C8(58)/F8(61) can't develop: central pawn on D7(51)/E7(52) is blocked
+	if (state.board[58] == BB_CODE && state.board[51] == BP && state.board[43] != 0) score += 24;
+	if (state.board[61] == BB_CODE && state.board[52] == BP && state.board[44] != 0) score += 24;
+	// Knight trapped on A1(0): white pawn on A2(8) or C2(10)
+	if (state.board[0]  == BN && (state.board[8] == WP || state.board[10] == WP)) score += 150;
+	// Knight trapped on H1(7): white pawn on H2(15) or F2(13)
+	if (state.board[7]  == BN && (state.board[15] == WP || state.board[13] == WP)) score += 150;
+	// Knight trapped on A2(8): white pawns on A3(16) and B2(9)
+	if (state.board[8]  == BN && state.board[16] == WP && state.board[9]  == WP) score += 100;
+	// Knight trapped on H2(15): white pawns on H3(23) and G2(14)
+	if (state.board[15] == BN && state.board[23] == WP && state.board[14] == WP) score += 100;
+	// Bishop trapped on A2(8): white pawn on B3(17)
+	if (state.board[8]  == BB_CODE && state.board[17] == WP) score += 150;
+	// Bishop trapped on H2(15): white pawn on G3(22)
+	if (state.board[15] == BB_CODE && state.board[22] == WP) score += 150;
+	// Bishop trapped on A3(16): white pawn on B4(25)
+	if (state.board[16] == BB_CODE && state.board[25] == WP) score += 50;
+	// Bishop trapped on H3(23): white pawn on G4(30)
+	if (state.board[23] == BB_CODE && state.board[30] == WP) score += 50;
+	// Black king on F8(61)/G8(62) blocking own rook on G8(62)/H8(63) — kingside
+	if ((state.board[61] == BK_CODE || state.board[62] == BK_CODE) &&
+	    (state.board[62] == BR      || state.board[63] == BR)) score += 24;
+	// Black king on B8(57)/C8(58) blocking own rook on A8(56)/B8(57) — queenside
+	if ((state.board[57] == BK_CODE || state.board[58] == BK_CODE) &&
+	    (state.board[56] == BR      || state.board[57] == BR)) score += 24;
 
 	return score;
 }
@@ -261,8 +443,11 @@ int evaluate_position(SearchState &state) {
 	// Pawn structure evaluation
 	score += evaluate_pawn_structure(state);
 	
-	// Piece bonuses
+	// Piece bonuses (mobility, tropism, rook files, bishop pair, pawn adj)
 	score += evaluate_piece_bonuses(state, material);
+
+	// Piece blockage patterns (trapped knights/bishops, king blocking rook)
+	score += evaluate_blockages(state);
 
 	// King safety: pawn shield bonus
 	if (material > 1200) {
@@ -291,6 +476,43 @@ int evaluate_position(SearchState &state) {
 			}
 		}
 	}
+
+	// Low material draw correction (prevents claiming wins in drawn endgames)
+	if (score != 0) {
+		const int w_piece_mat =
+			std::popcount(state.piece_bb[PIECE_KNIGHT]) * PIECE_VALUES[PIECE_KNIGHT] +
+			std::popcount(state.piece_bb[PIECE_BISHOP]) * PIECE_VALUES[PIECE_BISHOP] +
+			std::popcount(state.piece_bb[PIECE_ROOK])   * PIECE_VALUES[PIECE_ROOK]   +
+			std::popcount(state.piece_bb[PIECE_QUEEN])  * PIECE_VALUES[PIECE_QUEEN];
+		const int b_piece_mat =
+			std::popcount(state.piece_bb[PIECE_KNIGHT + 6]) * PIECE_VALUES[PIECE_KNIGHT] +
+			std::popcount(state.piece_bb[PIECE_BISHOP + 6]) * PIECE_VALUES[PIECE_BISHOP] +
+			std::popcount(state.piece_bb[PIECE_ROOK + 6])   * PIECE_VALUES[PIECE_ROOK]   +
+			std::popcount(state.piece_bb[PIECE_QUEEN + 6])  * PIECE_VALUES[PIECE_QUEEN];
+		const bool w_has_pawns = state.piece_bb[PIECE_PAWN] != 0;
+		const bool b_has_pawns = state.piece_bb[PIECE_PAWN + 6] != 0;
+
+		if (score > 0 && !w_has_pawns) {
+			// White is "stronger" but has no pawns — check draw conditions
+			if (w_piece_mat < 400) return 0; // lone minor piece can't force mate
+			if (!b_has_pawns && w_piece_mat == 2 * PIECE_VALUES[PIECE_KNIGHT]) return 0; // KNN vs K = draw
+			if (w_piece_mat == PIECE_VALUES[PIECE_ROOK] &&
+			    (b_piece_mat == PIECE_VALUES[PIECE_BISHOP] || b_piece_mat == PIECE_VALUES[PIECE_KNIGHT])) score /= 2;
+			if ((w_piece_mat == PIECE_VALUES[PIECE_ROOK] + PIECE_VALUES[PIECE_BISHOP] ||
+			     w_piece_mat == PIECE_VALUES[PIECE_ROOK] + PIECE_VALUES[PIECE_KNIGHT]) &&
+			     b_piece_mat == PIECE_VALUES[PIECE_ROOK]) score /= 2;
+		} else if (score < 0 && !b_has_pawns) {
+			// Black is "stronger" but has no pawns
+			if (b_piece_mat < 400) return 0;
+			if (!w_has_pawns && b_piece_mat == 2 * PIECE_VALUES[PIECE_KNIGHT]) return 0; // KNN vs K = draw
+			if (b_piece_mat == PIECE_VALUES[PIECE_ROOK] &&
+			    (w_piece_mat == PIECE_VALUES[PIECE_BISHOP] || w_piece_mat == PIECE_VALUES[PIECE_KNIGHT])) score /= 2;
+			if ((b_piece_mat == PIECE_VALUES[PIECE_ROOK] + PIECE_VALUES[PIECE_BISHOP] ||
+			     b_piece_mat == PIECE_VALUES[PIECE_ROOK] + PIECE_VALUES[PIECE_KNIGHT]) &&
+			     w_piece_mat == PIECE_VALUES[PIECE_ROOK]) score /= 2;
+		}
+	}
+
 	return score;
 }
 
