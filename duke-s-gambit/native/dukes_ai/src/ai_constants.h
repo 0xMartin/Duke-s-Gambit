@@ -129,7 +129,32 @@ inline constexpr int MVV_LVA_VICTIM[NUM_PIECE_TYPES] = {
 	100, 320, 330, 500, 900, 20000,
 };
 
-// External piece code (Godot) -> internal (color, piece_type). Returns
+// ---------------------------------------------------------------------------
+// Godot piece-type mapping. The Godot side (ChessEnums.PieceType) uses:
+//     NONE=0, PAWN=1, ROOK=2, KNIGHT=3, BISHOP=4, QUEEN=5, KING=6
+// External codes on the wire are: code = godot_piece_type + (BLACK ? 6 : 0).
+// We translate to/from our internal PieceType (PAWN=0..KING=5) via tables.
+// ---------------------------------------------------------------------------
+inline constexpr uint8_t GODOT_TO_INTERNAL_PT[7] = {
+	PT_NONE, // 0 = NONE
+	PAWN,    // 1 = PAWN
+	ROOK,    // 2 = ROOK
+	KNIGHT,  // 3 = KNIGHT
+	BISHOP,  // 4 = BISHOP
+	QUEEN,   // 5 = QUEEN
+	KING,    // 6 = KING
+};
+
+inline constexpr int INTERNAL_TO_GODOT_PT[NUM_PIECE_TYPES] = {
+	1, // PAWN   -> Godot PAWN
+	3, // KNIGHT -> Godot KNIGHT
+	4, // BISHOP -> Godot BISHOP
+	2, // ROOK   -> Godot ROOK
+	5, // QUEEN  -> Godot QUEEN
+	6, // KING   -> Godot KING
+};
+
+// External piece code (Godot wire) -> internal (color, piece_type). Returns
 // piece_type == PT_NONE for empty squares.
 struct ExternalPiece {
 	uint8_t color;
@@ -137,20 +162,19 @@ struct ExternalPiece {
 };
 
 inline constexpr ExternalPiece decode_external_piece(int code) {
-	// 0 empty; 1..6 white P,N,B,R,Q,K; 7..12 black P,N,B,R,Q,K.
 	if (code <= 0 || code > 12) {
 		return { WHITE, PT_NONE };
 	}
 	uint8_t c = (code <= 6) ? WHITE : BLACK;
-	uint8_t t = static_cast<uint8_t>(((code - 1) % 6));
-	return { c, t };
+	int godot_pt = (code <= 6) ? code : (code - 6);
+	return { c, GODOT_TO_INTERNAL_PT[godot_pt] };
 }
 
 inline constexpr int encode_external_piece(uint8_t color, uint8_t type) {
 	if (type >= PT_NONE) {
 		return 0;
 	}
-	return int(type) + 1 + (color == BLACK ? 6 : 0);
+	return INTERNAL_TO_GODOT_PT[type] + (color == BLACK ? 6 : 0);
 }
 
 // ---------------------------------------------------------------------------
