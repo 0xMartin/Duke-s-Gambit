@@ -111,12 +111,15 @@ func _notification(what: int) -> void:
 
 func setup(white_name: String, white_elo: int,
 		   black_name: String, black_elo: int,
-		   has_time_limit: bool = false) -> void:
+		   has_time_limit: bool = false,
+		   show_elo: bool = true) -> void:
 	_has_time_limit = has_time_limit
 	_apply_player_name(ChessEnums.PieceColor.WHITE, white_name)
 	(_elo_lbl [ChessEnums.PieceColor.WHITE] as Label).text = "ELO %d" % white_elo
 	_apply_player_name(ChessEnums.PieceColor.BLACK, black_name)
 	(_elo_lbl [ChessEnums.PieceColor.BLACK] as Label).text = "ELO %d" % black_elo
+	(_elo_lbl[ChessEnums.PieceColor.WHITE] as Label).visible = show_elo
+	(_elo_lbl[ChessEnums.PieceColor.BLACK] as Label).visible = show_elo
 
 	for c in [ChessEnums.PieceColor.WHITE, ChessEnums.PieceColor.BLACK]:
 		for child in (_captured_list[c] as HBoxContainer).get_children():

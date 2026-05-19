@@ -88,6 +88,11 @@ var _is_player_vs_ai: bool = false
 # Online mode (server is the authority for move legality and game-over).
 var _online_mode: bool = false
 var _my_online_color: int = -1   # local player's color when online; -1 = none
+# Queue of pending server-applied moves; processed strictly sequentially so a
+# rapidly-arriving opponent move cannot re-enter `_on_move_chosen` while the
+# previous animation is still awaiting (would desync the local board).
+var _server_move_queue: Array = []
+var _processing_server_move: bool = false
 const _RemoteControllerScript := preload("res://scripts/controllers/remote_controller.gd")
 
 # Chess clock (ms). 0 = no limit.
@@ -259,6 +264,8 @@ func start_game() -> void:
 	_move_times_ms = [0, 0]
 	_captured_by = [[], []]
 	_time_remaining_ms = [_time_control_ms, _time_control_ms]
+	_server_move_queue.clear()
+	_processing_server_move = false
 	if _material_pressure_fx != null and _material_pressure_fx.has_method("reset_effects"):
 		_material_pressure_fx.call("reset_effects")
 	_clear_pieces()
@@ -268,7 +275,8 @@ func start_game() -> void:
 		_hud.setup(
 			_player_names[ChessEnums.PieceColor.WHITE], _player_elos[ChessEnums.PieceColor.WHITE],
 			_player_names[ChessEnums.PieceColor.BLACK], _player_elos[ChessEnums.PieceColor.BLACK],
-			_time_control_ms > 0
+			_time_control_ms > 0,
+			not _online_mode
 		)
 		if _hud.has_method("reset_move_history"):
 			_hud.call("reset_move_history")
@@ -1174,6 +1182,18 @@ func _parse_uci(uci: String) -> Dictionary:
 func _on_server_move_applied(payload: Dictionary) -> void:
 	if not _online_mode or _chess == null:
 		return
+	_server_move_queue.append(payload)
+	if _processing_server_move:
+		return
+	_processing_server_move = true
+	while not _server_move_queue.is_empty():
+		var p: Dictionary = _server_move_queue.pop_front()
+		await _apply_server_move(p)
+	_processing_server_move = false
+
+func _apply_server_move(payload: Dictionary) -> void:
+	if not _online_mode or _chess == null or _game_over_shown:
+		return
 	var uci := str(payload.get("uci", ""))
 	var parsed := _parse_uci(uci)
 	if parsed.is_empty():
@@ -1188,7 +1208,7 @@ func _on_server_move_applied(payload: Dictionary) -> void:
 		_time_remaining_ms[ChessEnums.PieceColor.WHITE] = int(payload.get("white_ms", 0))
 	if payload.has("black_ms"):
 		_time_remaining_ms[ChessEnums.PieceColor.BLACK] = int(payload.get("black_ms", 0))
-	_on_move_chosen(mv)
+	await _on_move_chosen(mv)
 
 func _on_server_game_over(payload: Dictionary) -> void:
 	if not _online_mode or _game_over_shown:
