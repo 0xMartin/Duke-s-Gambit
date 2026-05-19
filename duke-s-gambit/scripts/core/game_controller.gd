@@ -85,6 +85,11 @@ var _player_names: Array = ["Player1", "Player2"]
 var _player_elos:  Array = [1200, 1200]
 var _is_player_vs_ai: bool = false
 
+# Online mode (server is the authority for move legality and game-over).
+var _online_mode: bool = false
+var _my_online_color: int = -1   # local player's color when online; -1 = none
+const _RemoteControllerScript := preload("res://scripts/controllers/remote_controller.gd")
+
 # Chess clock (ms). 0 = no limit.
 var _time_control_ms:   int = 0
 var _time_remaining_ms: Array = [0, 0]  # [white, black]
@@ -113,7 +118,8 @@ func _process(_delta: float) -> void:
 		var inactive := 1 - color
 		var remaining: int = _time_remaining_ms[color] - elapsed
 		if remaining <= 0:
-			_on_time_out(color)
+			if not _online_mode:
+				_on_time_out(color)
 			return
 		# Update both timers: active player counts down, inactive shows their frozen remaining
 		_hud.update_timer(color, remaining)
@@ -167,6 +173,43 @@ func _on_dynamic_music_preset_changed(preset: String) -> void:
 	_sat_tween.tween_property(_world_env.environment, "adjustment_saturation", target_sat, 0.45) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
+## Online mode setup. Builds a local human controller for ``your_color`` and a
+## passive RemoteController for the opponent — moves arrive via OnlineClient.
+func setup_online(white_name: String, black_name: String,
+			your_color: int, time_control_ms: int,
+			white_elo: int = 1200, black_elo: int = 1200) -> void:
+	_online_mode = true
+	_my_online_color = your_color
+	_player_names[ChessEnums.PieceColor.WHITE] = white_name
+	_player_names[ChessEnums.PieceColor.BLACK] = black_name
+	_player_elos[ChessEnums.PieceColor.WHITE]  = white_elo
+	_player_elos[ChessEnums.PieceColor.BLACK]  = black_elo
+	_time_control_ms = time_control_ms
+	_is_player_vs_ai = false
+
+	_controllers.clear()
+	for color in [ChessEnums.PieceColor.WHITE, ChessEnums.PieceColor.BLACK]:
+		var ctrl: PlayerController
+		if color == your_color:
+			var human := HumanController.new()
+			human.color = color
+			human.player_name = _player_names[color]
+			ctrl = human
+		else:
+			var remote: PlayerController = _RemoteControllerScript.new()
+			remote.color = color
+			remote.player_name = _player_names[color]
+			ctrl = remote
+		ctrl.move_chosen.connect(_on_local_move_chosen)
+		_controllers.append(ctrl)
+
+	var oc := get_node_or_null("/root/OnlineClient")
+	if oc != null:
+		if not oc.move_applied.is_connected(_on_server_move_applied):
+			oc.move_applied.connect(_on_server_move_applied)
+		if not oc.game_over_received.is_connected(_on_server_game_over):
+			oc.game_over_received.connect(_on_server_game_over)
+
 ## Called from MainMenu before adding this node to the scene tree.
 func setup(p1_name: String, p2_name: String,
 		   white_is_ai: bool, black_is_ai: bool, ai_strength: int,
@@ -203,7 +246,7 @@ func setup(p1_name: String, p2_name: String,
 			human.color = color
 			human.player_name = _player_names[color]
 			ctrl = human
-		ctrl.move_chosen.connect(_on_move_chosen)
+		ctrl.move_chosen.connect(_on_local_move_chosen)
 		_controllers.append(ctrl)
 
 func start_game() -> void:
@@ -453,19 +496,22 @@ func _start_turn() -> void:
 	# Check / checkmate / stalemate
 	if state == ChessEnums.GameState.CHECKMATE:
 		MusicManager.set_checkmate_tension(true)
-		emit_signal("game_over", 1 - color, ChessEnums.GameState.CHECKMATE)
-		_animate_checkmate_end(color)                        # async: king dies → 2s → panel
-		return
+		if not _online_mode:
+			emit_signal("game_over", 1 - color, ChessEnums.GameState.CHECKMATE)
+			_animate_checkmate_end(color)                        # async: king dies → 2s → panel
+			return
 	if state == ChessEnums.GameState.STALEMATE:
 		MusicManager.reset_dynamic_music()
-		emit_signal("game_over", -1, ChessEnums.GameState.STALEMATE)
-		_show_game_over(-1, "Pat (remíza)")
-		return
+		if not _online_mode:
+			emit_signal("game_over", -1, ChessEnums.GameState.STALEMATE)
+			_show_game_over(-1, "Pat (remíza)")
+			return
 	if state == ChessEnums.GameState.DRAW:
 		MusicManager.reset_dynamic_music()
-		emit_signal("game_over", -1, ChessEnums.GameState.DRAW)
-		_show_game_over(-1, "Remíza")
-		return
+		if not _online_mode:
+			emit_signal("game_over", -1, ChessEnums.GameState.DRAW)
+			_show_game_over(-1, "Remíza")
+			return
 	if state == ChessEnums.GameState.CHECK:
 		MusicManager.set_check_tension(true)
 		var king_sq := _chess._find_king(color)
@@ -506,6 +552,8 @@ func _human_player_color() -> int:
 func can_surrender() -> bool:
 	if _game_over_shown or _chess == null:
 		return false
+	if _online_mode:
+		return true
 	if _is_player_vs_ai:
 		return is_human_turn()
 	return true
@@ -564,6 +612,11 @@ func _on_time_out(loser_color: int) -> void:
 ## Forfeit: the current active player loses.
 func surrender() -> void:
 	if not can_surrender():
+		return
+	if _online_mode:
+		var oc := get_node_or_null("/root/OnlineClient")
+		if oc != null:
+			oc.send_surrender()
 		return
 	_game_over_shown = true
 	_busy = true
@@ -726,6 +779,18 @@ func _raycast_board(screen_pos: Vector2) -> Vector2i:
 	return _board.world_to_sq(hit)
 
 # ── Move execution ─────────────────────────────────────────────────────────
+## Slot fed by controllers (HumanController.try_move → move_chosen).
+## In offline play it applies directly; in online play it routes the move to
+## the server and waits for the authoritative `move_applied` event.
+func _on_local_move_chosen(mv: ChessMove) -> void:
+	if _online_mode:
+		var oc := get_node_or_null("/root/OnlineClient")
+		if oc == null:
+			return
+		oc.send_move(_move_to_uci(mv))
+		return
+	_on_move_chosen(mv)
+
 func _on_move_chosen(mv: ChessMove) -> void:
 	if _game_over_shown:
 		return   # game ended (e.g. surrender while AI was thinking)
@@ -1035,3 +1100,115 @@ func _show_game_over(winner_color: int, reason: String) -> void:
 			_move_counts[0], _move_counts[1],
 			_move_times_ms[0], _move_times_ms[1]
 		)
+
+# ── Online helpers ─────────────────────────────────────────────────────────
+const _FILES := "abcdefgh"
+const _PROMO_CHAR := {
+	ChessEnums.PieceType.QUEEN:  "q",
+	ChessEnums.PieceType.ROOK:   "r",
+	ChessEnums.PieceType.BISHOP: "b",
+	ChessEnums.PieceType.KNIGHT: "n",
+}
+const _CHAR_TO_PROMO := {
+	"q": ChessEnums.PieceType.QUEEN,
+	"r": ChessEnums.PieceType.ROOK,
+	"b": ChessEnums.PieceType.BISHOP,
+	"n": ChessEnums.PieceType.KNIGHT,
+}
+
+func _move_to_uci(mv: ChessMove) -> String:
+	var s := "%s%d%s%d" % [
+		_FILES[mv.from_sq.x], mv.from_sq.y + 1,
+		_FILES[mv.to_sq.x],   mv.to_sq.y + 1,
+	]
+	if mv.move_type == ChessEnums.MoveType.PROMOTION \
+	or mv.move_type == ChessEnums.MoveType.PROMOTION_CAPTURE:
+		s += _PROMO_CHAR.get(mv.promotion_type, "q")
+	return s
+
+func _resolve_legal_move(from_sq: Vector2i, to_sq: Vector2i, promo_type: int) -> ChessMove:
+	if _chess == null:
+		return null
+	var legal := _chess.get_legal_moves(_chess.active_color)
+	for mv in legal:
+		if mv.from_sq != from_sq or mv.to_sq != to_sq:
+			continue
+		var is_promo: bool = mv.move_type == ChessEnums.MoveType.PROMOTION \
+			or mv.move_type == ChessEnums.MoveType.PROMOTION_CAPTURE
+		if is_promo:
+			if promo_type == ChessEnums.PieceType.NONE:
+				continue
+			if mv.promotion_type != promo_type:
+				continue
+		return mv
+	return null
+
+func _parse_uci(uci: String) -> Dictionary:
+	if uci.length() < 4:
+		return {}
+	var ff := _FILES.find(uci.substr(0, 1).to_lower())
+	var fr := int(uci.substr(1, 1)) - 1
+	var tf := _FILES.find(uci.substr(2, 1).to_lower())
+	var trank := int(uci.substr(3, 1)) - 1
+	if ff < 0 or tf < 0 or fr < 0 or fr > 7 or trank < 0 or trank > 7:
+		return {}
+	var promo_type: int = ChessEnums.PieceType.NONE
+	if uci.length() >= 5:
+		var ch := uci.substr(4, 1).to_lower()
+		promo_type = _CHAR_TO_PROMO.get(ch, ChessEnums.PieceType.NONE)
+	return {
+		"from": Vector2i(ff, fr),
+		"to":   Vector2i(tf, trank),
+		"promotion": promo_type,
+	}
+
+func _on_server_move_applied(payload: Dictionary) -> void:
+	if not _online_mode or _chess == null:
+		return
+	var uci := str(payload.get("uci", ""))
+	var parsed := _parse_uci(uci)
+	if parsed.is_empty():
+		push_warning("GameController: bad UCI from server: %s" % uci)
+		return
+	var mv := _resolve_legal_move(parsed["from"], parsed["to"], parsed["promotion"])
+	if mv == null:
+		push_warning("GameController: server move not legal locally: %s" % uci)
+		return
+	# Sync server clock values BEFORE applying the move so HUD shows authoritative time.
+	if payload.has("white_ms"):
+		_time_remaining_ms[ChessEnums.PieceColor.WHITE] = int(payload.get("white_ms", 0))
+	if payload.has("black_ms"):
+		_time_remaining_ms[ChessEnums.PieceColor.BLACK] = int(payload.get("black_ms", 0))
+	_on_move_chosen(mv)
+
+func _on_server_game_over(payload: Dictionary) -> void:
+	if not _online_mode or _game_over_shown:
+		return
+	apply_remote_game_over(
+		str(payload.get("winner", "")),
+		str(payload.get("reason", ""))
+	)
+
+## Public entry called by OnlineClient.game_over_received.
+## ``winner`` is "white" / "black" / "" (draw). ``reason`` is server-side text.
+func apply_remote_game_over(winner: String, reason: String) -> void:
+	if _game_over_shown:
+		return
+	var winner_color := -1
+	if winner == "white":
+		winner_color = ChessEnums.PieceColor.WHITE
+	elif winner == "black":
+		winner_color = ChessEnums.PieceColor.BLACK
+	_game_over_shown = true
+	_busy = true
+	MusicManager.reset_dynamic_music()
+	var state_reason: int = ChessEnums.GameState.CHECKMATE
+	if winner_color == -1:
+		state_reason = ChessEnums.GameState.DRAW
+	emit_signal("game_over", winner_color, state_reason)
+	var pretty_reason := reason.capitalize() if reason != "" else "Game over"
+	if winner_color == -1:
+		_show_game_over(-1, pretty_reason)
+	else:
+		_show_game_over(winner_color, pretty_reason)
+		_start_defeat_sequence(1 - winner_color)

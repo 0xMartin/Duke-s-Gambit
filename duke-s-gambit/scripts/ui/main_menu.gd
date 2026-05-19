@@ -45,6 +45,8 @@ extends Control
 var _save: Node = null
 var _stats_table:       GridContainer = null
 var _profiles_sorted:   Array[Dictionary] = []
+var _online_menu: RefCounted = null   # OnlineMenu helper (lazy-built)
+const _ONLINE_MENU_SCRIPT := preload("res://scripts/online/online_menu.gd")
 const _STATS_HEADER_CELLS := 7
 const _TABLE_VALUE_THEME := preload("res://themes/table_value.tres")
 const _STATS_SCROLLBAR_THICKNESS := 24.0
@@ -67,6 +69,7 @@ func _ready() -> void:
 	_setup_settings_extra()
 	_connect_button_sounds()
 	call_deferred("_fit_title_font_size")
+	_setup_online_menu()
 	_show_panel(_main_menu_panel)
 
 func _notification(what: int) -> void:
@@ -145,7 +148,7 @@ func _populate_time_options(option_btn: OptionButton) -> void:
 	option_btn.add_item("15 min",   15 * 60 * 1000)
 	option_btn.select(3)
 
-# ── Panel navigation ───────────────────────────────────────────────────────
+# ── Panel navigation ────────────────────────────────────────────────
 func _show_panel(panel: Control) -> void:
 	_main_panel.visible = true
 	_main_menu_panel.visible = (panel == _main_menu_panel)
@@ -153,6 +156,57 @@ func _show_panel(panel: Control) -> void:
 	_pvai_panel.visible = (panel == _pvai_panel)
 	_stats_panel.visible = (panel == _stats_panel)
 	_settings_panel.visible = (panel == _settings_panel)
+	if _online_menu != null:
+		for op in _online_menu.panels():
+			if op != null:
+				op.visible = (op == panel)
+
+# ── Online integration ───────────────────────────────────────────
+func _setup_online_menu() -> void:
+	_online_menu = _ONLINE_MENU_SCRIPT.new()
+	_online_menu.setup(self)
+	var online_btn := $MainPanel/MainVBox.get_node_or_null("OnlineBtn") as Button
+	if online_btn != null:
+		online_btn.pressed.connect(_play_menu_click)
+
+func show_main_panel() -> void:
+	_show_panel(_main_menu_panel)
+
+func show_online_panel(panel: Control) -> void:
+	_show_panel(panel)
+
+func is_online_panel_active() -> bool:
+	if _online_menu == null:
+		return false
+	for op in _online_menu.panels():
+		if op != null and op.visible:
+			return true
+	return false
+
+func show_online_toast(msg: String) -> void:
+	push_warning(msg)
+
+func start_online_game(payload: Dictionary) -> void:
+	hide()
+	var pack := load("res://scenes/game.tscn") as PackedScene
+	if pack == null:
+		push_error("MainMenu: could not load game scene")
+		return
+	var scene := pack.instantiate() as GameController
+	if scene == null:
+		push_error("MainMenu: game scene root is not GameController")
+		return
+	get_tree().root.add_child(scene)
+	var white_name: String = str(payload.get("white", "White"))
+	var black_name: String = str(payload.get("black", "Black"))
+	var your_color_s: String = str(payload.get("your_color", "white"))
+	var your_color: int = ChessEnums.PieceColor.WHITE
+	if your_color_s == "black":
+		your_color = ChessEnums.PieceColor.BLACK
+	var time_ms: int = int(payload.get("time_ms", 0))
+	scene.setup_online(white_name, black_name, your_color, time_ms)
+	scene.start_game()
+	queue_free()
 
 # ── Name entry ─────────────────────────────────────────────────────────────
 func _open_pvp_menu() -> void:

@@ -21,6 +21,7 @@ config/icon="res://icon.svg"
 SaveManager="*res://scripts/systems/save_manager.gd"
 CameraConfig="*res://scripts/camera/camera_config.gd"
 MusicManager="*res://scripts/systems/music_manager.gd"
+OnlineClient="*res://scripts/online/online_client.gd"
 
 [display]
 
