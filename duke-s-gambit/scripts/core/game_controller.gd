@@ -21,6 +21,8 @@ extends Node3D
 @onready var _terrain: Node3D      = get_node_or_null("Terrain")
 @onready var _world_env: WorldEnvironment = get_node_or_null("WorldEnvironment")
 @onready var _material_pressure_fx: Node = get_node_or_null("MaterialPressureFX")
+@onready var _white_base: Node3D   = get_node_or_null("WhiteBase")
+@onready var _black_base: Node3D   = get_node_or_null("BlackBase")
 
 var _hud: Node = null
 
@@ -531,6 +533,7 @@ func _animate_checkmate_end(loser_color: int) -> void:
 
 	await get_tree().create_timer(2.0).timeout
 	_show_game_over(winner_color, "Checkmate")
+	_start_defeat_sequence(loser_color)
 
 # ── Time-out ───────────────────────────────────────────────────────────────
 func _on_time_out(loser_color: int) -> void:
@@ -554,6 +557,7 @@ func surrender() -> void:
 	var winner := 1 - surrendering
 	emit_signal("game_over", winner, ChessEnums.GameState.CHECKMATE)
 	_show_game_over(winner, "Surrender")
+	_start_defeat_sequence(surrendering)
 
 func _format_time(ms: int) -> String:
 	var secs: int = int(ms / 1000.0)
@@ -895,6 +899,22 @@ func choose_promotion(sq: Vector2i, piece_type: int) -> bool:
 	return true
 
 # ── Game over UI ───────────────────────────────────────────────────────────
+## Activates fire effects in the loser's base and flies the camera there.
+## Called after _show_game_over for checkmate and surrender (not draws).
+func _start_defeat_sequence(loser_color: int) -> void:
+	var base: Node3D = _white_base if loser_color == ChessEnums.PieceColor.WHITE \
+		else _black_base
+	if base == null or _camera == null:
+		return
+	# Camera glides to base first; fires ignite when it arrives
+	await _camera.defeat_cam(base.global_position)
+	for child in base.get_children():
+		child.visible = true
+		var audio := child.get_node_or_null("AudioStreamPlayer3D") as AudioStreamPlayer3D
+		if audio and not audio.playing:
+			audio.play()
+
+
 func _show_game_over(winner_color: int, reason: String) -> void:
 	var panel := _ui.get_node_or_null("GameOverPanel") as Control
 	if panel == null:

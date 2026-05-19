@@ -71,6 +71,11 @@ var _intro_sway_tween:   Tween   = null
 var _intro_look_target:  Vector3 = Vector3.ZERO
 const INTRO_SWAY_HALF_RANGE := 1.5   # X units: pivot sweeps from -1.5 to +1.5
 
+# Defeat cam state
+var _levitate_tween: Tween = null
+var _defeat_cam_active: bool = false
+var _defeat_look_target: Vector3 = Vector3.ZERO
+
 # ── Ready ──────────────────────────────────────────────────────────────────
 func _ready() -> void:
 	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
@@ -128,7 +133,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 # ── Process ────────────────────────────────────────────────────────────────
 func _process(delta: float) -> void:
-	if _kill_cam_active:
+	if _defeat_cam_active:
+		pass  # no orbit, no pivot tracking; levitation handled by tween
+	elif _kill_cam_active:
 		# Orbit speed: slow mournful for checkmate, faster for regular capture.
 		var orb_speed := CHECKMATE_CAM_ORBIT_SPEED if _checkmate_cam_active else KILL_CAM_ORBIT_SPEED
 		_target_azimuth += orb_speed * delta
@@ -163,6 +170,9 @@ func _apply_transform() -> void:
 		if _intro_sway_tween != null:
 			# Intro: always look at the fixed player-edge target, not the moving pivot.
 			_cam.look_at(_intro_look_target, Vector3.UP)
+		elif _defeat_cam_active:
+			# Defeat cam: look at the losing base, not the pivot.
+			_cam.look_at(_defeat_look_target, Vector3.UP)
 		else:
 			_cam.look_at(global_position, Vector3.UP)
 		# Apply camera shake as a small post-look rotation
@@ -349,3 +359,39 @@ func stop_intro_sway() -> void:
 	if _intro_sway_tween:
 		_intro_sway_tween.kill()
 		_intro_sway_tween = null
+
+## Camera stays where it is; gaze smoothly turns to the losing base, then levitates.
+func defeat_cam(base_world_pos: Vector3) -> void:
+	stop_intro_sway()
+	_dragging = false
+	_panning  = false
+	_input_locked = true
+	# Stop ALL movement: kill cam, orbit, pivot tracking
+	_kill_cam_active      = false
+	_checkmate_cam_active = false
+	_kill_cam_track       = null
+	_defeat_cam_active    = false
+	# Freeze azimuth/elevation/distance so nothing lerps
+	_target_azimuth   = _azimuth
+	_target_elevation = elevation
+	_target_distance  = distance
+	# Defeat look starts at current pivot (= where camera already looks)
+	_defeat_look_target = global_position
+	_defeat_cam_active  = true
+	# Smoothly sweep gaze toward the losing base
+	var tw := create_tween()
+	tw.tween_property(self, "_defeat_look_target", base_world_pos, 1.5) \
+		.set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_CUBIC)
+	await tw.finished
+	# Gentle levitation: pivot Y bobs, camera follows while keeping gaze on base
+	_start_levitate_loop(position.y)
+
+
+func _start_levitate_loop(base_y: float) -> void:
+	if _levitate_tween:
+		_levitate_tween.kill()
+	_levitate_tween = create_tween().set_loops()
+	_levitate_tween.tween_property(self, "position:y", base_y + 0.3, 3.5) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_levitate_tween.tween_property(self, "position:y", base_y - 0.15, 3.5) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)

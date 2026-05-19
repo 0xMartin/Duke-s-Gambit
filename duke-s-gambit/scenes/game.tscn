@@ -1105,3 +1105,33 @@ transform = Transform3D(-1, -8.742278e-08, 3.821371e-15, 0, -4.371139e-08, -1, 8
 [node name="Bugs" type="Node" parent="." unique_id=454909483]
 script = ExtResource("20_bugspawn")
 bug_scene = ExtResource("21_bugscene")
+
+[node name="BlackBase" type="Node3D" parent="." unique_id=1017898160]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.28208113, 4.0443325, 19.719349)
+
+[node name="Fire3" parent="BlackBase" unique_id=479673547 instance=ExtResource("10_dinhu")]
+transform = Transform3D(3, 0, 0, 0, 3, 0, 0, 0, 3, 1.00893, 0.98855734, -0.26054382)
+visible = false
+
+[node name="Fire2" parent="BlackBase" unique_id=1139110955 instance=ExtResource("10_dinhu")]
+transform = Transform3D(3, 0, 0, 0, 3, 0, 0, 0, 3, -0.9914484, 0.9737878, -0.39081573)
+visible = false
+
+[node name="Fire" parent="BlackBase" unique_id=1496286791 instance=ExtResource("10_dinhu")]
+transform = Transform3D(3, 0, 0, 0, 3, 0, 0, 0, 3, 0, 0, -0.065135956)
+visible = false
+
+[node name="WhiteBase" type="Node3D" parent="." unique_id=340842177]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.739788, -19.799225)
+
+[node name="Fire3" parent="WhiteBase" unique_id=1225070926 instance=ExtResource("10_dinhu")]
+transform = Transform3D(3, 0, 0, 0, 3, 0, 0, 0, 3, 1.00893, 0.98855734, -0.26054382)
+visible = false
+
+[node name="Fire2" parent="WhiteBase" unique_id=1966379140 instance=ExtResource("10_dinhu")]
+transform = Transform3D(3, 0, 0, 0, 3, 0, 0, 0, 3, -0.9914484, 0.9737878, -0.39081573)
+visible = false
+
+[node name="Fire" parent="WhiteBase" unique_id=444229557 instance=ExtResource("10_dinhu")]
+transform = Transform3D(3, 0, 0, 0, 3, 0, 0, 0, 3, 0, 0, -0.065135956)
+visible = false
