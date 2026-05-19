@@ -99,16 +99,16 @@ func _compute_search_budget(board: ChessBoardState, legal_count: int, selected_d
 	match selected_difficulty:
 		Difficulty.CASUAL:
 			base_depth = 4
-			base_time_ms = 1700
-			min_time_ms = 800
-			max_time_ms = 2600
+			base_time_ms = 500
+			min_time_ms = 300
+			max_time_ms = 800
 		Difficulty.CHALLENGER:
 			base_depth = 8
 			base_time_ms = 3300
 			min_time_ms = 1400
 			max_time_ms = 5200
 		Difficulty.MASTER:
-			base_depth = 12
+			base_depth = 64 # unlimited, will be clamped by depth adjustments below
 			base_time_ms = 5200
 			min_time_ms = 1800
 			max_time_ms = 7200

@@ -17,6 +17,7 @@
 #include <bit>
 #include <chrono>
 #include <cstring>
+#include <thread>
 #include <vector>
 
 namespace dukes_ai {
@@ -103,6 +104,10 @@ struct SearchContext {
 	int32_t time_limit_ms = 0;
 	bool    stop = false;
 
+	// Lazy SMP coordination — shared stop flag (never owned by the context).
+	std::atomic<bool> *global_stop = nullptr;
+	int  thread_id = 0;
+
 	// Heuristics.
 	Move killers[MAX_PLY][2] = {};
 	int  history[NUM_COLORS][64][64] = {};
@@ -115,6 +120,10 @@ struct SearchContext {
 
 static inline bool time_up(SearchContext &ctx) {
 	if (ctx.stop) return true;
+	if (ctx.global_stop && ctx.global_stop->load(std::memory_order_relaxed)) {
+		ctx.stop = true;
+		return true;
+	}
 	if (ctx.time_limit_ms <= 0) return false;
 	if ((ctx.nodes & 2047) != 0) return false;
 	auto now = std::chrono::steady_clock::now();
@@ -122,6 +131,9 @@ static inline bool time_up(SearchContext &ctx) {
 			now - ctx.start_time).count();
 	if (ms >= ctx.time_limit_ms) {
 		ctx.stop = true;
+		if (ctx.global_stop) {
+			ctx.global_stop->store(true, std::memory_order_relaxed);
+		}
 		return true;
 	}
 	return false;
@@ -499,9 +511,21 @@ static void search_root(SearchState &state, SearchContext &ctx,
 
 	if (max_depth <= 0) max_depth = MAX_PLY - 1;
 
+	// Soft time limit: don't start a new ID iteration past 60% of the hard cap.
+	// time_up() still enforces the hard limit mid-search via ctx.stop.
+	const int64_t soft_limit_ms = (ctx.time_limit_ms > 0)
+			? int64_t(ctx.time_limit_ms) * 6 / 10
+			: 0;
+
+	// Lazy SMP: helper threads skip the very shallow iterations to scatter
+	// their work into different parts of the tree while still sharing the TT.
+	int start_depth = 1 + ctx.thread_id;
+	if (start_depth > max_depth) start_depth = max_depth;
+	if (start_depth < 1)         start_depth = 1;
+
 	int prev_score = 0;
 
-	for (int depth = 1; depth <= max_depth; ++depth) {
+	for (int depth = start_depth; depth <= max_depth; ++depth) {
 		int alpha = -INF_SCORE;
 		int beta  =  INF_SCORE;
 		int delta = 25;
@@ -563,6 +587,16 @@ static void search_root(SearchState &state, SearchContext &ctx,
 		// Early exit on confirmed mate.
 		if (score >  MATE_IN_MAX) break;
 		if (score < -MATE_IN_MAX) break;
+
+		// Soft time cut: don't start a deeper iteration if we're already past
+		// 60% of the hard budget — the next depth would almost certainly be
+		// aborted mid-flight and waste the partial work.
+		if (soft_limit_ms > 0) {
+			auto now = std::chrono::steady_clock::now();
+			int64_t elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+					now - ctx.start_time).count();
+			if (elapsed >= soft_limit_ms) break;
+		}
 	}
 }
 
@@ -676,16 +710,57 @@ static bool load_state_from_dict(const ::godot::Dictionary &position,
 	// Snapshot the root position for move serialisation.
 	SearchState root_snapshot = state;
 
-	SearchContext ctx;
-	ctx.start_time    = std::chrono::steady_clock::now();
-	ctx.time_limit_ms = time_limit_ms;
+	// ---- Lazy SMP setup ----
+	// Clamp [1, 4] — keeps mobile devices from oversubscribing CPU cores while
+	// still extracting useful depth gains on desktop hardware.
+	unsigned hw = std::thread::hardware_concurrency();
+	int num_threads = (hw == 0) ? 1 : int(hw);
+	if (num_threads < 1) num_threads = 1;
+	if (num_threads > 4) num_threads = 4;
 
-	Move best  = MOVE_NONE;
-	int  score = 0;
-	search_root(state, ctx, depth, best, score);
+	std::atomic<bool> global_stop{ false };
+	auto start_time = std::chrono::steady_clock::now();
+
+	// Each worker gets its OWN state, context, and result slots — no aliasing.
+	// Only the global TT and global_stop are shared.
+	std::vector<SearchState>   states(num_threads, state);
+	std::vector<SearchContext> contexts(num_threads);
+	std::vector<Move>          bests(num_threads, MOVE_NONE);
+	std::vector<int>           scores(num_threads, 0);
+
+	for (int i = 0; i < num_threads; ++i) {
+		contexts[i].start_time    = start_time;
+		contexts[i].time_limit_ms = time_limit_ms;
+		contexts[i].global_stop   = &global_stop;
+		contexts[i].thread_id     = i;
+	}
+
+	// Spawn helpers (threads 1..N-1). They search the same root but with
+	// staggered starting depths so they explore the tree differently; their
+	// results are discarded — only the TT side-effects matter.
+	std::vector<std::thread> helpers;
+	helpers.reserve(num_threads - 1);
+	for (int i = 1; i < num_threads; ++i) {
+		helpers.emplace_back([&, i]() {
+			search_root(states[i], contexts[i], depth, bests[i], scores[i]);
+		});
+	}
+
+	// Main thread (id 0) runs in this thread and owns the returned move.
+	search_root(states[0], contexts[0], depth, bests[0], scores[0]);
+
+	// Main thread is done — tell helpers to wind down ASAP.
+	global_stop.store(true, std::memory_order_relaxed);
+	for (auto &t : helpers) {
+		if (t.joinable()) t.join();
+	}
+
+	SearchContext &ctx = contexts[0];
+	Move best  = bests[0];
+	int  score = scores[0];
 
 	int64_t elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
-			std::chrono::steady_clock::now() - ctx.start_time).count();
+			std::chrono::steady_clock::now() - start_time).count();
 
 	if (best.is_null()) {
 		result["ok"]            = false;

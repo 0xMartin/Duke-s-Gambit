@@ -132,6 +132,12 @@ func setup(white_name: String, white_elo: int,
 	set_active_player(ChessEnums.PieceColor.WHITE)
 	reset_move_history()
 
+	# Count-up mode: prime both timer labels so the inactive player doesn't
+	# linger on whatever default text the scene had (e.g. "10:00").
+	if not _has_time_limit:
+		update_timer(ChessEnums.PieceColor.WHITE, 0)
+		update_timer(ChessEnums.PieceColor.BLACK, 0)
+
 func _apply_player_name(color: int, player_name: String) -> void:
 	var label := _name_lbl[color] as Label
 	if label == null:
@@ -498,7 +504,7 @@ func update_timer(color: int, ms: int) -> void:
 	else:
 		var secs: int = int(ms / 1000.0)
 		var frac: int = int((ms % 1000) / 100.0)
-		lbl.text = "⏱ %d.%ds" % [secs, frac]
+		lbl.text = "%d.%ds ⏱" % [secs, frac]
 
 func refresh_captured(capturing_color: int, captured_types: Array) -> void:
 	_clear_captured_page(capturing_color)

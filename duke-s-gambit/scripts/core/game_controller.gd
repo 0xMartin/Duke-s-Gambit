@@ -111,8 +111,13 @@ func _process(_delta: float) -> void:
 		_hud.update_timer(color, remaining)
 		_hud.update_timer(inactive, _time_remaining_ms[inactive])
 	else:
-		# No time limit: active player shows elapsed time for current move
-		_hud.update_timer(_chess.active_color, elapsed)
+		# No time limit: show running total per player. Active player accumulates
+		# this move's elapsed time on top of their previous total; inactive stays
+		# frozen on their stored total. This is what the game-over panel reports.
+		var active := _chess.active_color
+		var inactive := 1 - active
+		_hud.update_timer(active, _move_times_ms[active] + elapsed)
+		_hud.update_timer(inactive, _move_times_ms[inactive])
 
 # ──────────────────────────────────────────────────────────────────────────
 func _ready() -> void:
