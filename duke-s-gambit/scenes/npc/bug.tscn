@@ -14,4 +14,4 @@ target_desired_distance = 0.5
 transform = Transform3D(0.04, 0, 0, 0, 0.04, 0, 0, 0, 0.04, 0, 0, 0)
 
 [node name="BugMesh" parent="Model" unique_id=787588302 instance=ExtResource("2")]
-transform = Transform3D(3, 0, 0, 0, 4.977, 0, 0, 0, 3, 0, -3.6084971, 0)
+transform = Transform3D(3, 0, 0, 0, 4.977, 0, 0, 0, 3, 0, -3.3332114, 0)
