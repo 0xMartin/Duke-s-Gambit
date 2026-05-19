@@ -954,6 +954,12 @@ theme = ExtResource("16_a8gd2")
 horizontal_alignment = 1
 autowrap_mode = 3
 
+[node name="StartBtn" type="Button" parent="MainPanel/OnlineRoomWaitVBox" unique_id=1488675420]
+visible = false
+layout_mode = 2
+theme = ExtResource("12_flqon")
+text = "Start game"
+
 [node name="LeaveBtn" type="Button" parent="MainPanel/OnlineRoomWaitVBox" unique_id=263218362]
 layout_mode = 2
 theme = ExtResource("12_flqon")

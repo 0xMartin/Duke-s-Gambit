@@ -1,4 +1,25 @@
-"""Runtime configuration loaded from environment variables."""
+"""Runtime configuration loaded from environment variables.
+
+All knobs live on the immutable :class:`ServerConfig` dataclass and are
+populated by :meth:`ServerConfig.from_env`. Use environment variables with
+the ``DUKE_*`` prefix to override defaults.
+
+Environment variables
+---------------------
+``DUKE_HOST``               Interface to bind. Default ``"0.0.0.0"``.
+``DUKE_PORT``               TCP port. Default ``8765``.
+``DUKE_TLS``                ``"1"``/``"0"`` toggle for WSS vs WS. Default on.
+``DUKE_CERT_DIR``           Where the self-signed cert is read/written.
+``DUKE_SESSION_SECRET``     HMAC key for session tokens. Random per-boot
+                            if unset (clients lose sessions on restart).
+``DUKE_MAX_ROOMS``          Hard cap on concurrent rooms.
+``DUKE_MAX_CLIENTS``        Hard cap on simultaneous WebSocket clients.
+``DUKE_ROOM_IDLE_S``        Auto-close empty rooms after N seconds.
+``DUKE_RECONNECT_S``        Reconnect grace window for in-game disconnects.
+``DUKE_MOVE_MAX_AGE_S``     Reject moves stamped too far in the past.
+``DUKE_HEARTBEAT_S``        WebSocket ping interval.
+``DUKE_LOG_LEVEL``          Python logging level (``INFO``, ``DEBUG`` …).
+"""
 
 from __future__ import annotations
 
@@ -8,6 +29,11 @@ from dataclasses import dataclass
 
 
 def _env_bool(name: str, default: bool) -> bool:
+    """Parse a truthy environment variable.
+
+    Accepts ``1``/``true``/``yes``/``on`` (case-insensitive) as true.
+    Returns ``default`` when the variable is unset or empty.
+    """
     raw = os.environ.get(name)
     if raw is None or raw == "":
         return default
@@ -15,6 +41,7 @@ def _env_bool(name: str, default: bool) -> bool:
 
 
 def _env_int(name: str, default: int) -> int:
+    """Parse an integer environment variable, falling back on parse errors."""
     raw = os.environ.get(name)
     if raw is None or raw == "":
         return default
@@ -26,6 +53,45 @@ def _env_int(name: str, default: int) -> int:
 
 @dataclass(frozen=True)
 class ServerConfig:
+    """Immutable snapshot of server runtime configuration.
+
+    Built once at startup via :meth:`from_env` and passed read-only to the
+    :class:`~duke_server.server.Server`. Keeping it frozen avoids accidental
+    mutation while requests are being served.
+
+    Attributes
+    ----------
+    host:
+        Interface address to bind (typically ``0.0.0.0``).
+    port:
+        TCP port for the WebSocket listener.
+    tls_enabled:
+        If true, the server speaks ``wss://`` and ensures a self-signed
+        certificate exists in :attr:`cert_dir`. If false, it speaks ``ws://``
+        (LAN-only / dev fallback).
+    cert_dir:
+        Directory where ``server.crt`` / ``server.key`` / fingerprint live.
+    session_secret:
+        HMAC secret used to sign session tokens. When unset in the env,
+        a fresh random 32-byte secret is generated on every process start;
+        in that case sessions do not survive a server restart.
+    max_rooms:
+        Maximum number of concurrent rooms accepted by the lobby.
+    max_clients:
+        Maximum number of concurrent WebSocket connections.
+    room_idle_timeout_s:
+        Empty rooms older than this are garbage-collected.
+    reconnect_grace_s:
+        How long a disconnected in-game player may rejoin before being
+        forfeited.
+    move_max_age_s:
+        Upper bound on the age of a client-submitted move timestamp.
+    heartbeat_interval_s:
+        WebSocket ``ping`` interval in seconds; timeout is twice this.
+    log_level:
+        Standard Python ``logging`` level name.
+    """
+
     host: str
     port: int
     tls_enabled: bool
@@ -41,6 +107,13 @@ class ServerConfig:
 
     @classmethod
     def from_env(cls) -> "ServerConfig":
+        """Build a :class:`ServerConfig` from process environment variables.
+
+        Missing or unparseable values fall back to safe defaults. The
+        ``DUKE_SESSION_SECRET`` variable, when empty, is replaced by a
+        cryptographically random 32-byte token so the server can still
+        issue valid tokens within its lifetime.
+        """
         secret_raw = os.environ.get("DUKE_SESSION_SECRET", "").strip()
         if secret_raw:
             secret_bytes = secret_raw.encode("utf-8")
@@ -60,3 +133,4 @@ class ServerConfig:
             heartbeat_interval_s=_env_int("DUKE_HEARTBEAT_S", 20),
             log_level=os.environ.get("DUKE_LOG_LEVEL", "INFO").upper(),
         )
+

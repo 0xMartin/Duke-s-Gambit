@@ -1,7 +1,31 @@
-"""Wire protocol: JSON messages exchanged over WebSocket.
+"""Wire protocol for the Duke's Gambit WebSocket server.
 
-All messages are JSON objects with a mandatory ``type`` field.
-Server is authoritative for game state, clocks, and game-over decisions.
+Every message exchanged over the WebSocket is a JSON object with a
+mandatory ``type`` field; the constants in this module name those types
+and the error codes that may appear in :data:`S_ERROR` payloads.
+
+Connection lifecycle
+--------------------
+1. Client opens a WebSocket and sends :data:`C_HELLO` with a nickname
+   (and optionally a previous ``session_token`` to resume identity).
+2. Server replies with :data:`S_WELCOME` containing the current protocol
+   version and a fresh session token.
+3. Client may then list rooms (:data:`C_LIST_ROOMS`), create a room
+   (:data:`C_CREATE_ROOM`) or join one (:data:`C_JOIN_ROOM`).
+4. Once both seats are filled, the host sends :data:`C_START_GAME` and
+   the server broadcasts :data:`S_GAME_START` to both members.
+5. During play, clients exchange :data:`C_MOVE` / :data:`S_MOVE_APPLIED`
+   messages; the server validates each move against ``python-chess``
+   and updates clocks server-side. Game termination is announced via
+   :data:`S_GAME_OVER`.
+
+Conventions
+-----------
+* All durations are in **milliseconds** unless suffixed ``_s``.
+* Colors are the strings ``"white"`` / ``"black"`` on the wire.
+* Moves use UCI notation (``"e2e4"``, ``"e7e8q"`` for promotions).
+* Errors are always delivered as :data:`S_ERROR` with a stable string
+  ``code`` from the ``ERR_*`` constants below.
 """
 
 from __future__ import annotations

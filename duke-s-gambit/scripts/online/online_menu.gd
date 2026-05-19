@@ -56,7 +56,9 @@ var _wait_white_label: Label
 var _wait_black_label: Label
 var _wait_info_label:  Label
 var _wait_status:      Label
+var _wait_start_btn:   Button
 var _wait_leave_btn:   Button
+var _am_host: bool = false
 
 # External
 var _menu: Node = null               # MainMenu
@@ -116,6 +118,7 @@ func _bind_nodes() -> void:
 	_wait_black_label = wait_panel.get_node("BlackLabel") as Label
 	_wait_info_label  = wait_panel.get_node("InfoLabel") as Label
 	_wait_status      = wait_panel.get_node("StatusLabel") as Label
+	_wait_start_btn   = wait_panel.get_node("StartBtn") as Button
 	_wait_leave_btn   = wait_panel.get_node("LeaveBtn") as Button
 
 func _populate_static_options() -> void:
@@ -146,6 +149,7 @@ func _connect_signals() -> void:
 	_join_confirm_btn.pressed.connect(_on_join_confirm)
 	_join_back_btn.pressed.connect(func(): _show_panel(lobby_panel))
 	_wait_leave_btn.pressed.connect(_on_leave_room)
+	_wait_start_btn.pressed.connect(_on_start_game_pressed)
 
 	var oc := _online_client()
 	if oc == null:
@@ -227,6 +231,7 @@ func _on_leave_room() -> void:
 	if oc == null:
 		return
 	oc.send_leave_room()
+	_am_host = false
 	_show_panel(lobby_panel)
 	oc.send_list_rooms()
 
@@ -323,10 +328,12 @@ func _try_join_room(rid: String, name_str: String, has_pw: bool) -> void:
 
 func _on_room_created(room: Dictionary) -> void:
 	_create_status.text = ""
+	_am_host = true
 	_show_wait_for(room)
 
-func _on_room_joined(room: Dictionary, _role: String) -> void:
+func _on_room_joined(room: Dictionary, role: String) -> void:
 	_join_status.text = ""
+	_am_host = (role == "host")
 	_show_wait_for(room)
 
 func _on_room_updated(room: Dictionary) -> void:
@@ -353,8 +360,23 @@ func _show_wait_for(room: Dictionary) -> void:
 		var mins := time_ms / 60000
 		time_str = "%d min" % mins
 	_wait_info_label.text = "Time: %s · Players: %d/2" % [time_str, members.size()]
-	_wait_status.text = "Waiting for opponent..." if members.size() < 2 else "Ready — game starting..."
+	var both_in := members.size() >= 2
+	if _am_host:
+		_wait_start_btn.visible = true
+		_wait_start_btn.disabled = not both_in
+		_wait_status.text = "Waiting for opponent..." if not both_in else "Both players ready — press Start to begin."
+	else:
+		_wait_start_btn.visible = false
+		_wait_status.text = "Waiting for opponent..." if not both_in else "Waiting for host to start the game..."
 	_show_panel(wait_panel)
+
+func _on_start_game_pressed() -> void:
+	var oc := _online_client()
+	if oc == null:
+		return
+	_wait_start_btn.disabled = true
+	_wait_status.text = "Starting game..."
+	oc.send_start_game()
 
 func _on_room_deleted(_rid: String, reason: String) -> void:
 	if wait_panel.visible or create_panel.visible or join_panel.visible:

@@ -1,4 +1,39 @@
-"""Asynchronous WebSocket server."""
+"""Asynchronous WebSocket server: dispatch, handlers, broadcasts.
+
+This is the orchestration layer that glues together every other module:
+
+* :mod:`~duke_server.config` provides the read-only :class:`ServerConfig`.
+* :mod:`~duke_server.tls` produces an :class:`ssl.SSLContext` when
+  TLS is enabled.
+* :mod:`~duke_server.lobby` tracks rooms and connected clients.
+* :mod:`~duke_server.room` and :mod:`~duke_server.game` implement
+  per-room state and chess rules.
+* :mod:`~duke_server.protocol` names the wire messages and error codes.
+* :mod:`~duke_server.auth` issues and verifies session tokens.
+
+Concurrency model
+-----------------
+The server is single-process / single-threaded asyncio. One coroutine
+per WebSocket (:meth:`Server._handler`) reads framed JSON messages and
+dispatches them through :meth:`Server._dispatch`. Mutating a game
+requires the owning :class:`~duke_server.room.Room`'s ``asyncio.Lock``
+so clock deduction and move application are serialised per room while
+still allowing other rooms to progress.
+
+Background tasks
+----------------
+* :meth:`Server._watch_room_clock` — one per playing room with a time
+  limit; polls :meth:`ChessGame.check_timeout` every 500 ms.
+* :meth:`Server._reconnect_timeout` — one per disconnected in-game
+  member; forfeits the player when the grace window expires.
+
+Failure handling
+----------------
+Handler-raised :class:`_ClientError` is reflected to the client as a
+:data:`~duke_server.protocol.S_ERROR` envelope. Any other exception is
+logged and surfaced as :data:`~duke_server.protocol.ERR_INTERNAL`.
+Connection drops always go through :meth:`Server._on_disconnect`.
+"""
 
 from __future__ import annotations
 
@@ -34,6 +69,30 @@ MAX_MESSAGE_SIZE = 8 * 1024
 
 @dataclass
 class ClientCtx:
+    """Per-connection mutable state kept by the dispatcher.
+
+    Attached to the underlying ``WebSocketServerProtocol`` as
+    ``conn._duke_ctx`` so that other handlers (e.g. duplicate-nickname
+    detection) can read it from a peer connection.
+
+    Attributes
+    ----------
+    conn:
+        The live ``websockets`` server protocol instance.
+    nickname:
+        Set after a successful :data:`~duke_server.protocol.C_HELLO`.
+        ``None`` means the connection is still pre-auth.
+    session_token:
+        Last token issued to this connection; may be re-sent by the
+        client on reconnect.
+    room_id:
+        Id of the room this client is currently a member of, if any.
+    in_lobby:
+        True when the client is subscribed to lobby room-list updates.
+    last_msg_ts / msg_count_window / window_start:
+        Rate-limit bookkeeping — see :meth:`Server._rate_limit_ok`.
+    """
+
     conn: WebSocketServerProtocol
     nickname: Optional[str] = None
     session_token: Optional[str] = None
@@ -45,7 +104,15 @@ class ClientCtx:
 
 
 class Server:
+    """Top-level WebSocket server.
+
+    Owns the :class:`~duke_server.lobby.Lobby`, the set of background
+    clock-watcher and reconnect-grace tasks, and a stop event used by
+    :meth:`run` / :meth:`stop` for graceful shutdown.
+    """
+
     def __init__(self, config: ServerConfig) -> None:
+        """Build a server bound to ``config`` (does not start listening)."""
         self.config = config
         self.lobby = Lobby(max_rooms=config.max_rooms)
         self._stop_event = asyncio.Event()
@@ -56,6 +123,13 @@ class Server:
 
     # ── Lifecycle ──────────────────────────────────────────────────────────
     async def run(self) -> None:
+        """Bind the listener and serve until :meth:`stop` is called.
+
+        Ensures a self-signed cert exists when TLS is enabled, logs the
+        cert SHA-256 fingerprint so admins / clients can pin it, then
+        delegates to :func:`websockets.serve` with the configured ping
+        interval and an 8 KB per-message size cap.
+        """
         ssl_context = None
         scheme = "ws"
         if self.config.tls_enabled:
@@ -82,10 +156,22 @@ class Server:
         logger.info("Server stopped.")
 
     def stop(self) -> None:
+        """Signal :meth:`run` to exit; safe to call from a signal handler."""
         self._stop_event.set()
 
-    # ── Connection handler ─────────────────────────────────────────────────
+    # ── Connection handler ──────────────────────────────────────────────────────
     async def _handler(self, conn: WebSocketServerProtocol) -> None:
+        """Per-connection event loop.
+
+        Enforces the global ``max_clients`` cap, then reads framed JSON
+        messages one at a time. Each message is rate-limited
+        (:meth:`_rate_limit_ok`), parsed (:meth:`_parse`) and dispatched
+        (:meth:`_dispatch`). Protocol errors are translated to
+        :data:`~duke_server.protocol.S_ERROR` payloads; unexpected
+        exceptions are logged and reported as ``ERR_INTERNAL``. The
+        ``finally`` block guarantees :meth:`_on_disconnect` runs even on
+        crashes.
+        """
         ctx = ClientCtx(conn=conn)
         if len(self.lobby.all_clients()) >= self.config.max_clients:
             await self._send(conn, P.S_ERROR, code=P.ERR_FULL, message="server full")
@@ -118,6 +204,13 @@ class Server:
 
     # ── Dispatch ───────────────────────────────────────────────────────────
     async def _dispatch(self, ctx: ClientCtx, msg: dict) -> None:
+        """Route a single decoded message to its handler.
+
+        :data:`~duke_server.protocol.C_HELLO` is the only message type
+        accepted before authentication. All other types require
+        ``ctx.nickname`` to be set and raise :data:`ERR_AUTH` otherwise.
+        Unknown types are reported as :data:`ERR_PROTOCOL`.
+        """
         mtype = msg.get("type")
         if mtype is None:
             raise _ClientError(P.ERR_PROTOCOL, "missing 'type'")
@@ -150,6 +243,22 @@ class Server:
 
     # ── Handlers ───────────────────────────────────────────────────────────
     async def _handle_hello(self, ctx: ClientCtx, msg: dict) -> None:
+        """Authenticate a fresh connection and optionally resume a session.
+
+        Flow:
+
+        1. Validate the supplied nickname against :data:`NICKNAME_RE`.
+        2. If a previous ``token`` is supplied, verify it; the embedded
+           nickname must match (otherwise ``ERR_AUTH``).
+        3. Reject duplicate concurrent connections for the same
+           nickname (``ERR_FORBIDDEN``).
+        4. Issue a fresh session token, send :data:`S_WELCOME`.
+        5. If a room contains a :class:`Member` with this nickname whose
+           ``conn`` is ``None`` (i.e. a pending reconnect), reattach the
+           connection, cancel the grace timer, and replay
+           :data:`S_ROOM_JOINED` and :data:`S_GAME_START` so the client
+           can rebuild local state.
+        """
         nickname = str(msg.get("nickname", "")).strip()
         if not NICKNAME_RE.match(nickname):
             raise _ClientError(P.ERR_BAD_REQUEST, "invalid nickname")
@@ -215,6 +324,12 @@ class Server:
         await self._broadcast_online_count()
 
     async def _handle_list_rooms(self, ctx: ClientCtx, _msg: dict) -> None:
+        """Subscribe the client to room-list updates and send a snapshot.
+
+        Adds the connection to the lobby's listener set so subsequent
+        room create/join/leave events trigger an automatic
+        :data:`S_ROOM_LIST` broadcast.
+        """
         ctx.in_lobby = True
         self.lobby.add_listener(ctx.conn)
         await self._send(ctx.conn, P.S_ROOM_LIST,
@@ -222,6 +337,14 @@ class Server:
                          online_count=self.lobby.online_count)
 
     async def _handle_create_room(self, ctx: ClientCtx, msg: dict) -> None:
+        """Create a new room with this client as the host.
+
+        Validates the room name (clamped to :data:`MAX_ROOM_NAME_LEN`),
+        password length, host color (``"white"`` / ``"black"``) and time
+        control (``0`` … 24 h, in milliseconds). On success the client
+        is removed from the lobby listener set, the new room is
+        registered, and a :data:`S_ROOM_CREATED` envelope is sent.
+        """
         if ctx.room_id is not None:
             raise _ClientError(P.ERR_BAD_STATE, "already in a room")
         name = str(msg.get("name", "")).strip()[:MAX_ROOM_NAME_LEN]
@@ -252,6 +375,16 @@ class Server:
         await self._broadcast_lobby()
 
     async def _handle_join_room(self, ctx: ClientCtx, msg: dict) -> None:
+        """Add the client to an existing room as a guest.
+
+        Rejects with the appropriate :data:`ERR_*` code if the room does
+        not exist, is full, has a different password, or is no longer
+        in the ``waiting`` state. Sends :data:`S_ROOM_JOINED` to the
+        joiner and broadcasts an updated room view to all members.
+
+        Joining does *not* auto-start the game — the host must issue
+        :data:`C_START_GAME`.
+        """
         if ctx.room_id is not None:
             raise _ClientError(P.ERR_BAD_STATE, "already in a room")
         room_id = str(msg.get("room_id", ""))
@@ -279,6 +412,13 @@ class Server:
         await self._broadcast_lobby()
 
     async def _handle_start_game(self, ctx: ClientCtx, _msg: dict) -> None:
+        """Host-only: transition the room from WAITING to PLAYING.
+
+        Refuses if the caller is not the host, the room is not in
+        WAITING state, or :meth:`Room.can_start` is false (e.g. the
+        opponent has disconnected). Delegates the actual game start to
+        :meth:`_start_game`.
+        """
         room = self._require_room(ctx)
         if not room.is_host(ctx.nickname):
             raise _ClientError(P.ERR_FORBIDDEN, "only the host can start the game")
@@ -289,9 +429,11 @@ class Server:
         await self._start_game(room)
 
     async def _handle_leave_room(self, ctx: ClientCtx, _msg: dict) -> None:
+        """Client wants to leave; mid-game this counts as a resignation."""
         await self._leave_room(ctx, reason="left")
 
     async def _handle_delete_room(self, ctx: ClientCtx, _msg: dict) -> None:
+        """Host-only: destroy a room that is not currently in progress."""
         if not ctx.room_id:
             raise _ClientError(P.ERR_BAD_STATE, "not in a room")
         room = self.lobby.get(ctx.room_id)
@@ -304,6 +446,15 @@ class Server:
         await self._destroy_room(room, reason="closed by host")
 
     async def _handle_move(self, ctx: ClientCtx, msg: dict) -> None:
+        """Validate and apply a UCI move under the room's lock.
+
+        Translates :class:`~duke_server.game.IllegalMove` /
+        :class:`~duke_server.game.NotYourTurn` /
+        :class:`~duke_server.game.BadState` into the matching wire error
+        codes. On success, broadcasts :data:`S_MOVE_APPLIED` to both
+        members and, if the move ended the game, follows up with
+        :data:`S_GAME_OVER`. Any pending draw offer is cleared.
+        """
         room = self._require_room(ctx)
         if room.game is None or room.state != ROOM_STATE_PLAYING:
             raise _ClientError(P.ERR_BAD_STATE, "game not in progress")
@@ -329,6 +480,7 @@ class Server:
                 await self._broadcast_game_over(room, result)
 
     async def _handle_surrender(self, ctx: ClientCtx, _msg: dict) -> None:
+        """Resign the current game on behalf of the caller's color."""
         room = self._require_room(ctx)
         if room.game is None or room.state != ROOM_STATE_PLAYING:
             raise _ClientError(P.ERR_BAD_STATE, "game not in progress")
@@ -341,6 +493,12 @@ class Server:
             await self._broadcast_game_over(room, result)
 
     async def _handle_offer_draw(self, ctx: ClientCtx, _msg: dict) -> None:
+        """Send a draw offer to the opponent (or auto-accept a pending one).
+
+        If the opponent already has an outstanding offer on the table,
+        this call is treated as :meth:`_handle_accept_draw` so the game
+        concludes immediately.
+        """
         room = self._require_room(ctx)
         if room.game is None or room.state != ROOM_STATE_PLAYING:
             raise _ClientError(P.ERR_BAD_STATE, "game not in progress")
@@ -357,6 +515,11 @@ class Server:
             await self._send(opp.conn, P.S_DRAW_OFFER, from_color=COLOR_NAMES[color])
 
     async def _handle_accept_draw(self, ctx: ClientCtx, _msg: dict) -> None:
+        """Accept the opponent's pending draw offer.
+
+        Refuses if there is no pending offer or if the caller is the one
+        who issued it.
+        """
         room = self._require_room(ctx)
         if room.game is None or room.state != ROOM_STATE_PLAYING:
             raise _ClientError(P.ERR_BAD_STATE, "game not in progress")
@@ -371,6 +534,7 @@ class Server:
             await self._broadcast_game_over(room, result)
 
     async def _handle_decline_draw(self, ctx: ClientCtx, _msg: dict) -> None:
+        """Decline a pending draw offer; notifies both members. No-op when none pending."""
         room = self._require_room(ctx)
         if room.draw_offer_by is None:
             return
@@ -383,10 +547,18 @@ class Server:
                 await self._send(m.conn, P.S_DRAW_DECLINED)
 
     async def _handle_ping(self, ctx: ClientCtx, _msg: dict) -> None:
+        """Reply to a client heartbeat with a :data:`S_PONG` carrying server time."""
         await self._send(ctx.conn, P.S_PONG, t=time.time())
 
-    # ── Helpers ────────────────────────────────────────────────────────────
+    # ── Helpers ────────────────────────────────────────────────────────────────
     def _require_room(self, ctx: ClientCtx) -> Room:
+        """Look up the client's current room or raise a wire-error.
+
+        Raises :data:`ERR_BAD_STATE` if the client is not in a room and
+        :data:`ERR_NOT_FOUND` if the referenced room has been destroyed.
+        In the latter case ``ctx.room_id`` is cleared so subsequent calls
+        do not keep failing the same way.
+        """
         if not ctx.room_id:
             raise _ClientError(P.ERR_BAD_STATE, "not in a room")
         room = self.lobby.get(ctx.room_id)
@@ -396,6 +568,14 @@ class Server:
         return room
 
     async def _start_game(self, room: Room) -> None:
+        """Transition a room into PLAYING and notify both members.
+
+        Calls :meth:`Room.start_game` to create the
+        :class:`~duke_server.game.ChessGame`, sends a
+        :data:`S_GAME_START` to each connected member with the colors,
+        initial FEN, and per-side clock, and schedules the timeout
+        watcher task when ``time_ms > 0``.
+        """
         room.start_game()
         white = _get_member_by_color(room, WHITE)
         black = _get_member_by_color(room, BLACK)
@@ -421,6 +601,13 @@ class Server:
         await self._broadcast_lobby()
 
     async def _watch_room_clock(self, room_id: str) -> None:
+        """Background loop that detects time-loss in a playing room.
+
+        Polls every 500 ms. When :meth:`ChessGame.check_timeout` reports
+        a loser, the room is finished and :data:`S_GAME_OVER` is
+        broadcast. The task exits when the room disappears, the game
+        ends, or it is cancelled (e.g. by :meth:`_broadcast_game_over`).
+        """
         try:
             while True:
                 await asyncio.sleep(0.5)
@@ -440,6 +627,7 @@ class Server:
             return
 
     async def _broadcast_move(self, room: Room, result) -> None:
+        """Send :data:`S_MOVE_APPLIED` with the new position to both members."""
         payload = {
             "uci": result.uci,
             "from": result.from_sq,
@@ -456,6 +644,7 @@ class Server:
                 await self._send(m.conn, P.S_MOVE_APPLIED, **payload)
 
     async def _broadcast_game_over(self, room: Room, result) -> None:
+        """Send :data:`S_GAME_OVER`, cancel the clock watcher, refresh lobby."""
         payload = {
             "winner": result.winner,
             "reason": result.reason,
@@ -473,12 +662,18 @@ class Server:
         await self._broadcast_lobby()
 
     async def _broadcast_room(self, room: Room) -> None:
+        """Send a per-viewer :data:`S_ROOM_UPDATED` to every connected member."""
         for m in room.members.values():
             if m.conn is None:
                 continue
             await self._send(m.conn, P.S_ROOM_UPDATED, room=room.public_detail(m.nickname))
 
     async def _broadcast_lobby(self) -> None:
+        """Push a fresh :data:`S_ROOM_LIST` to every lobby listener.
+
+        Send failures are swallowed individually so that one dead
+        connection does not block updates to the others.
+        """
         listing = self.lobby.list_rooms()
         online = self.lobby.online_count
         for conn in list(self.lobby.listeners()):
@@ -488,6 +683,7 @@ class Server:
                 pass
 
     async def _broadcast_online_count(self) -> None:
+        """Push the current :data:`S_ONLINE_COUNT` to every connected client."""
         online = self.lobby.online_count
         for conn in list(self.lobby.all_clients()):
             try:
@@ -496,6 +692,16 @@ class Server:
                 pass
 
     async def _leave_room(self, ctx: ClientCtx, reason: str) -> None:
+        """Remove the client from their current room.
+
+        Leaving mid-game is treated as a resignation: the game is
+        force-resigned, the room is finished, and the remaining member
+        (if any) receives :data:`S_GAME_OVER`.
+
+        Pre-game leaves remove the client; if the host leaves, the room
+        is destroyed via :meth:`_destroy_room`. Empty rooms are
+        garbage-collected from the lobby in either case.
+        """
         if not ctx.room_id:
             return
         room = self.lobby.get(ctx.room_id)
@@ -532,6 +738,12 @@ class Server:
         await self._broadcast_lobby()
 
     async def _destroy_room(self, room: Room, reason: str) -> None:
+        """Forcefully tear down a room and notify each member.
+
+        Sends :data:`S_ROOM_DELETED` with the supplied ``reason`` to all
+        connected members, clears their ``ctx.room_id``, cancels the
+        clock watcher and refreshes the lobby listing.
+        """
         for m in list(room.members.values()):
             if m.conn is not None:
                 await self._send(m.conn, P.S_ROOM_DELETED,
@@ -546,6 +758,14 @@ class Server:
         await self._broadcast_lobby()
 
     async def _on_disconnect(self, ctx: ClientCtx) -> None:
+        """Handle an unexpected socket close.
+
+        Always removes the client from the lobby and refreshes the
+        global online count. If the client was in a playing room, the
+        member's connection is detached and a
+        :meth:`_reconnect_timeout` grace task is scheduled. Pre-game
+        and finished rooms simply fall through to :meth:`_leave_room`.
+        """
         await self.lobby.remove_client(ctx.conn)
         await self._broadcast_online_count()
         if not ctx.room_id:
@@ -569,6 +789,14 @@ class Server:
             await self._leave_room(ctx, reason="disconnect")
 
     async def _reconnect_timeout(self, room_id: str, nickname: str) -> None:
+        """Forfeit a disconnected player when their grace window expires.
+
+        Sleeps for :attr:`ServerConfig.reconnect_grace_s` seconds. If the
+        member has not re-attached a connection by then and the game is
+        still in progress, the game is resigned in their name and the
+        room is finished. The task is cancelled (and silently exits) if
+        the player reconnects in time.
+        """
         try:
             await asyncio.sleep(self.config.reconnect_grace_s)
         except asyncio.CancelledError:
@@ -594,6 +822,13 @@ class Server:
     # ── Wire I/O ───────────────────────────────────────────────────────────
     @staticmethod
     def _parse(raw) -> dict:
+        """Decode a WebSocket frame into a JSON object.
+
+        Accepts either ``bytes`` or ``str`` frames. Raises
+        :class:`ValueError` (translated to :data:`ERR_PROTOCOL` by the
+        caller) when the payload is not valid JSON or is not a JSON
+        object at the top level.
+        """
         if isinstance(raw, bytes):
             raw = raw.decode("utf-8", errors="replace")
         try:
@@ -606,6 +841,12 @@ class Server:
 
     @staticmethod
     async def _send(conn: WebSocketServerProtocol, mtype: str, **fields: Any) -> None:
+        """JSON-encode a message envelope and send it over ``conn``.
+
+        Closed connections are tolerated: :class:`websockets.ConnectionClosed`
+        is swallowed so callers iterating over many recipients do not
+        have to special-case dropped peers.
+        """
         payload = {"type": mtype, **fields}
         try:
             await conn.send(json.dumps(payload))
@@ -613,6 +854,7 @@ class Server:
             pass
 
     async def _rate_limit_ok(self, ctx: ClientCtx) -> bool:
+        """Sliding 1-second window rate limit: at most 30 messages / sec."""
         now = time.monotonic()
         if now - ctx.window_start >= 1.0:
             ctx.window_start = now
@@ -622,6 +864,14 @@ class Server:
 
 
 class _ClientError(Exception):
+    """Internal exception type translated to :data:`S_ERROR` on the wire.
+
+    ``code`` is one of the ``ERR_*`` strings from
+    :mod:`duke_server.protocol`; ``message`` is a short human-readable
+    explanation. The dispatcher catches these and never lets them
+    propagate to the websockets library.
+    """
+
     def __init__(self, code: str, message: str) -> None:
         super().__init__(message)
         self.code = code
@@ -629,12 +879,20 @@ class _ClientError(Exception):
 
 
 def _get_member_by_color(room: Room, color: int) -> Optional[str]:
+    """Helper: return the nickname of the player with ``color`` (or ``None``)."""
     m = room.color_to_member(color)
     return m.nickname if m else None
 
 
-# ── Entry point ────────────────────────────────────────────────────────────
+# ── Entry point ─────────────────────────────────────────────────────────────────────
+
 def main() -> None:
+    """Process entry point invoked by ``python -m duke_server``.
+
+    Builds the configuration from environment variables, installs
+    ``SIGINT`` / ``SIGTERM`` handlers that gracefully stop the server,
+    and runs the asyncio loop until :meth:`Server.run` returns.
+    """
     config = ServerConfig.from_env()
     logging.basicConfig(
         level=config.log_level,

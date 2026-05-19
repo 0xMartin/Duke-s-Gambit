@@ -275,7 +275,9 @@ func start_game() -> void:
 	await _play_intro_animation()
 	_busy = false
 	var initial_camera_color: int = ChessEnums.PieceColor.WHITE
-	if _is_player_vs_ai:
+	if _online_mode and _my_online_color != -1:
+		initial_camera_color = _my_online_color
+	elif _is_player_vs_ai:
 		initial_camera_color = _human_player_color()
 	_camera.snap_to_player(initial_camera_color)
 	_start_turn()
@@ -528,11 +530,12 @@ func _start_turn() -> void:
 		var ai_ctrl := ctrl as AIController
 		ai_ctrl.time_left_ms = _time_remaining_ms[color] if _time_control_ms > 0 else 0
 		ai_ctrl.increment_ms = 0  # no increment system yet; wire when added.
-	# Show AI thinking indicator
+	# Show thinking indicator for AI or remote (online) opponent.
 	if ctrl.is_ai and _ui != null:
 		var game_ui = _ui as Control
 		if game_ui.has_method("show_ai_thinking"):
-			game_ui.show_ai_thinking()
+			var label_text := "Opponent is thinking..." if _online_mode else "AI is thinking..."
+			game_ui.show_ai_thinking(label_text)
 	ctrl.request_move(_chess, legal)
 
 func is_human_turn() -> bool:
@@ -553,7 +556,7 @@ func can_surrender() -> bool:
 	if _game_over_shown or _chess == null:
 		return false
 	if _online_mode:
-		return true
+		return _chess.active_color == _my_online_color
 	if _is_player_vs_ai:
 		return is_human_turn()
 	return true
@@ -822,12 +825,14 @@ func _on_move_chosen(mv: ChessMove) -> void:
 	# Apply to logic board BEFORE animation so board state is updated
 	_chess.make_move(mv)
 
-	# Kill cam: dramatic close-up for captures (if enabled in settings).
+	# Kill cam: dramatic close-up for captures.
+	# In online mode kill cam is always on (settings ignored); otherwise honor settings.
 	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
 	var _is_capture := mv.move_type == ChessEnums.MoveType.CAPTURE \
 		or mv.move_type == ChessEnums.MoveType.PROMOTION_CAPTURE \
 		or mv.move_type == ChessEnums.MoveType.EN_PASSANT
-	if _is_capture and cam_cfg != null and cam_cfg.kill_cam_enabled:
+	var _use_kill_cam: bool = _is_capture and (_online_mode or (cam_cfg != null and cam_cfg.kill_cam_enabled))
+	if _use_kill_cam:
 		var from_world      := _board.sq_to_world(mv.from_sq)
 		var to_world        := _board.sq_to_world(mv.to_sq)
 		var attacker_piece  := _sq_pieces.get(mv.from_sq) as Node3D
@@ -839,7 +844,7 @@ func _on_move_chosen(mv: ChessMove) -> void:
 		_hud.call("append_move_to_history", mv)
 
 	# After a kill-cam capture, hold the view for 2 s so the player can appreciate the moment.
-	if _is_capture and cam_cfg != null and cam_cfg.kill_cam_enabled:
+	if _use_kill_cam:
 		await get_tree().create_timer(2.0).timeout
 
 	# Rotate camera to active player — skip if disabled OR if checkmate is coming
@@ -847,10 +852,14 @@ func _on_move_chosen(mv: ChessMove) -> void:
 	var _next_state := _chess.get_game_state()
 	var _is_checkmate := _next_state == ChessEnums.GameState.CHECKMATE
 	if not _is_checkmate:
-		if _is_player_vs_ai and _is_capture and cam_cfg != null and cam_cfg.kill_cam_enabled:
-			_camera.restore_pre_kill_cam_view()
-		elif not _is_player_vs_ai and (cam_cfg == null or cam_cfg.get("face_player_after_move") != false):
+		if _online_mode or _is_player_vs_ai:
+			# Stay on the local player's perspective; restore after kill cam.
+			if _use_kill_cam:
+				_camera.restore_pre_kill_cam_view()
+		elif cam_cfg == null or cam_cfg.get("face_player_after_move") != false:
 			_camera.face_player(_chess.active_color)
+		elif _use_kill_cam:
+			_camera.restore_pre_kill_cam_view()
 	_busy = false
 	_start_turn()
 

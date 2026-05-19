@@ -51,10 +51,11 @@ func _animate_ai_loading_bar() -> void:
 		.set_trans(Tween.TRANS_LINEAR)
 	_ai_loading_tween.tween_property(_ai_status_bar, "value", 0, 0.2)
 
-func show_ai_thinking() -> void:
+func show_ai_thinking(label_text: String = "AI is thinking...") -> void:
 	if _ai_thinking_box != null:
 		_ai_thinking_box.visible = true
 	if _ai_thinking_label != null:
+		_ai_thinking_label.text = label_text
 		_ai_thinking_label.visible = true
 	if _ai_status_bar != null:
 		_ai_status_bar.visible = true

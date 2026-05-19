@@ -146,6 +146,9 @@ func send_leave_room() -> void:
 func send_delete_room() -> void:
 	_send({"type": "delete_room"})
 
+func send_start_game() -> void:
+	_send({"type": "start_game"})
+
 func send_move(uci: String) -> void:
 	if uci.length() > MOVE_MAX_LEN:
 		return
