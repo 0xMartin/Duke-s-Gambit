@@ -135,6 +135,7 @@ class Server:
             P.C_JOIN_ROOM: self._handle_join_room,
             P.C_LEAVE_ROOM: self._handle_leave_room,
             P.C_DELETE_ROOM: self._handle_delete_room,
+            P.C_START_GAME: self._handle_start_game,
             P.C_MOVE: self._handle_move,
             P.C_SURRENDER: self._handle_surrender,
             P.C_OFFER_DRAW: self._handle_offer_draw,
@@ -277,9 +278,15 @@ class Server:
         await self._broadcast_room(room)
         await self._broadcast_lobby()
 
-        # Auto-start when both players are present and connected.
-        if room.can_start():
-            await self._start_game(room)
+    async def _handle_start_game(self, ctx: ClientCtx, _msg: dict) -> None:
+        room = self._require_room(ctx)
+        if not room.is_host(ctx.nickname):
+            raise _ClientError(P.ERR_FORBIDDEN, "only the host can start the game")
+        if room.state != ROOM_STATE_WAITING:
+            raise _ClientError(P.ERR_BAD_STATE, "game already started")
+        if not room.can_start():
+            raise _ClientError(P.ERR_BAD_STATE, "both players must be present")
+        await self._start_game(room)
 
     async def _handle_leave_room(self, ctx: ClientCtx, _msg: dict) -> None:
         await self._leave_room(ctx, reason="left")

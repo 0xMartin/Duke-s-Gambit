@@ -15,6 +15,7 @@ C_CREATE_ROOM = "create_room"    # {name, password?, host_color, time_ms}
 C_JOIN_ROOM = "join_room"        # {room_id, password?}
 C_LEAVE_ROOM = "leave_room"
 C_DELETE_ROOM = "delete_room"    # host only
+C_START_GAME = "start_game"      # host only — start match once both players are in
 C_MOVE = "move"                  # {uci, promotion?} — UCI "e2e4" / "e7e8q"
 C_SURRENDER = "surrender"
 C_OFFER_DRAW = "offer_draw"
