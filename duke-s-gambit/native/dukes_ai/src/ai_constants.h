@@ -1,126 +1,205 @@
+// ai_constants.h
+// Duke's Gambit AI — Core constants, enums and global table externs.
+// Part 1 of the engine: board representation, magic bitboards, move generation.
+//
+// Conventions:
+//   * Squares are LERF (Little-Endian Rank-File). a1 = 0, h1 = 7, a8 = 56, h8 = 63.
+//   * Files run a..h as bits 0..7 within a rank.
+//   * External piece codes (Godot side): 0 = empty, 1..6 = white P/N/B/R/Q/K,
+//     7..12 = black P/N/B/R/Q/K.
+//   * Internal: PieceType { PAWN=0, KNIGHT, BISHOP, ROOK, QUEEN, KING, NONE=6 }
+//                Color    { WHITE=0, BLACK=1 }
+
 #ifndef DUKES_AI_CONSTANTS_H
 #define DUKES_AI_CONSTANTS_H
 
 #include <array>
 #include <cstdint>
 
-namespace godot {
 namespace dukes_ai {
 
-constexpr int WHITE = 0;
-constexpr int BLACK = 1;
+inline constexpr const char *AI_VERSION = "1.0.0-cpp";
 
-constexpr int PIECE_NONE = 0;
-constexpr int PIECE_PAWN = 1;
-constexpr int PIECE_ROOK = 2;
-constexpr int PIECE_KNIGHT = 3;
-constexpr int PIECE_BISHOP = 4;
-constexpr int PIECE_QUEEN = 5;
-constexpr int PIECE_KING = 6;
+// ---------------------------------------------------------------------------
+// Basic types
+// ---------------------------------------------------------------------------
+using Bitboard = uint64_t;
 
-constexpr int MOVE_NORMAL = 0;
-constexpr int MOVE_CAPTURE = 1;
-constexpr int MOVE_EN_PASSANT = 2;
-constexpr int MOVE_CASTLE_K = 3;
-constexpr int MOVE_CASTLE_Q = 4;
-constexpr int MOVE_PROMOTION = 5;
-constexpr int MOVE_PROMO_CAPTURE = 6;
+enum Color : uint8_t {
+	WHITE = 0,
+	BLACK = 1,
+	NUM_COLORS = 2,
+};
 
-constexpr int TT_EXACT = 0;
-constexpr int TT_LOWER = 1;
-constexpr int TT_UPPER = 2;
+enum PieceType : uint8_t {
+	PAWN = 0,
+	KNIGHT = 1,
+	BISHOP = 2,
+	ROOK = 3,
+	QUEEN = 4,
+	KING = 5,
+	NUM_PIECE_TYPES = 6,
+	PT_NONE = 6,
+};
 
-constexpr int MATE_SCORE = 30000;
-constexpr const char *AI_VERSION = "dukes_ai_native/1.0.0";
-constexpr int QSEARCH_MAX_DEPTH = 6;  // Increased for better tactical vision
+enum Square : int8_t {
+	SQ_NONE = -1,
+	A1 = 0, B1, C1, D1, E1, F1, G1, H1,
+	A2,     B2, C2, D2, E2, F2, G2, H2,
+	A3,     B3, C3, D3, E3, F3, G3, H3,
+	A4,     B4, C4, D4, E4, F4, G4, H4,
+	A5,     B5, C5, D5, E5, F5, G5, H5,
+	A6,     B6, C6, D6, E6, F6, G6, H6,
+	A7,     B7, C7, D7, E7, F7, G7, H7,
+	A8,     B8, C8, D8, E8, F8, G8, H8,
+	NUM_SQUARES = 64,
+};
 
-inline constexpr std::array<int, 7> PIECE_VALUES = {0, 100, 500, 320, 330, 900, 40000};
+// Castling-rights bitmask. Matches the Godot side convention.
+enum CastlingFlag : uint8_t {
+	CR_WK = 1, // White king-side
+	CR_WQ = 2, // White queen-side
+	CR_BK = 4, // Black king-side
+	CR_BQ = 8, // Black queen-side
+	CR_WHITE = CR_WK | CR_WQ,
+	CR_BLACK = CR_BK | CR_BQ,
+	CR_ALL = 15,
+};
 
-// Zobrist random numbers - initialized at runtime via init_zobrist() with a fixed seed.
-// Must call init_zobrist() once before any search.
-extern uint64_t ZOBRIST_PIECES[13][64];
-extern uint64_t ZOBRIST_ACTIVE_COLOR;
+// Move flag (top 2 bits of Move::data).
+enum MoveFlag : uint8_t {
+	MF_NORMAL = 0,
+	MF_PROMOTION = 1,
+	MF_EN_PASSANT = 2,
+	MF_CASTLING = 3,
+};
+
+// ---------------------------------------------------------------------------
+// File / Rank constants
+// ---------------------------------------------------------------------------
+inline constexpr Bitboard FILE_A_BB = 0x0101010101010101ULL;
+inline constexpr Bitboard FILE_B_BB = FILE_A_BB << 1;
+inline constexpr Bitboard FILE_C_BB = FILE_A_BB << 2;
+inline constexpr Bitboard FILE_D_BB = FILE_A_BB << 3;
+inline constexpr Bitboard FILE_E_BB = FILE_A_BB << 4;
+inline constexpr Bitboard FILE_F_BB = FILE_A_BB << 5;
+inline constexpr Bitboard FILE_G_BB = FILE_A_BB << 6;
+inline constexpr Bitboard FILE_H_BB = FILE_A_BB << 7;
+
+inline constexpr Bitboard RANK_1_BB = 0x00000000000000FFULL;
+inline constexpr Bitboard RANK_2_BB = RANK_1_BB << (8 * 1);
+inline constexpr Bitboard RANK_3_BB = RANK_1_BB << (8 * 2);
+inline constexpr Bitboard RANK_4_BB = RANK_1_BB << (8 * 3);
+inline constexpr Bitboard RANK_5_BB = RANK_1_BB << (8 * 4);
+inline constexpr Bitboard RANK_6_BB = RANK_1_BB << (8 * 5);
+inline constexpr Bitboard RANK_7_BB = RANK_1_BB << (8 * 6);
+inline constexpr Bitboard RANK_8_BB = RANK_1_BB << (8 * 7);
+
+inline constexpr Bitboard EDGES_BB = FILE_A_BB | FILE_H_BB | RANK_1_BB | RANK_8_BB;
+
+inline constexpr int file_of(int sq) { return sq & 7; }
+inline constexpr int rank_of(int sq) { return sq >> 3; }
+inline constexpr int square_of(int file, int rank) { return (rank << 3) | file; }
+
+inline constexpr Bitboard square_bb(int sq) { return Bitboard(1) << sq; }
+
+// ---------------------------------------------------------------------------
+// Piece values (centipawns). Used for MVV-LVA, SEE and material eval.
+// ---------------------------------------------------------------------------
+inline constexpr int PIECE_VALUE_MG[NUM_PIECE_TYPES] = {
+	100,   // PAWN
+	320,   // KNIGHT
+	330,   // BISHOP
+	500,   // ROOK
+	900,   // QUEEN
+	20000, // KING
+};
+
+inline constexpr int PIECE_VALUE_EG[NUM_PIECE_TYPES] = {
+	120,   // PAWN
+	320,   // KNIGHT
+	330,   // BISHOP
+	520,   // ROOK
+	930,   // QUEEN
+	20000, // KING
+};
+
+// MVV-LVA: simple value used by move-ordering (victim - attacker scaled).
+inline constexpr int MVV_LVA_VICTIM[NUM_PIECE_TYPES] = {
+	100, 320, 330, 500, 900, 20000,
+};
+
+// External piece code (Godot) -> internal (color, piece_type). Returns
+// piece_type == PT_NONE for empty squares.
+struct ExternalPiece {
+	uint8_t color;
+	uint8_t type;
+};
+
+inline constexpr ExternalPiece decode_external_piece(int code) {
+	// 0 empty; 1..6 white P,N,B,R,Q,K; 7..12 black P,N,B,R,Q,K.
+	if (code <= 0 || code > 12) {
+		return { WHITE, PT_NONE };
+	}
+	uint8_t c = (code <= 6) ? WHITE : BLACK;
+	uint8_t t = static_cast<uint8_t>(((code - 1) % 6));
+	return { c, t };
+}
+
+inline constexpr int encode_external_piece(uint8_t color, uint8_t type) {
+	if (type >= PT_NONE) {
+		return 0;
+	}
+	return int(type) + 1 + (color == BLACK ? 6 : 0);
+}
+
+// ---------------------------------------------------------------------------
+// Zobrist hashing tables (initialised by init_tables()).
+// ---------------------------------------------------------------------------
+extern uint64_t ZOBRIST_PIECES[NUM_COLORS][NUM_PIECE_TYPES][NUM_SQUARES];
 extern uint64_t ZOBRIST_CASTLING[16];
-extern uint64_t ZOBRIST_EN_PASSANT[8];
+extern uint64_t ZOBRIST_EP_FILE[8];
+extern uint64_t ZOBRIST_SIDE;
 
-inline constexpr int PAWN_PST[8][8] = {
-	{0, 0, 0, 0, 0, 0, 0, 0},
-	{50, 50, 50, 50, 50, 50, 50, 50},
-	{10, 10, 20, 30, 30, 20, 10, 10},
-	{5, 5, 10, 25, 25, 10, 5, 5},
-	{0, 0, 0, 20, 20, 0, 0, 0},
-	{5, -5, -10, 0, 0, -10, -5, 5},
-	{5, 10, 10, -20, -20, 10, 10, 5},
-	{0, 0, 0, 0, 0, 0, 0, 0},
+// ---------------------------------------------------------------------------
+// Pre-computed non-sliding attack tables (initialised by init_tables()).
+// ---------------------------------------------------------------------------
+extern Bitboard KNIGHT_ATTACKS[NUM_SQUARES];
+extern Bitboard KING_ATTACKS[NUM_SQUARES];
+extern Bitboard PAWN_ATTACKS[NUM_COLORS][NUM_SQUARES];
+
+// ---------------------------------------------------------------------------
+// Plain Magic Bitboard tables (initialised by init_tables()).
+// Each square has its own attack table indexed by:
+//      idx = ((occupancy & mask) * magic) >> shift
+// ---------------------------------------------------------------------------
+struct Magic {
+	Bitboard mask;       // Relevant blocker mask (edges excluded along the ray).
+	Bitboard magic;      // Magic multiplier.
+	const Bitboard *attacks; // Pointer into the per-square attack table.
+	uint8_t shift;       // 64 - popcount(mask).
 };
 
-inline constexpr int KNIGHT_PST[8][8] = {
-	{-50, -40, -30, -30, -30, -30, -40, -50},
-	{-40, -20, 0, 0, 0, 0, -20, -40},
-	{-30, 0, 10, 15, 15, 10, 0, -30},
-	{-30, 5, 15, 20, 20, 15, 5, -30},
-	{-30, 0, 15, 20, 20, 15, 0, -30},
-	{-30, 5, 10, 15, 15, 10, 5, -30},
-	{-40, -20, 0, 5, 5, 0, -20, -40},
-	{-50, -40, -30, -30, -30, -30, -40, -50},
-};
+extern Magic ROOK_MAGICS[NUM_SQUARES];
+extern Magic BISHOP_MAGICS[NUM_SQUARES];
 
-inline constexpr int BISHOP_PST[8][8] = {
-	{-20, -10, -10, -10, -10, -10, -10, -20},
-	{-10, 0, 0, 0, 0, 0, 0, -10},
-	{-10, 0, 5, 10, 10, 5, 0, -10},
-	{-10, 5, 5, 10, 10, 5, 5, -10},
-	{-10, 0, 10, 10, 10, 10, 0, -10},
-	{-10, 10, 10, 10, 10, 10, 10, -10},
-	{-10, 5, 0, 0, 0, 0, 5, -10},
-	{-20, -10, -10, -10, -10, -10, -10, -20},
-};
+// One-time initialisation. Safe to call multiple times.
+void init_tables();
 
-inline constexpr int ROOK_PST[8][8] = {
-	{0, 0, 0, 0, 0, 0, 0, 0},
-	{5, 10, 10, 10, 10, 10, 10, 5},
-	{-5, 0, 0, 0, 0, 0, 0, -5},
-	{-5, 0, 0, 0, 0, 0, 0, -5},
-	{-5, 0, 0, 0, 0, 0, 0, -5},
-	{-5, 0, 0, 0, 0, 0, 0, -5},
-	{-5, 0, 0, 0, 0, 0, 0, -5},
-	{0, 0, 0, 5, 5, 0, 0, 0},
-};
+inline Bitboard rook_attacks(int sq, Bitboard occ) {
+	const Magic &m = ROOK_MAGICS[sq];
+	return m.attacks[((occ & m.mask) * m.magic) >> m.shift];
+}
 
-inline constexpr int QUEEN_PST[8][8] = {
-	{-20, -10, -10, -5, -5, -10, -10, -20},
-	{-10, 0, 0, 0, 0, 0, 0, -10},
-	{-10, 0, 5, 5, 5, 5, 0, -10},
-	{-5, 0, 5, 5, 5, 5, 0, -5},
-	{0, 0, 5, 5, 5, 5, 0, -5},
-	{-10, 5, 5, 5, 5, 5, 0, -10},
-	{-10, 0, 5, 0, 0, 0, 0, -10},
-	{-20, -10, -10, -5, -5, -10, -10, -20},
-};
+inline Bitboard bishop_attacks(int sq, Bitboard occ) {
+	const Magic &m = BISHOP_MAGICS[sq];
+	return m.attacks[((occ & m.mask) * m.magic) >> m.shift];
+}
 
-inline constexpr int KING_EARLY[8][8] = {
-	{-30, -40, -40, -50, -50, -40, -40, -30},
-	{-30, -40, -40, -50, -50, -40, -40, -30},
-	{-30, -40, -40, -50, -50, -40, -40, -30},
-	{-30, -40, -40, -50, -50, -40, -40, -30},
-	{-20, -30, -30, -40, -40, -30, -30, -20},
-	{-10, -20, -20, -20, -20, -20, -20, -10},
-	{20, 20, 0, 0, 0, 0, 20, 20},
-	{20, 30, 10, 0, 0, 10, 30, 20},
-};
-
-inline constexpr int KING_END[8][8] = {
-	{-50, -40, -30, -20, -20, -30, -40, -50},
-	{-30, -20, -10, 0, 0, -10, -20, -30},
-	{-30, -10, 20, 30, 30, 20, -10, -30},
-	{-30, -10, 30, 40, 40, 30, -10, -30},
-	{-30, -10, 30, 40, 40, 30, -10, -30},
-	{-30, -10, 20, 30, 30, 20, -10, -30},
-	{-30, -30, 0, 0, 0, 0, -30, -30},
-	{-50, -30, -30, -30, -30, -30, -30, -50},
-};
+inline Bitboard queen_attacks(int sq, Bitboard occ) {
+	return rook_attacks(sq, occ) | bishop_attacks(sq, occ);
+}
 
 } // namespace dukes_ai
-} // namespace godot
 
 #endif // DUKES_AI_CONSTANTS_H

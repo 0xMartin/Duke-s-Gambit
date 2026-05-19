@@ -1,3 +1,6 @@
+// ai_state.h
+// Duke's Gambit AI — Move, MoveList, UndoState and SearchState.
+
 #ifndef DUKES_AI_STATE_H
 #define DUKES_AI_STATE_H
 
@@ -5,120 +8,146 @@
 
 #include <array>
 #include <cstdint>
-#include <string>
 
-namespace godot {
 namespace dukes_ai {
 
+// ---------------------------------------------------------------------------
+// Move — packed 16-bit encoding (Stockfish-style).
+//   bits  0-5 : from square
+//   bits  6-11: to square
+//   bits 12-13: promotion piece type minus knight (0=N, 1=B, 2=R, 3=Q)
+//   bits 14-15: MoveFlag
+// ---------------------------------------------------------------------------
 struct Move {
-	int from = -1;
-	int to = -1;
-	int move_type = MOVE_NORMAL;
-	int piece_type = PIECE_NONE;
-	int piece_color = WHITE;
-	int captured_type = PIECE_NONE;
-	int promotion_type = PIECE_QUEEN;
+	uint16_t data;
 
-	bool is_capture() const {
-		return move_type == MOVE_CAPTURE || move_type == MOVE_EN_PASSANT || move_type == MOVE_PROMO_CAPTURE;
+	constexpr Move() : data(0) {}
+	constexpr explicit Move(uint16_t d) : data(d) {}
+
+	static constexpr Move make(int from, int to, MoveFlag flag = MF_NORMAL, int promo_pt = KNIGHT) {
+		uint16_t d = uint16_t(from & 0x3F)
+				| (uint16_t(to & 0x3F) << 6)
+				| (uint16_t((promo_pt - KNIGHT) & 0x3) << 12)
+				| (uint16_t(flag & 0x3) << 14);
+		return Move(d);
 	}
+
+	constexpr int from()     const { return data & 0x3F; }
+	constexpr int to()       const { return (data >> 6) & 0x3F; }
+	constexpr MoveFlag flag() const { return MoveFlag((data >> 14) & 0x3); }
+	constexpr int promotion_type() const { return KNIGHT + ((data >> 12) & 0x3); }
+	constexpr bool is_null()  const { return data == 0; }
+	constexpr bool operator==(Move o) const { return data == o.data; }
+	constexpr bool operator!=(Move o) const { return data != o.data; }
 };
 
-// Stack-allocated move list — zero heap allocation in the search tree.
+inline constexpr Move MOVE_NONE = Move(0);
+
+// ---------------------------------------------------------------------------
+// MoveList — stack-allocated buffer used by the move generator.
+// No heap allocation. Max 256 covers all legal chess positions.
+// ---------------------------------------------------------------------------
 struct MoveList {
 	std::array<Move, 256> moves;
+	std::array<int32_t, 256> scores;
 	int count = 0;
-	inline void push(const Move &m) { moves[count++] = m; }
-	inline Move *begin() { return moves.data(); }
-	inline Move *end() { return moves.data() + count; }
-	inline size_t size() const { return static_cast<size_t>(count); }
+
+	void clear() { count = 0; }
+	void add(Move m) { moves[count] = m; scores[count] = 0; ++count; }
+	int size() const { return count; }
+	Move operator[](int i) const { return moves[i]; }
 };
 
+// ---------------------------------------------------------------------------
+// UndoState — everything needed to reverse one make_move().
+// ---------------------------------------------------------------------------
 struct UndoState {
-	int from_idx = -1;
-	int to_idx = -1;
-	int moving_code = 0;
-	int captured_code = 0;
-	int prev_en_passant = -1;
-	int prev_castling = 0;
-	int prev_halfmove = 0;
-	int prev_fullmove = 1;
-	int rook_from = -1;
-	int rook_to = -1;
-	int rook_code = 0;
-	int ep_capture_idx = -1;
-	int ep_capture_code = 0;
-	uint64_t prev_zobrist_hash = 0;
+	uint64_t zobrist;       // Hash before the move.
+	uint8_t  castling;      // Castling rights before the move.
+	int8_t   ep_square;     // En passant target before the move (-1 if none).
+	uint8_t  halfmove_clock;// 50-move clock before the move.
+	uint8_t  captured_type; // PieceType captured (PT_NONE if quiet/non-capture).
+	uint8_t  captured_color;// Color of captured piece (only valid if captured_type < PT_NONE).
+	int8_t   captured_sq;   // Square the captured piece was on (handles EP).
+	uint8_t  moved_type;    // Piece type that moved (cached, useful for unmake).
 };
 
-struct TTEntry {
-	uint64_t key = 0;
-	int depth = -1;
-	int score = 0;
-	int flag = TT_EXACT;
-	uint32_t generation = 0;
-};
-
+// ---------------------------------------------------------------------------
+// SearchState — pure bitboard representation. No 8x8 mailbox in the hot loop.
+// ---------------------------------------------------------------------------
 struct SearchState {
-	std::array<int, 64> board{};
-	std::array<uint64_t, 13> piece_bb{};
-	int active_color = WHITE;
-	int castling_rights = 0b1111;
-	int en_passant_index = -1;
-	int halfmove_clock = 0;
-	int fullmove_number = 1;
-	std::array<UndoState, 512> history_stack;
-	int history_count = 0;
-	uint64_t zobrist_hash = 0;
+	// pieces[color][type] = bitboard of pieces of that color and type.
+	Bitboard pieces[NUM_COLORS][NUM_PIECE_TYPES] = {};
+	// occupancy[color] = union of all pieces of that color.
+	Bitboard occupancy[NUM_COLORS] = { 0, 0 };
+	// occupancy_all = occupancy[WHITE] | occupancy[BLACK].
+	Bitboard occupancy_all = 0;
 
-	static int sq_to_index(int col, int row);
-	static int idx_col(int idx);
-	static int idx_row(int idx);
-	static int piece_code(int piece_type, int color);
-	static int piece_type_from_code(int code);
-	static int piece_color_from_code(int code);
+	uint8_t  side_to_move = WHITE;
+	uint8_t  castling_rights = 0;
+	int8_t   ep_square = -1;
+	uint8_t  halfmove_clock = 0;
+	uint16_t fullmove_number = 1;
+	uint16_t ply = 0; // Plies from the search root (0 at root).
 
-	void clear_square(int idx);
-	void set_square(int idx, int code);
-	bool is_square_attacked(int idx, int by_color) const;
-	bool is_in_check(int color) const;
-	void update_castling_rights(const Move &mv);
-	void make_move(const Move &mv);
-	void unmake_move();
-	bool can_castle_kingside(int color, int king_idx) const;
-	bool can_castle_queenside(int color, int king_idx) const;
-	void pawn_moves(int idx, int color, MoveList &list) const;
-	void knight_moves(int idx, int color, MoveList &list) const;
-	void slider_moves(int idx, int color, const int (*dirs)[2], int ndir, MoveList &list) const;
-	void king_moves(int idx, int color, MoveList &list) const;
-	void generate_pseudo_legal_moves_for_color(int color, MoveList &list) const;
-	void generate_legal_moves(MoveList &list);
-	void generate_tactical_moves(MoveList &list);
-	int count_pseudo_moves(int color) const;
-	uint64_t hash_key() const;
-};
+	uint64_t zobrist = 0;
 
-struct SearchContext {
-	std::array<Move, 64> killer_moves;   // primary killer per depth
-	std::array<Move, 64> killer_moves_2; // secondary killer per depth
-	Move counter_moves[64][64]; // counter move for previous (from,to)
-	int history[64][64]; // history[from][to] for quiet move ordering
-	uint64_t deadline_ms = 0;
-	bool timed_out = false;
-	SearchContext() : killer_moves(), killer_moves_2(), deadline_ms(0), timed_out(false) {
-		for (int i = 0; i < 64; ++i)
-			for (int j = 0; j < 64; ++j)
-				counter_moves[i][j] = Move();
-		for (int i = 0; i < 64; ++i)
-			for (int j = 0; j < 64; ++j)
-				history[i][j] = 0;
-	}
+	// History of undo records (one per make_move).
+	std::array<UndoState, 1024> undo_stack {};
+	int undo_count = 0;
+
+	// Position-hash history for repetition detection (parallel to undo stack).
+	std::array<uint64_t, 1024> hash_history {};
+	int hash_history_count = 0;
+
+	// ---- Setup ----------------------------------------------------------------
+	void clear();
+	// Load from a Godot Dictionary already parsed into raw fields.
+	//   board[64] uses the external piece code (0..12).
+	//   side: 0 = white to move, 1 = black.
+	//   castling: bitmask CR_*.
+	//   ep_index: -1 or 0..63 (LERF, square 0 = a1).
+	void load_position(const int32_t board[64], int side, int castling,
+			int ep_index, int halfmove, int fullmove);
+
+	// Recompute zobrist from scratch (used after load_position).
+	void recompute_zobrist();
+
+	// ---- Queries --------------------------------------------------------------
+	uint8_t piece_type_on(int sq) const;
+	uint8_t color_on(int sq) const;
+
+	Bitboard attackers_to(int sq, Bitboard occ) const;
+	bool is_square_attacked(int sq, int by_color) const;
+	bool in_check() const;
+	bool in_check(int color) const;
+
+	// Repetition: returns true if current zobrist appears at least once earlier.
+	bool is_repetition() const;
+
+	// ---- Move generation ------------------------------------------------------
+	// Pseudo-legal generation. Callers must filter for legality (king safety).
+	void generate_pseudo_moves(MoveList &out) const;
+	void generate_tactical_moves(MoveList &out) const; // Captures + promotions.
+
+	// Tests legality of a pseudo-legal move from generate_*.
+	bool is_legal(Move m) const;
+
+	// ---- Make / Unmake --------------------------------------------------------
+	void make_move(Move m);
+	void unmake_move(Move m);
+
+	// Null move (skip turn). Used by null-move pruning in search.
+	void make_null_move();
+	void unmake_null_move();
+
+private:
+	// Bitboard mutation helpers (XOR-based, also update zobrist).
+	void place_piece(int color, int type, int sq);
+	void remove_piece(int color, int type, int sq);
+	void move_piece(int color, int type, int from, int to);
 };
 
 } // namespace dukes_ai
-} // namespace godot
-
-// Must be called once before any search - initializes Zobrist random tables
-namespace godot { namespace dukes_ai { void init_zobrist(); } }
 
 #endif // DUKES_AI_STATE_H
