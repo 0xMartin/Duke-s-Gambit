@@ -1,21 +1,15 @@
 ## online_menu.gd
-## Builds and drives the Online section of the main menu programmatically.
-## Mounted onto the existing MainPanel by main_menu.gd at runtime; uses the
-## same themes as the other panels so it visually matches.
+## Drives the Online section of the main menu. UI nodes live in main_menu.tscn;
+## this script only wires logic, populates dynamic data and binds signals.
 
 extends RefCounted
 
-const _MENU_BTN_THEME    := preload("res://themes/menu_button.tres")
-const _SECTION_THEME     := preload("res://themes/menu_section_title.tres")
-const _LABEL_THEME       := preload("res://themes/menu_label.tres")
-const _OPTION_THEME      := preload("res://themes/option_button.tres")
-const _BTN_THEME         := preload("res://themes/button.tres")
-const _ONLINE_ICON       := preload("res://assets/textures/pieces/black_queen.svg")
-const _ONLINE_BTN_ICON   := preload("res://assets/textures/pieces/black_pawn.svg")
+const _LABEL_THEME := preload("res://themes/menu_label.tres")
+const _BTN_THEME   := preload("res://themes/button.tres")
 
 const NICKNAME_RE := "^[A-Za-z0-9_.\\- ]{1,15}$"
 
-# Panels (built lazily).
+# Panels (from scene)
 var connect_panel:  VBoxContainer = null
 var lobby_panel:    VBoxContainer = null
 var create_panel:   VBoxContainer = null
@@ -23,283 +17,135 @@ var join_panel:     VBoxContainer = null
 var wait_panel:     VBoxContainer = null
 
 # Connect panel widgets
-var _url_input: LineEdit
-var _nick_input: LineEdit
-var _cert_input: LineEdit
-var _insecure_check: CheckButton
-var _connect_btn: Button
-var _connect_status: Label
+var _url_input:       LineEdit
+var _nick_input:      LineEdit
+var _cert_input:      LineEdit
+var _insecure_check:  CheckButton
+var _connect_btn:     Button
+var _connect_back_btn: Button
+var _connect_status:  Label
 
 # Lobby
-var _lobby_status: Label
 var _lobby_count_label: Label
-var _lobby_list: VBoxContainer
-var _refresh_btn: Button
-var _create_btn: Button
+var _lobby_status:      Label
+var _lobby_list:        VBoxContainer
+var _refresh_btn:       Button
+var _create_btn:        Button
+var _lobby_back_btn:    Button
 
 # Create
-var _room_name_input: LineEdit
-var _room_color_opt: OptionButton
-var _room_time_opt: OptionButton
+var _room_name_input:     LineEdit
+var _room_color_opt:      OptionButton
+var _room_time_opt:       OptionButton
 var _room_password_input: LineEdit
-var _create_confirm_btn: Button
-var _create_status: Label
+var _create_confirm_btn:  Button
+var _create_back_btn:     Button
+var _create_status:       Label
 
-# Join (password)
+# Join
 var _join_room_id: String = ""
-var _join_name_label: Label
-var _join_password_input: LineEdit
-var _join_confirm_btn: Button
-var _join_status: Label
+var _join_room_name_label: Label
+var _join_password_input:  LineEdit
+var _join_confirm_btn:     Button
+var _join_back_btn:        Button
+var _join_status:          Label
 
-# Wait (room ready)
-var _wait_title: Label
+# Wait
+var _wait_room_title:  Label
 var _wait_white_label: Label
 var _wait_black_label: Label
-var _wait_info_label: Label
-var _wait_status: Label
-var _wait_cancel_btn: Button
+var _wait_info_label:  Label
+var _wait_status:      Label
+var _wait_leave_btn:   Button
 
-# External hooks
+# External
 var _menu: Node = null               # MainMenu
 var _online_btn: Button = null
 var _current_lobby_rooms: Array = []
 
+# ──────────────────────────────────────────────────────────────────────────
 func setup(menu: Node) -> void:
 	_menu = menu
-	_inject_online_button()
-	_build_connect_panel()
-	_build_lobby_panel()
-	_build_create_panel()
-	_build_join_panel()
-	_build_wait_panel()
+	_bind_nodes()
+	_populate_static_options()
 	_connect_signals()
 
 func panels() -> Array:
 	return [connect_panel, lobby_panel, create_panel, join_panel, wait_panel]
 
-# ── Panel build helpers ────────────────────────────────────────────────────
-func _inject_online_button() -> void:
-	var main_vbox := _menu.get_node("MainPanel/MainVBox") as VBoxContainer
-	if main_vbox == null:
-		return
-	_online_btn = Button.new()
-	_online_btn.name = "OnlineBtn"
-	_online_btn.theme = _MENU_BTN_THEME
-	_online_btn.text = " Online"
-	_online_btn.icon = _ONLINE_BTN_ICON
-	_online_btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	main_vbox.add_child(_online_btn)
-	# Place directly after PvAIBtn
-	var pvai := main_vbox.get_node_or_null("PvAIBtn")
-	if pvai != null:
-		main_vbox.move_child(_online_btn, pvai.get_index() + 1)
+# ── Bind scene nodes ──────────────────────────────────────────────────────
+func _bind_nodes() -> void:
+	_online_btn = _menu.get_node("MainPanel/MainVBox/OnlineBtn") as Button
 
-func _new_panel(panel_name: String, title: String) -> VBoxContainer:
-	var panel := VBoxContainer.new()
-	panel.name = panel_name
-	panel.visible = false
-	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	panel.add_theme_constant_override("separation", 18)
-	var title_lbl := Label.new()
-	title_lbl.theme = _SECTION_THEME
-	title_lbl.text = title
-	title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	panel.add_child(title_lbl)
-	_menu.get_node("MainPanel").add_child(panel)
-	return panel
+	connect_panel = _menu.get_node("MainPanel/OnlineConnectVBox") as VBoxContainer
+	_url_input      = connect_panel.get_node("URLRow/URLInput") as LineEdit
+	_nick_input     = connect_panel.get_node("NickRow/NickInput") as LineEdit
+	_cert_input     = connect_panel.get_node("CertRow/CertInput") as LineEdit
+	_insecure_check = connect_panel.get_node("InsecureRow/InsecureCheck") as CheckButton
+	_connect_status = connect_panel.get_node("StatusLabel") as Label
+	_connect_btn    = connect_panel.get_node("ConnectBtn") as Button
+	_connect_back_btn = connect_panel.get_node("BackBtn") as Button
 
-func _add_row(parent: VBoxContainer, label_text: String, control: Control) -> void:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 40)
-	var lbl := Label.new()
-	lbl.theme = _LABEL_THEME
-	lbl.text = label_text
-	lbl.custom_minimum_size = Vector2(320, 0)
-	row.add_child(lbl)
-	control.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(control)
-	parent.add_child(row)
+	lobby_panel = _menu.get_node("MainPanel/OnlineLobbyVBox") as VBoxContainer
+	_lobby_count_label = lobby_panel.get_node("CountLabel") as Label
+	_lobby_list        = lobby_panel.get_node("ScrollContainer/RoomList") as VBoxContainer
+	_lobby_status      = lobby_panel.get_node("StatusLabel") as Label
+	_refresh_btn       = lobby_panel.get_node("ActionsRow/RefreshBtn") as Button
+	_create_btn        = lobby_panel.get_node("ActionsRow/CreateBtn") as Button
+	_lobby_back_btn    = lobby_panel.get_node("BackBtn") as Button
 
-func _make_button(text: String) -> Button:
-	var b := Button.new()
-	b.theme = _BTN_THEME
-	b.text = text
-	return b
+	create_panel = _menu.get_node("MainPanel/OnlineCreateRoomVBox") as VBoxContainer
+	_room_name_input     = create_panel.get_node("NameRow/NameInput") as LineEdit
+	_room_color_opt      = create_panel.get_node("ColorRow/ColorOption") as OptionButton
+	_room_time_opt       = create_panel.get_node("TimeRow/TimeOption") as OptionButton
+	_room_password_input = create_panel.get_node("PasswordRow/PasswordInput") as LineEdit
+	_create_status       = create_panel.get_node("StatusLabel") as Label
+	_create_confirm_btn  = create_panel.get_node("CreateConfirmBtn") as Button
+	_create_back_btn     = create_panel.get_node("BackBtn") as Button
 
-func _make_back_button(target_callable: Callable) -> Button:
-	var b := _make_button("Back")
-	b.pressed.connect(target_callable)
-	return b
+	join_panel = _menu.get_node("MainPanel/OnlineJoinVBox") as VBoxContainer
+	_join_room_name_label = join_panel.get_node("RoomNameLabel") as Label
+	_join_password_input  = join_panel.get_node("PasswordRow/PasswordInput") as LineEdit
+	_join_status          = join_panel.get_node("StatusLabel") as Label
+	_join_confirm_btn     = join_panel.get_node("JoinConfirmBtn") as Button
+	_join_back_btn        = join_panel.get_node("BackBtn") as Button
 
-func _make_status_label(error: bool = true) -> Label:
-	var lbl := Label.new()
-	lbl.theme = _LABEL_THEME
-	if error:
-		lbl.add_theme_color_override("font_color", Color(0.87, 0.0, 0.45, 1.0))
-	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	lbl.text = ""
-	return lbl
+	wait_panel = _menu.get_node("MainPanel/OnlineRoomWaitVBox") as VBoxContainer
+	_wait_room_title  = wait_panel.get_node("RoomTitle") as Label
+	_wait_white_label = wait_panel.get_node("WhiteLabel") as Label
+	_wait_black_label = wait_panel.get_node("BlackLabel") as Label
+	_wait_info_label  = wait_panel.get_node("InfoLabel") as Label
+	_wait_status      = wait_panel.get_node("StatusLabel") as Label
+	_wait_leave_btn   = wait_panel.get_node("LeaveBtn") as Button
 
-func _build_connect_panel() -> void:
-	connect_panel = _new_panel("OnlineConnectVBox", "Online — Connect")
-	_url_input = LineEdit.new()
-	_url_input.text = "wss://127.0.0.1:8765"
-	_url_input.placeholder_text = "wss://server.example:8765"
-	_add_row(connect_panel, "Server URL", _url_input)
-
-	_nick_input = LineEdit.new()
-	_nick_input.placeholder_text = "Your nickname (1–15 chars)"
-	_nick_input.max_length = 15
-	_add_row(connect_panel, "Nickname", _nick_input)
-
-	_cert_input = LineEdit.new()
-	_cert_input.placeholder_text = "Optional: absolute path to server cert (.crt)"
-	_add_row(connect_panel, "Trusted cert (path)", _cert_input)
-
-	_insecure_check = CheckButton.new()
-	_insecure_check.text = "Skip cert verification (LAN only, INSECURE)"
-	_add_row(connect_panel, "TLS", _insecure_check)
-
-	_connect_status = _make_status_label()
-	connect_panel.add_child(_connect_status)
-
-	_connect_btn = _make_button("Connect")
-	connect_panel.add_child(_connect_btn)
-	connect_panel.add_child(_make_back_button(func(): _back_to_main()))
-
-func _build_lobby_panel() -> void:
-	lobby_panel = _new_panel("OnlineLobbyVBox", "Online — Lobby")
-	_lobby_count_label = Label.new()
-	_lobby_count_label.theme = _LABEL_THEME
-	_lobby_count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_lobby_count_label.text = "0 players online · 0 rooms"
-	lobby_panel.add_child(_lobby_count_label)
-
-	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(0, 280)
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_lobby_list = VBoxContainer.new()
-	_lobby_list.add_theme_constant_override("separation", 8)
-	_lobby_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.add_child(_lobby_list)
-	lobby_panel.add_child(scroll)
-
-	_lobby_status = _make_status_label(false)
-	lobby_panel.add_child(_lobby_status)
-
-	var actions := HBoxContainer.new()
-	actions.add_theme_constant_override("separation", 16)
-	_refresh_btn = _make_button("Refresh")
-	_create_btn  = _make_button("Create Room")
-	actions.add_child(_refresh_btn)
-	actions.add_child(_create_btn)
-	lobby_panel.add_child(actions)
-	lobby_panel.add_child(_make_back_button(func(): _disconnect_and_back()))
-
-func _build_create_panel() -> void:
-	create_panel = _new_panel("OnlineCreateRoomVBox", "Online — Create Room")
-	_room_name_input = LineEdit.new()
-	_room_name_input.max_length = 24
-	_room_name_input.placeholder_text = "Room name"
-	_add_row(create_panel, "Room name", _room_name_input)
-
-	_room_color_opt = OptionButton.new()
-	_room_color_opt.theme = _OPTION_THEME
+func _populate_static_options() -> void:
+	_room_color_opt.clear()
 	_room_color_opt.add_item("White", 0)
 	_room_color_opt.add_item("Black", 1)
 	_room_color_opt.add_item("Random", 2)
 	_room_color_opt.select(0)
-	_add_row(create_panel, "Your color", _room_color_opt)
 
-	_room_time_opt = OptionButton.new()
-	_room_time_opt.theme = _OPTION_THEME
+	_room_time_opt.clear()
 	_room_time_opt.add_item("No limit", 0)
-	_room_time_opt.add_item("3 min", 3 * 60 * 1000)
-	_room_time_opt.add_item("5 min", 5 * 60 * 1000)
-	_room_time_opt.add_item("10 min", 10 * 60 * 1000)
-	_room_time_opt.add_item("15 min", 15 * 60 * 1000)
+	_room_time_opt.add_item("3 min",    3 * 60 * 1000)
+	_room_time_opt.add_item("5 min",    5 * 60 * 1000)
+	_room_time_opt.add_item("10 min",  10 * 60 * 1000)
+	_room_time_opt.add_item("15 min",  15 * 60 * 1000)
 	_room_time_opt.select(3)
-	_add_row(create_panel, "Time control", _room_time_opt)
-
-	_room_password_input = LineEdit.new()
-	_room_password_input.placeholder_text = "Optional"
-	_room_password_input.secret = true
-	_room_password_input.max_length = 64
-	_add_row(create_panel, "Password", _room_password_input)
-
-	_create_status = _make_status_label()
-	create_panel.add_child(_create_status)
-
-	_create_confirm_btn = _make_button("Create")
-	create_panel.add_child(_create_confirm_btn)
-	create_panel.add_child(_make_back_button(func(): _show_panel(lobby_panel)))
-
-func _build_join_panel() -> void:
-	join_panel = _new_panel("OnlineJoinVBox", "Join Room")
-	_join_name_label = Label.new()
-	_join_name_label.theme = _LABEL_THEME
-	_join_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	join_panel.add_child(_join_name_label)
-
-	_join_password_input = LineEdit.new()
-	_join_password_input.placeholder_text = "Room password"
-	_join_password_input.secret = true
-	_join_password_input.max_length = 64
-	_add_row(join_panel, "Password", _join_password_input)
-
-	_join_status = _make_status_label()
-	join_panel.add_child(_join_status)
-
-	_join_confirm_btn = _make_button("Join")
-	join_panel.add_child(_join_confirm_btn)
-	join_panel.add_child(_make_back_button(func(): _show_panel(lobby_panel)))
-
-func _build_wait_panel() -> void:
-	wait_panel = _new_panel("OnlineRoomWaitVBox", "Online — Room")
-	_wait_title = Label.new()
-	_wait_title.theme = _SECTION_THEME
-	_wait_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	wait_panel.add_child(_wait_title)
-
-	_wait_white_label = Label.new()
-	_wait_white_label.theme = _LABEL_THEME
-	_wait_white_label.text = "White: (waiting...)"
-	wait_panel.add_child(_wait_white_label)
-
-	_wait_black_label = Label.new()
-	_wait_black_label.theme = _LABEL_THEME
-	_wait_black_label.text = "Black: (waiting...)"
-	wait_panel.add_child(_wait_black_label)
-
-	_wait_info_label = Label.new()
-	_wait_info_label.theme = _LABEL_THEME
-	_wait_info_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_wait_info_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	wait_panel.add_child(_wait_info_label)
-
-	_wait_status = _make_status_label(false)
-	wait_panel.add_child(_wait_status)
-
-	_wait_cancel_btn = _make_button("Leave room")
-	wait_panel.add_child(_wait_cancel_btn)
 
 # ── Wiring ─────────────────────────────────────────────────────────────────
 func _connect_signals() -> void:
 	_online_btn.pressed.connect(_on_online_pressed)
 	_connect_btn.pressed.connect(_on_connect_pressed)
-	_refresh_btn.pressed.connect(func():
-		var c := _online_client()
-		if c != null:
-			c.send_list_rooms()
-	)
+	_connect_back_btn.pressed.connect(_back_to_main)
+	_refresh_btn.pressed.connect(_on_refresh_pressed)
 	_create_btn.pressed.connect(func(): _show_panel(create_panel))
+	_lobby_back_btn.pressed.connect(_disconnect_and_back)
 	_create_confirm_btn.pressed.connect(_on_create_confirm)
+	_create_back_btn.pressed.connect(func(): _show_panel(lobby_panel))
 	_join_confirm_btn.pressed.connect(_on_join_confirm)
-	_wait_cancel_btn.pressed.connect(_on_leave_room)
+	_join_back_btn.pressed.connect(func(): _show_panel(lobby_panel))
+	_wait_leave_btn.pressed.connect(_on_leave_room)
 
 	var oc := _online_client()
 	if oc == null:
@@ -320,12 +166,16 @@ func _connect_signals() -> void:
 func _on_online_pressed() -> void:
 	var oc := _online_client()
 	if oc != null and oc.get_state() == oc.State.READY:
-		# Already connected, jump to lobby and refresh.
 		_show_panel(lobby_panel)
 		oc.send_list_rooms()
 	else:
 		_connect_status.text = ""
 		_show_panel(connect_panel)
+
+func _on_refresh_pressed() -> void:
+	var oc := _online_client()
+	if oc != null:
+		oc.send_list_rooms()
 
 func _on_connect_pressed() -> void:
 	var nick: String = _nick_input.text.strip_edges()
@@ -449,7 +299,9 @@ func _make_room_row(room: Dictionary) -> Control:
 		status, players, time_str
 	]
 	row.add_child(info)
-	var join := _make_button("Join")
+	var join := Button.new()
+	join.theme = _BTN_THEME
+	join.text = "Join"
 	join.custom_minimum_size = Vector2(140, 0)
 	join.disabled = (status != "waiting" or players >= 2)
 	var rid := str(room.get("room_id", ""))
@@ -460,7 +312,7 @@ func _make_room_row(room: Dictionary) -> Control:
 func _try_join_room(rid: String, name_str: String, has_pw: bool) -> void:
 	if has_pw:
 		_join_room_id = rid
-		_join_name_label.text = "Joining room: %s" % name_str
+		_join_room_name_label.text = "Joining room: %s" % name_str
 		_join_password_input.text = ""
 		_join_status.text = ""
 		_show_panel(join_panel)
@@ -482,7 +334,7 @@ func _on_room_updated(room: Dictionary) -> void:
 		_show_wait_for(room)
 
 func _show_wait_for(room: Dictionary) -> void:
-	_wait_title.text = "Room: %s" % str(room.get("name", "?"))
+	_wait_room_title.text = "Room: %s" % str(room.get("name", "?"))
 	var members: Array = room.get("members", [])
 	var white_n := ""
 	var black_n := ""
@@ -514,7 +366,6 @@ func _on_room_deleted(_rid: String, reason: String) -> void:
 		oc.send_list_rooms()
 
 func _on_game_starting(payload: Dictionary) -> void:
-	# Hand control back to MainMenu which loads game.tscn and invokes setup_online.
 	if _menu != null and _menu.has_method("start_online_game"):
 		_menu.call("start_online_game", payload)
 

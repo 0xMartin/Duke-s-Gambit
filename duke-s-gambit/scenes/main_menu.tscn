@@ -14,6 +14,7 @@
 [ext_resource type="Texture2D" uid="uid://creg7doi502rt" path="res://assets/textures/pieces/white_queen.svg" id="11_rcqid"]
 [ext_resource type="Texture2D" uid="uid://ba8u5a2t6vwxd" path="res://assets/textures/pieces/white_king.svg" id="12_1ajci"]
 [ext_resource type="Theme" uid="uid://caxfi4yovmntm" path="res://themes/button.tres" id="12_flqon"]
+[ext_resource type="Texture2D" uid="uid://d1dl1lcyflqnp" path="res://assets/textures/pieces/white_rook.svg" id="13_qywvv"]
 [ext_resource type="Texture2D" uid="uid://uvf7mxoq5q70" path="res://assets/textures/pieces/white_knight.svg" id="14_a8gd2"]
 [ext_resource type="Texture2D" uid="uid://dpa8nghhm2jva" path="res://assets/textures/pieces/white_bishop.svg" id="14_j7ex8"]
 [ext_resource type="Texture2D" uid="uid://ih0bn2if7eyb" path="res://assets/textures/pieces/white_pawn.svg" id="15_a8gd2"]
@@ -23,6 +24,7 @@
 [ext_resource type="Theme" uid="uid://bywhcekfwqmcu" path="res://themes/table.tres" id="21_1dfpl"]
 [ext_resource type="Theme" uid="uid://docidxqt3s1pb" path="res://themes/slider.tres" id="21_gw5y6"]
 [ext_resource type="Theme" uid="uid://btb433dt14txa" path="res://themes/check_button.tres" id="22_svtp6"]
+[ext_resource type="Theme" uid="uid://4dx2mbasujkd" path="res://themes/menu_line_edit.tres" id="25_3wgol"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_icon_float"]
 shader = ExtResource("7_iconfloat")
@@ -151,9 +153,10 @@ theme = ExtResource("9_5dd4i")
 metadata/_edit_use_anchors_ = true
 
 [node name="MainVBox" type="VBoxContainer" parent="MainPanel" unique_id=1054197032]
+visible = false
 layout_mode = 2
 size_flags_horizontal = 0
-theme_override_constants/separation = 25
+theme_override_constants/separation = 20
 alignment = 1
 
 [node name="PvPBtn" type="Button" parent="MainPanel/MainVBox" unique_id=1470240247]
@@ -168,6 +171,13 @@ layout_mode = 2
 theme = ExtResource("10_lgwnu")
 text = " Player vs AI"
 icon = ExtResource("11_rcqid")
+alignment = 0
+
+[node name="OnlineBtn" type="Button" parent="MainPanel/MainVBox" unique_id=1174281154]
+layout_mode = 2
+theme = ExtResource("10_lgwnu")
+text = " Online"
+icon = ExtResource("13_qywvv")
 alignment = 0
 
 [node name="StatsBtn" type="Button" parent="MainPanel/MainVBox" unique_id=1952988221]
@@ -586,6 +596,358 @@ horizontal_alignment = 2
 layout_mode = 2
 theme = ExtResource("12_flqon")
 text = "Back"
+
+[node name="OnlineConnectVBox" type="VBoxContainer" parent="MainPanel" unique_id=2136435936]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 25
+
+[node name="TitleLabel" type="Label" parent="MainPanel/OnlineConnectVBox" unique_id=372993902]
+layout_mode = 2
+theme = ExtResource("16_hstxw")
+text = "Online — Connect"
+horizontal_alignment = 1
+
+[node name="URLRow" type="HBoxContainer" parent="MainPanel/OnlineConnectVBox" unique_id=747014050]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="Label" type="Label" parent="MainPanel/OnlineConnectVBox/URLRow" unique_id=1545336761]
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+text = "Server URL"
+
+[node name="URLInput" type="LineEdit" parent="MainPanel/OnlineConnectVBox/URLRow" unique_id=888840217]
+custom_minimum_size = Vector2(300, 40)
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("25_3wgol")
+text = "wss://127.0.0.1:8765"
+placeholder_text = "wss://server.example:8765"
+
+[node name="NickRow" type="HBoxContainer" parent="MainPanel/OnlineConnectVBox" unique_id=1397099321]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="Label" type="Label" parent="MainPanel/OnlineConnectVBox/NickRow" unique_id=68111021]
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+text = "Nickname"
+
+[node name="NickInput" type="LineEdit" parent="MainPanel/OnlineConnectVBox/NickRow" unique_id=209750010]
+custom_minimum_size = Vector2(300, 40)
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("25_3wgol")
+placeholder_text = "Your nickname (1–15 chars)"
+max_length = 15
+
+[node name="CertRow" type="HBoxContainer" parent="MainPanel/OnlineConnectVBox" unique_id=844466612]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="Label" type="Label" parent="MainPanel/OnlineConnectVBox/CertRow" unique_id=2112012807]
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+text = "Trusted cert (path)"
+
+[node name="CertInput" type="LineEdit" parent="MainPanel/OnlineConnectVBox/CertRow" unique_id=1658774091]
+custom_minimum_size = Vector2(300, 40)
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("25_3wgol")
+placeholder_text = "Optional: absolute path to server cert (.crt)"
+
+[node name="InsecureRow" type="HBoxContainer" parent="MainPanel/OnlineConnectVBox" unique_id=31715837]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="Label" type="Label" parent="MainPanel/OnlineConnectVBox/InsecureRow" unique_id=80203000]
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+text = "TLS"
+
+[node name="InsecureCheck" type="CheckButton" parent="MainPanel/OnlineConnectVBox/InsecureRow" unique_id=384573270]
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("22_svtp6")
+text = "Skip cert verification (INSECURE)"
+
+[node name="StatusLabel" type="Label" parent="MainPanel/OnlineConnectVBox" unique_id=871274573]
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+theme_override_colors/font_color = Color(0.87, 0, 0.45, 1)
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="ConnectBtn" type="Button" parent="MainPanel/OnlineConnectVBox" unique_id=1834713196]
+layout_mode = 2
+theme = ExtResource("12_flqon")
+text = "Connect"
+
+[node name="BackBtn" type="Button" parent="MainPanel/OnlineConnectVBox" unique_id=790071612]
+layout_mode = 2
+theme = ExtResource("12_flqon")
+text = "Back"
+
+[node name="OnlineLobbyVBox" type="VBoxContainer" parent="MainPanel" unique_id=1578426827]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 18
+
+[node name="TitleLabel" type="Label" parent="MainPanel/OnlineLobbyVBox" unique_id=599378867]
+layout_mode = 2
+theme = ExtResource("16_hstxw")
+text = "Online — Lobby"
+horizontal_alignment = 1
+
+[node name="CountLabel" type="Label" parent="MainPanel/OnlineLobbyVBox" unique_id=1224356665]
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+text = "0 players online · 0 rooms"
+horizontal_alignment = 1
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MainPanel/OnlineLobbyVBox" unique_id=2008308365]
+custom_minimum_size = Vector2(0, 280)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme = ExtResource("21_1dfpl")
+
+[node name="RoomList" type="VBoxContainer" parent="MainPanel/OnlineLobbyVBox/ScrollContainer" unique_id=1356542576]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="StatusLabel" type="Label" parent="MainPanel/OnlineLobbyVBox" unique_id=1548367259]
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="ActionsRow" type="HBoxContainer" parent="MainPanel/OnlineLobbyVBox" unique_id=1685837826]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="RefreshBtn" type="Button" parent="MainPanel/OnlineLobbyVBox/ActionsRow" unique_id=893289749]
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("12_flqon")
+text = "Refresh"
+
+[node name="CreateBtn" type="Button" parent="MainPanel/OnlineLobbyVBox/ActionsRow" unique_id=97119650]
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("12_flqon")
+text = "Create Room"
+
+[node name="BackBtn" type="Button" parent="MainPanel/OnlineLobbyVBox" unique_id=2022280372]
+layout_mode = 2
+theme = ExtResource("12_flqon")
+text = "Back"
+
+[node name="OnlineCreateRoomVBox" type="VBoxContainer" parent="MainPanel" unique_id=1370358513]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 25
+
+[node name="TitleLabel" type="Label" parent="MainPanel/OnlineCreateRoomVBox" unique_id=849928161]
+layout_mode = 2
+theme = ExtResource("16_hstxw")
+text = "Online — Create Room"
+horizontal_alignment = 1
+
+[node name="NameRow" type="HBoxContainer" parent="MainPanel/OnlineCreateRoomVBox" unique_id=2057024348]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="Label" type="Label" parent="MainPanel/OnlineCreateRoomVBox/NameRow" unique_id=1994780354]
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+text = "Room name"
+
+[node name="NameInput" type="LineEdit" parent="MainPanel/OnlineCreateRoomVBox/NameRow" unique_id=960896557]
+custom_minimum_size = Vector2(300, 40)
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("25_3wgol")
+placeholder_text = "Room name"
+max_length = 24
+
+[node name="ColorRow" type="HBoxContainer" parent="MainPanel/OnlineCreateRoomVBox" unique_id=1599538935]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="Label" type="Label" parent="MainPanel/OnlineCreateRoomVBox/ColorRow" unique_id=95047656]
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+text = "Your color"
+
+[node name="ColorOption" type="OptionButton" parent="MainPanel/OnlineCreateRoomVBox/ColorRow" unique_id=1393114162]
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("19_8egab")
+
+[node name="TimeRow" type="HBoxContainer" parent="MainPanel/OnlineCreateRoomVBox" unique_id=511882870]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="Label" type="Label" parent="MainPanel/OnlineCreateRoomVBox/TimeRow" unique_id=625363177]
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+text = "Time control"
+
+[node name="TimeOption" type="OptionButton" parent="MainPanel/OnlineCreateRoomVBox/TimeRow" unique_id=1185909100]
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("19_8egab")
+
+[node name="PasswordRow" type="HBoxContainer" parent="MainPanel/OnlineCreateRoomVBox" unique_id=1805795039]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="Label" type="Label" parent="MainPanel/OnlineCreateRoomVBox/PasswordRow" unique_id=676739507]
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+text = "Password"
+
+[node name="PasswordInput" type="LineEdit" parent="MainPanel/OnlineCreateRoomVBox/PasswordRow" unique_id=567608082]
+custom_minimum_size = Vector2(300, 40)
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("25_3wgol")
+placeholder_text = "Optional"
+max_length = 64
+secret = true
+
+[node name="StatusLabel" type="Label" parent="MainPanel/OnlineCreateRoomVBox" unique_id=1140401304]
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+theme_override_colors/font_color = Color(0.87, 0, 0.45, 1)
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="CreateConfirmBtn" type="Button" parent="MainPanel/OnlineCreateRoomVBox" unique_id=923589128]
+layout_mode = 2
+theme = ExtResource("12_flqon")
+text = "Create"
+
+[node name="BackBtn" type="Button" parent="MainPanel/OnlineCreateRoomVBox" unique_id=441729539]
+layout_mode = 2
+theme = ExtResource("12_flqon")
+text = "Back"
+
+[node name="OnlineJoinVBox" type="VBoxContainer" parent="MainPanel" unique_id=120272478]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 25
+
+[node name="TitleLabel" type="Label" parent="MainPanel/OnlineJoinVBox" unique_id=428406633]
+layout_mode = 2
+theme = ExtResource("16_hstxw")
+text = "Join Room"
+horizontal_alignment = 1
+
+[node name="RoomNameLabel" type="Label" parent="MainPanel/OnlineJoinVBox" unique_id=344462133]
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+horizontal_alignment = 1
+
+[node name="PasswordRow" type="HBoxContainer" parent="MainPanel/OnlineJoinVBox" unique_id=236365858]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="Label" type="Label" parent="MainPanel/OnlineJoinVBox/PasswordRow" unique_id=1674883987]
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+text = "Password"
+
+[node name="PasswordInput" type="LineEdit" parent="MainPanel/OnlineJoinVBox/PasswordRow" unique_id=535059860]
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("25_3wgol")
+placeholder_text = "Room password"
+max_length = 64
+secret = true
+
+[node name="StatusLabel" type="Label" parent="MainPanel/OnlineJoinVBox" unique_id=1849027401]
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+theme_override_colors/font_color = Color(0.87, 0, 0.45, 1)
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="JoinConfirmBtn" type="Button" parent="MainPanel/OnlineJoinVBox" unique_id=1573836379]
+layout_mode = 2
+theme = ExtResource("12_flqon")
+text = "Join"
+
+[node name="BackBtn" type="Button" parent="MainPanel/OnlineJoinVBox" unique_id=1294548547]
+layout_mode = 2
+theme = ExtResource("12_flqon")
+text = "Back"
+
+[node name="OnlineRoomWaitVBox" type="VBoxContainer" parent="MainPanel" unique_id=1488675419]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 18
+
+[node name="TitleLabel" type="Label" parent="MainPanel/OnlineRoomWaitVBox" unique_id=64804639]
+layout_mode = 2
+theme = ExtResource("16_hstxw")
+text = "Online — Room"
+horizontal_alignment = 1
+
+[node name="RoomTitle" type="Label" parent="MainPanel/OnlineRoomWaitVBox" unique_id=63214255]
+layout_mode = 2
+theme = ExtResource("16_hstxw")
+horizontal_alignment = 1
+
+[node name="WhiteLabel" type="Label" parent="MainPanel/OnlineRoomWaitVBox" unique_id=294238222]
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+text = "White: (waiting...)"
+
+[node name="BlackLabel" type="Label" parent="MainPanel/OnlineRoomWaitVBox" unique_id=23967232]
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+text = "Black: (waiting...)"
+
+[node name="InfoLabel" type="Label" parent="MainPanel/OnlineRoomWaitVBox" unique_id=1682146276]
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="StatusLabel" type="Label" parent="MainPanel/OnlineRoomWaitVBox" unique_id=1034125899]
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="LeaveBtn" type="Button" parent="MainPanel/OnlineRoomWaitVBox" unique_id=263218362]
+layout_mode = 2
+theme = ExtResource("12_flqon")
+text = "Leave room"
 
 [node name="Panel" type="Panel" parent="." unique_id=1354729672]
 layout_mode = 1

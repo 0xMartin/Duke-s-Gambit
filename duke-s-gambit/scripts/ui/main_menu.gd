@@ -165,9 +165,6 @@ func _show_panel(panel: Control) -> void:
 func _setup_online_menu() -> void:
 	_online_menu = _ONLINE_MENU_SCRIPT.new()
 	_online_menu.setup(self)
-	var online_btn := $MainPanel/MainVBox.get_node_or_null("OnlineBtn") as Button
-	if online_btn != null:
-		online_btn.pressed.connect(_play_menu_click)
 
 func show_main_panel() -> void:
 	_show_panel(_main_menu_panel)
@@ -560,10 +557,17 @@ func _on_sfx_vol_changed(value: float) -> void:
 func _connect_button_sounds() -> void:
 	for btn_path: String in [
 		"MainPanel/MainVBox/PvPBtn", "MainPanel/MainVBox/PvAIBtn",
+		"MainPanel/MainVBox/OnlineBtn",
 		"MainPanel/MainVBox/StatsBtn", "MainPanel/MainVBox/SettingsBtn", "MainPanel/MainVBox/QuitBtn",
 		"MainPanel/PvPVBox/StartBtn", "MainPanel/PvPVBox/BackBtn",
 		"MainPanel/PvAIVBox/StartBtn", "MainPanel/PvAIVBox/BackBtn",
 		"MainPanel/SettingsVBox/BackBtn", "MainPanel/StatsVBox/BackBtn",
+		"MainPanel/OnlineConnectVBox/ConnectBtn", "MainPanel/OnlineConnectVBox/BackBtn",
+		"MainPanel/OnlineLobbyVBox/ActionsRow/RefreshBtn",
+		"MainPanel/OnlineLobbyVBox/ActionsRow/CreateBtn", "MainPanel/OnlineLobbyVBox/BackBtn",
+		"MainPanel/OnlineCreateRoomVBox/CreateConfirmBtn", "MainPanel/OnlineCreateRoomVBox/BackBtn",
+		"MainPanel/OnlineJoinVBox/JoinConfirmBtn", "MainPanel/OnlineJoinVBox/BackBtn",
+		"MainPanel/OnlineRoomWaitVBox/LeaveBtn",
 	]:
 		var btn := get_node_or_null(btn_path) as Button
 		if btn:
