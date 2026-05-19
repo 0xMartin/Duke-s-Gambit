@@ -152,50 +152,62 @@ grow_vertical = 2
 theme = ExtResource("9_5dd4i")
 metadata/_edit_use_anchors_ = true
 
-[node name="MainVBox" type="VBoxContainer" parent="MainPanel" unique_id=1054197032]
-visible = false
+[node name="MainVBox" type="GridContainer" parent="MainPanel" unique_id=1054197032]
 layout_mode = 2
-size_flags_horizontal = 0
-theme_override_constants/separation = 20
-alignment = 1
+size_flags_vertical = 4
+theme_override_constants/h_separation = 25
+theme_override_constants/v_separation = 20
+columns = 2
 
 [node name="PvPBtn" type="Button" parent="MainPanel/MainVBox" unique_id=1470240247]
+custom_minimum_size = Vector2(0, 150)
 layout_mode = 2
+size_flags_horizontal = 3
 theme = ExtResource("10_lgwnu")
 text = " Player vs Player"
 icon = ExtResource("12_1ajci")
 alignment = 0
 
 [node name="PvAIBtn" type="Button" parent="MainPanel/MainVBox" unique_id=1442215935]
+custom_minimum_size = Vector2(0, 150)
 layout_mode = 2
+size_flags_horizontal = 3
 theme = ExtResource("10_lgwnu")
 text = " Player vs AI"
 icon = ExtResource("11_rcqid")
 alignment = 0
 
 [node name="OnlineBtn" type="Button" parent="MainPanel/MainVBox" unique_id=1174281154]
+custom_minimum_size = Vector2(0, 150)
 layout_mode = 2
+size_flags_horizontal = 3
 theme = ExtResource("10_lgwnu")
 text = " Online"
 icon = ExtResource("13_qywvv")
 alignment = 0
 
 [node name="StatsBtn" type="Button" parent="MainPanel/MainVBox" unique_id=1952988221]
+custom_minimum_size = Vector2(0, 150)
 layout_mode = 2
+size_flags_horizontal = 3
 theme = ExtResource("10_lgwnu")
 text = " Stats"
 icon = ExtResource("14_j7ex8")
 alignment = 0
 
 [node name="SettingsBtn" type="Button" parent="MainPanel/MainVBox" unique_id=556680951]
+custom_minimum_size = Vector2(0, 150)
 layout_mode = 2
+size_flags_horizontal = 3
 theme = ExtResource("10_lgwnu")
 text = " Settings"
 icon = ExtResource("14_a8gd2")
 alignment = 0
 
 [node name="QuitBtn" type="Button" parent="MainPanel/MainVBox" unique_id=204160667]
+custom_minimum_size = Vector2(0, 150)
 layout_mode = 2
+size_flags_horizontal = 3
 theme = ExtResource("10_lgwnu")
 text = " Quit"
 icon = ExtResource("15_a8gd2")
