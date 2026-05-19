@@ -151,10 +151,9 @@ static bool see_ge(SearchState &state, const Move &mv, int threshold) {
 
 static void order_moves_with_context(const SearchState &state, MoveList &moves, const SearchContext &ctx, int depth, int prev_from = -1, int prev_to = -1) {
 	int killer_from = -1, killer_to = -1;
-	auto kit = ctx.killer_moves.find(depth);
-	if (kit != ctx.killer_moves.end()) {
-		killer_from = kit->second.from;
-		killer_to = kit->second.to;
+	if (depth >= 0 && depth < 64) {
+		killer_from = ctx.killer_moves[depth].from;
+		killer_to   = ctx.killer_moves[depth].to;
 	}
 	Move counter;
 	if (prev_from >= 0 && prev_from < 64 && prev_to >= 0 && prev_to < 64) {
@@ -326,7 +325,7 @@ static int minimax(SearchState &state, int depth, int alpha, int beta, SearchCon
 		if (alpha >= beta) {
 			// Beta cutoff: update killer and history for quiet moves
 			if (!mv.is_capture()) {
-				ctx.killer_moves[depth] = mv;
+				if (depth >= 0 && depth < 64) ctx.killer_moves[depth] = mv;
 				ctx.history[mv.from][mv.to] += depth * depth;
 				if (prev_from >= 0 && prev_from < 64 && prev_to >= 0 && prev_to < 64) {
 					ctx.counter_moves[prev_from][prev_to] = mv;

@@ -4,6 +4,7 @@
 #include "ai_constants.h"
 
 #include <algorithm>
+#include <bit>
 #include <godot_cpp/classes/time.hpp>
 
 namespace godot {
@@ -98,19 +99,21 @@ static int evaluate_pawn_structure(const SearchState &state) {
 	int score = 0;
 	const int wp_code = PIECE_PAWN;
 	const int bp_code = PIECE_PAWN + 6;
-	
-	// Scan white pawns
-	for (int idx = 0; idx < 64; ++idx) {
-		if (state.board[idx] != wp_code) continue;
-		
+
+	// Scan white pawns via bitboard
+	uint64_t bb = state.piece_bb[PIECE_PAWN];
+	while (bb) {
+		const int idx = std::countr_zero(bb);
+		bb &= bb - 1;
+
 		const int col = SearchState::idx_col(idx);
 		const int row = SearchState::idx_row(idx);
-		
+
 		// Passed pawn
 		if (is_passed_pawn(idx, WHITE, state)) {
-			score += passed_pawn_bonus(idx, WHITE) * 2;  // 2x weight for passed pawns
+			score += passed_pawn_bonus(idx, WHITE) * 2;
 		}
-		
+
 		// Doubled pawns (penalty)
 		int doubled_count = 0;
 		for (int r = row + 1; r <= 7; ++r) {
@@ -118,9 +121,9 @@ static int evaluate_pawn_structure(const SearchState &state) {
 				doubled_count++;
 			}
 		}
-		if (doubled_count > 0) score -= 20 * doubled_count;  // -20 per doubled pawn
-		
-		// Isolated pawn (no friendly pawn on adjacent files)
+		if (doubled_count > 0) score -= 20 * doubled_count;
+
+		// Isolated pawn
 		bool isolated = true;
 		for (int c = col - 1; c <= col + 1; c += 2) {
 			if (c >= 0 && c <= 7) {
@@ -133,21 +136,23 @@ static int evaluate_pawn_structure(const SearchState &state) {
 			}
 			if (!isolated) break;
 		}
-		if (isolated) score -= 15;  // Isolated pawn penalty
+		if (isolated) score -= 15;
 	}
-	
-	// Scan black pawns (symmetrical)
-	for (int idx = 0; idx < 64; ++idx) {
-		if (state.board[idx] != bp_code) continue;
-		
+
+	// Scan black pawns via bitboard
+	bb = state.piece_bb[PIECE_PAWN + 6];
+	while (bb) {
+		const int idx = std::countr_zero(bb);
+		bb &= bb - 1;
+
 		const int col = SearchState::idx_col(idx);
 		const int row = SearchState::idx_row(idx);
-		
+
 		// Passed pawn
 		if (is_passed_pawn(idx, BLACK, state)) {
 			score -= passed_pawn_bonus(idx, BLACK) * 2;
 		}
-		
+
 		// Doubled pawns (penalty)
 		int doubled_count = 0;
 		for (int r = row - 1; r >= 0; --r) {
@@ -156,7 +161,7 @@ static int evaluate_pawn_structure(const SearchState &state) {
 			}
 		}
 		if (doubled_count > 0) score += 20 * doubled_count;
-		
+
 		// Isolated pawn
 		bool isolated = true;
 		for (int c = col - 1; c <= col + 1; c += 2) {
@@ -172,7 +177,7 @@ static int evaluate_pawn_structure(const SearchState &state) {
 		}
 		if (isolated) score += 15;
 	}
-	
+
 	return score;
 }
 
@@ -239,19 +244,21 @@ static int evaluate_piece_bonuses(const SearchState &state) {
 	const int material = count_material(state);
 	if (material > 3000) {  // Early/middlegame
 		for (int idx = 0; idx < 64; ++idx) {
+			const int col = SearchState::idx_col(idx);
 			const int row = SearchState::idx_row(idx);
 			// White queen advanced too much without support
 			if (state.board[idx] == PIECE_QUEEN && row >= 5) {
-				// Check if queen is relatively undefended
 				int defenders = 0;
-				for (int jdx = 0; jdx < 64; ++jdx) {
-					if (jdx == idx) continue;
-					const int code = state.board[jdx];
-					if (code != 0 && SearchState::piece_color_from_code(code) == WHITE) {
-						// Simple: count nearby pieces as defenders
-						const int dc = std::abs(SearchState::idx_col(jdx) - SearchState::idx_col(idx));
-						const int dr = std::abs(SearchState::idx_row(jdx) - SearchState::idx_row(idx));
-						if (dc <= 2 && dr <= 2) defenders++;
+				for (int dr = -2; dr <= 2; ++dr) {
+					for (int dc = -2; dc <= 2; ++dc) {
+						if (dr == 0 && dc == 0) continue;
+						const int c = col + dc;
+						const int r = row + dr;
+						if (c < 0 || c > 7 || r < 0 || r > 7) continue;
+						const int code = state.board[SearchState::sq_to_index(c, r)];
+						if (code != 0 && SearchState::piece_color_from_code(code) == WHITE) {
+							defenders++;
+						}
 					}
 				}
 				if (defenders <= 2) score -= 10;
@@ -259,13 +266,16 @@ static int evaluate_piece_bonuses(const SearchState &state) {
 			// Black queen symmetrical
 			if (state.board[idx] == PIECE_QUEEN + 6 && row <= 2) {
 				int defenders = 0;
-				for (int jdx = 0; jdx < 64; ++jdx) {
-					if (jdx == idx) continue;
-					const int code = state.board[jdx];
-					if (code != 0 && SearchState::piece_color_from_code(code) == BLACK) {
-						const int dc = std::abs(SearchState::idx_col(jdx) - SearchState::idx_col(idx));
-						const int dr = std::abs(SearchState::idx_row(jdx) - SearchState::idx_row(idx));
-						if (dc <= 2 && dr <= 2) defenders++;
+				for (int dr = -2; dr <= 2; ++dr) {
+					for (int dc = -2; dc <= 2; ++dc) {
+						if (dr == 0 && dc == 0) continue;
+						const int c = col + dc;
+						const int r = row + dr;
+						if (c < 0 || c > 7 || r < 0 || r > 7) continue;
+						const int code = state.board[SearchState::sq_to_index(c, r)];
+						if (code != 0 && SearchState::piece_color_from_code(code) == BLACK) {
+							defenders++;
+						}
 					}
 				}
 				if (defenders <= 2) score += 10;

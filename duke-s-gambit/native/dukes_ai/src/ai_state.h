@@ -6,7 +6,6 @@
 #include <array>
 #include <cstdint>
 #include <string>
-#include <unordered_map>
 
 namespace godot {
 namespace dukes_ai {
@@ -100,7 +99,7 @@ struct SearchState {
 };
 
 struct SearchContext {
-	std::unordered_map<int, Move> killer_moves;
+	std::array<Move, 64> killer_moves;
 	Move counter_moves[64][64]; // counter move for previous (from,to)
 	int history[64][64]; // history[from][to] for quiet move ordering
 	uint64_t deadline_ms = 0;
