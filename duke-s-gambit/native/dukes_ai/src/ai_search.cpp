@@ -320,6 +320,16 @@ static int negamax(SearchState &s, SearchContext &ctx,
 		}
 	}
 
+	// ---- Reverse futility pruning (static null-move pruning) ----
+	// Only at shallow non-PV, non-check nodes far from mate scores.
+	if (!is_pv && !in_check && depth <= 3
+			&& beta < MATE_IN_MAX && beta > -MATE_IN_MAX) {
+		int static_eval = evaluate(s);
+		if (static_eval - 100 * depth >= beta) {
+			return static_eval;
+		}
+	}
+
 	// ---- Null move pruning ----
 	if (!is_pv && !in_check && allow_null && depth >= 3
 			&& has_non_pawn_material(s, s.side_to_move)
@@ -348,9 +358,17 @@ static int negamax(SearchState &s, SearchContext &ctx,
 	uint8_t flag = TT_UPPER;
 	const int orig_alpha = alpha;
 
+	// Track quiet moves that failed to cut so we can apply a history malus on a
+	// later cutoff. Bounded; extras are not penalised (rare and harmless).
+	Move quiets_tried[64];
+	int  quiets_tried_count = 0;
+
 	for (int i = 0; i < list.count; ++i) {
 		pick_next_move(list, i);
 		Move m = list.moves[i];
+
+		const bool is_quiet =
+				!is_capture_move(s, m) && m.flag() != MF_PROMOTION;
 
 		s.make_move(m);
 		if (s.in_check(1 - s.side_to_move)) {
@@ -358,16 +376,32 @@ static int negamax(SearchState &s, SearchContext &ctx,
 			continue;
 		}
 		++legal_count;
+		const bool gives_check = s.in_check();
 
 		int score;
 		if (legal_count == 1) {
 			// PV move: full window.
 			score = -negamax(s, ctx, -beta, -alpha, depth - 1, ply + 1, true);
 		} else {
-			// Zero-window PVS scout.
-			score = -negamax(s, ctx, -alpha - 1, -alpha, depth - 1, ply + 1, true);
+			// Late Move Reductions for late quiet moves at non-shallow depths.
+			int reduction = 0;
+			if (depth >= 3 && legal_count >= 4 && is_quiet
+					&& !in_check && !gives_check) {
+				reduction = 1 + (depth >= 6 ? 1 : 0);
+				if (reduction >= depth - 1) reduction = depth - 2;
+			}
+
+			// Zero-window scout, possibly reduced.
+			score = -negamax(s, ctx, -alpha - 1, -alpha,
+					depth - 1 - reduction, ply + 1, true);
+
+			// If the reduced search beat alpha, re-search at full depth.
+			if (!ctx.stop && reduction > 0 && score > alpha) {
+				score = -negamax(s, ctx, -alpha - 1, -alpha,
+						depth - 1, ply + 1, true);
+			}
+			// PVS: open window if we landed inside (alpha, beta).
 			if (!ctx.stop && score > alpha && score < beta) {
-				// Re-search with full window.
 				score = -negamax(s, ctx, -beta, -alpha, depth - 1, ply + 1, true);
 			}
 		}
@@ -384,15 +418,21 @@ static int negamax(SearchState &s, SearchContext &ctx,
 			}
 			if (alpha >= beta) {
 				// Beta cutoff. Update killers and history for quiet moves.
-				if (!is_capture_move(s, m) && m.flag() != MF_PROMOTION) {
+				if (is_quiet) {
 					if (ply < MAX_PLY) {
 						if (ctx.killers[ply][0] != m) {
 							ctx.killers[ply][1] = ctx.killers[ply][0];
 							ctx.killers[ply][0] = m;
 						}
 					}
+					const int bonus = depth * depth;
 					int &h = ctx.history[s.side_to_move][m.from()][m.to()];
-					h += depth * depth;
+					h += bonus;
+					// History malus for earlier quiet moves that didn't cut.
+					for (int q = 0; q < quiets_tried_count; ++q) {
+						Move qm = quiets_tried[q];
+						ctx.history[s.side_to_move][qm.from()][qm.to()] -= bonus;
+					}
 					if (h > 200000) {
 						// Periodic decay to keep magnitudes manageable.
 						for (int c = 0; c < NUM_COLORS; ++c) {
@@ -407,6 +447,10 @@ static int negamax(SearchState &s, SearchContext &ctx,
 				flag = TT_LOWER;
 				break;
 			}
+		}
+
+		if (is_quiet && quiets_tried_count < 64) {
+			quiets_tried[quiets_tried_count++] = m;
 		}
 	}
 
@@ -455,20 +499,64 @@ static void search_root(SearchState &state, SearchContext &ctx,
 
 	if (max_depth <= 0) max_depth = MAX_PLY - 1;
 
+	int prev_score = 0;
+
 	for (int depth = 1; depth <= max_depth; ++depth) {
-		ctx.best_move_root  = MOVE_NONE;
-		ctx.best_score_root = -INF_SCORE;
+		int alpha = -INF_SCORE;
+		int beta  =  INF_SCORE;
+		int delta = 25;
 
-		int score = negamax(state, ctx, -INF_SCORE, INF_SCORE,
-				depth, 0, true);
+		// Aspiration window once we have a stable prior score.
+		if (depth >= 4) {
+			alpha = prev_score - delta;
+			beta  = prev_score + delta;
+		}
 
-		if (ctx.stop) {
+		int score = 0;
+		Move iter_best = MOVE_NONE;
+
+		while (true) {
+			ctx.best_move_root  = MOVE_NONE;
+			ctx.best_score_root = -INF_SCORE;
+
+			score = negamax(state, ctx, alpha, beta, depth, 0, true);
+
+			if (ctx.stop) break;
+
+			if (score <= alpha) {
+				// Fail low: widen alpha, keep beta.
+				beta  = (alpha + beta) / 2;
+				alpha = score - delta;
+				delta += delta / 2;
+				if (delta > 600 || alpha <= -MATE_IN_MAX) {
+					alpha = -INF_SCORE;
+					beta  =  INF_SCORE;
+				}
+				continue;
+			}
+			if (score >= beta) {
+				// Fail high: widen beta. Capture the move; it's safe.
+				if (!ctx.best_move_root.is_null()) iter_best = ctx.best_move_root;
+				beta += delta;
+				delta += delta / 2;
+				if (delta > 600 || beta >= MATE_IN_MAX) {
+					alpha = -INF_SCORE;
+					beta  =  INF_SCORE;
+				}
+				continue;
+			}
+
+			// Score is within the window.
+			if (!ctx.best_move_root.is_null()) iter_best = ctx.best_move_root;
 			break;
 		}
 
-		if (!ctx.best_move_root.is_null()) {
-			out_best  = ctx.best_move_root;
+		if (ctx.stop) break;
+
+		if (!iter_best.is_null()) {
+			out_best  = iter_best;
 			out_score = score;
+			prev_score = score;
 			ctx.completed_depth = depth;
 		}
 
