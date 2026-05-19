@@ -152,7 +152,6 @@ theme = ExtResource("9_5dd4i")
 metadata/_edit_use_anchors_ = true
 
 [node name="MainVBox" type="GridContainer" parent="MainPanel" unique_id=1054197032]
-visible = false
 layout_mode = 2
 size_flags_vertical = 4
 theme_override_constants/h_separation = 25
@@ -610,6 +609,7 @@ theme = ExtResource("12_flqon")
 text = "Back"
 
 [node name="OnlineConnectVBox" type="VBoxContainer" parent="MainPanel" unique_id=2136435936]
+visible = false
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
