@@ -45,17 +45,8 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y build-essential pkg-config
 
       - name: Build dukes_ai_native
-        run: |
-          cd duke-s-gambit/native/dukes_ai
-          if [ "${{ matrix.platform }}" = "windows" ]; then
-            scons platform=windows target=template_release
-          elif [ "${{ matrix.platform }}" = "macos" ]; then
-            scons platform=macos target=template_release
-          elif [ "${{ matrix.platform }}" = "linux" ]; then
-            scons platform=linux target=template_release
-          elif [ "${{ matrix.platform }}" = "android" ]; then
-            scons platform=android target=template_release
-          fi
+        working-directory: duke-s-gambit/native/dukes_ai
+        run: scons platform=${{ matrix.platform }} target=template_release
 
       - name: Upload dukes_ai_native artifact
         uses: actions/upload-artifact@v4
