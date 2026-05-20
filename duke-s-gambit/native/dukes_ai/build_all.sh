@@ -50,12 +50,22 @@ fi
 # ── Android ───────────────────────────────────────────────────────────────
 NDK="${ANDROID_NDK_ROOT:-${ANDROID_NDK_HOME:-}}"
 if [ -z "$NDK" ]; then
-    # Try common SDK paths
-    for candidate in \
-        "$HOME/Library/Android/sdk/ndk/28.1.13356709" \
-        "$HOME/Library/Android/sdk/ndk-bundle" \
-        "/usr/local/lib/android/sdk/ndk/28.1.13356709"; do
-        if [ -d "$candidate" ]; then NDK="$candidate"; break; fi
+    # Scan common SDK locations for any installed NDK version
+    for sdk_base in \
+        "$HOME/Library/Android/sdk" \
+        "$HOME/Android/Sdk" \
+        "/usr/local/lib/android/sdk"; do
+        ndk_dir="$sdk_base/ndk"
+        if [ -d "$ndk_dir" ]; then
+            # Pick the latest version (last alphabetically)
+            NDK=$(ls -d "$ndk_dir"/*/ 2>/dev/null | sort -V | tail -1)
+            [ -n "$NDK" ] && break
+        fi
+        # Fallback: ndk-bundle (older Android Studio)
+        if [ -d "$sdk_base/ndk-bundle" ]; then
+            NDK="$sdk_base/ndk-bundle"
+            break
+        fi
     done
 fi
 
