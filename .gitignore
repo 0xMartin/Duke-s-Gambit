@@ -48,3 +48,4 @@ duke-s-gambit/native/dukes_ai/**/*.dll
 duke-s-gambit/native/dukes_ai/build/
 
 export/*
+.DS_Store
