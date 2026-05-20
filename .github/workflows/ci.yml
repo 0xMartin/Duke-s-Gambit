@@ -33,9 +33,13 @@ jobs:
           unzip -q Godot_v4.6.2-stable_export_templates.tpz -d /tmp/godot_templates
           mv /tmp/godot_templates/templates/* ~/.local/share/godot/export_templates/4.6.2.stable/
 
-      - name: Export for all platforms
+      - name: Import project assets
         run: |
           mkdir -p duke-s-gambit/.godot/editor duke-s-gambit/.godot/imported
+          godot --headless --path duke-s-gambit --editor --quit || true
+
+      - name: Export for all platforms
+        run: |
           mkdir -p export
           godot --headless --path duke-s-gambit --export-release "Windows Desktop" ../export/game-windows.exe
           godot --headless --path duke-s-gambit --export-release "Linux/X11" ../export/game-linux.x86_64
