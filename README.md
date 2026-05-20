@@ -48,7 +48,7 @@ When a piece is captured, it doesn't just disappear. Pieces engage in a brief du
 Duke's Gambit includes a **native C++ chess AI** built as a [GDExtension](dukes_ai/) — it runs directly inside Godot with no external process or network call. The engine is a from-scratch implementation: bitboard move generation, iterative-deepening negamax search, and a tapered PeSTO evaluation function.
 
 > [!NOTE]
-> The AI source lives in [`dukes_ai/`](dukes_ai/). It is a standalone C++ project compiled with SCons and loaded by Godot at runtime via the GDExtension API.
+> The AI source lives in [`dukes_ai/`](duke-s-gambit/native/dukes_ai/). It is a standalone C++ project compiled with SCons and loaded by Godot at runtime via the GDExtension API.
 
 ### Difficulty levels
 

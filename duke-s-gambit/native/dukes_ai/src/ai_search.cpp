@@ -37,6 +37,9 @@ static constexpr int ORDER_PROMO    =   900'000;
 static constexpr int ORDER_CAPTURE  =   500'000;
 static constexpr int ORDER_KILLER0  =   400'000;
 static constexpr int ORDER_KILLER1  =   350'000;
+// Castling sits below killers but well above the history heuristic so it is
+// always searched early enough to escape LMR and early beta cutoffs.
+static constexpr int ORDER_CASTLING =   300'000;
 
 // ===========================================================================
 // Transposition table (flat vector, lockless writes/reads).
@@ -202,6 +205,7 @@ static int score_move(const SearchState &s, Move m, Move tt_move,
 		if (m == ctx.killers[ply][0]) return ORDER_KILLER0;
 		if (m == ctx.killers[ply][1]) return ORDER_KILLER1;
 	}
+	if (fl == MF_CASTLING) return ORDER_CASTLING;
 	return ctx.history[s.side_to_move][m.from()][m.to()];
 }
 

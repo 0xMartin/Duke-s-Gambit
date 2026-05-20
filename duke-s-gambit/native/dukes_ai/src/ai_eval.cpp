@@ -231,6 +231,27 @@ int evaluate(const SearchState &s) {
 	// Linear interpolation by phase: full MG at phase==24, full EG at phase==0.
 	int phase = game_phase(s);
 	int score = (mg_score * phase + eg_score * (MAX_PHASE - phase)) / MAX_PHASE;
+
+	// ---- King safety / castling bonus (MG only) ----------------------------
+	// Reward an already-castled king and, to a lesser extent, retained castling
+	// rights so the engine actually spends a tempo on castling. Scaled by phase
+	// so the term fades to 0 in the endgame where the king belongs in the centre.
+	constexpr int CASTLED_BONUS = 40;
+	constexpr int RIGHTS_BONUS  = 15;
+	auto king_safety = [&](int c) -> int {
+		int ksq = std::countr_zero(s.pieces[c][KING]);
+		if (c == WHITE) {
+			if (ksq == G1 || ksq == C1) return CASTLED_BONUS;
+			if (s.castling_rights & CR_WHITE) return RIGHTS_BONUS;
+		} else {
+			if (ksq == G8 || ksq == C8) return CASTLED_BONUS;
+			if (s.castling_rights & CR_BLACK) return RIGHTS_BONUS;
+		}
+		return 0;
+	};
+	int ks_diff = king_safety(us) - king_safety(them);
+	score += (ks_diff * phase) / MAX_PHASE;
+
 	return score;
 }
 
