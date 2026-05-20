@@ -10,58 +10,12 @@ on:
   pull_request:
     branches: [ main ]
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
-  build-matrix:
-    name: Build dukes_ai_native (${{ matrix.platform }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        platform: [windows, macos, linux, android]
-        include:
-          - platform: windows
-            os: windows-latest
-          - platform: macos
-            os: macos-latest
-          - platform: linux
-            os: ubuntu-latest
-          - platform: android
-            os: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.x'
-
-      - name: Install SCons
-        run: pip install scons
-
-      - name: Install dependencies (Linux/Android)
-        if: matrix.platform == 'linux' || matrix.platform == 'android'
-        run: sudo apt-get update && sudo apt-get install -y build-essential pkg-config
-
-      - name: Install Android NDK
-        if: matrix.platform == 'android'
-        run: echo "y" | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager "ndk;28.1.13356709"
-
-      - name: Build dukes_ai_native
-        working-directory: duke-s-gambit/native/dukes_ai
-        run: scons platform=${{ matrix.platform }} target=template_release
-
-      - name: Upload dukes_ai_native artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: dukes_ai_native-${{ matrix.platform }}
-          path: duke-s-gambit/native/dukes_ai/bin/*
-          retention-days: 14
-
   export-godot:
     name: Export Godot Project
-    needs: build-matrix
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -69,16 +23,15 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Download all dukes_ai_native artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: duke-s-gambit/native/dukes_ai/bin/
-
       - name: Set up Godot
-        uses: firebelley/setup-godot@v2
-        with:
-          version: 4.2.2
-          export-templates: true
+        run: |
+          wget -q https://github.com/godotengine/godot/releases/download/4.2.2-stable/Godot_v4.2.2-stable_linux.x86_64.zip
+          unzip -q Godot_v4.2.2-stable_linux.x86_64.zip
+          sudo mv Godot_v4.2.2-stable_linux.x86_64 /usr/local/bin/godot
+          wget -q https://github.com/godotengine/godot/releases/download/4.2.2-stable/Godot_v4.2.2-stable_export_templates.tpz
+          mkdir -p ~/.local/share/godot/export_templates/4.2.2.stable
+          unzip -q Godot_v4.2.2-stable_export_templates.tpz -d /tmp/godot_templates
+          mv /tmp/godot_templates/templates/* ~/.local/share/godot/export_templates/4.2.2.stable/
 
       - name: Export for all platforms
         run: |
