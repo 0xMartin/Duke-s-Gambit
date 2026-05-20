@@ -1,0 +1,947 @@
+[gd_scene format=3 uid="uid://mainmenu"]
+
+[ext_resource type="Script" uid="uid://s16ti15dmnl1" path="res://scripts/ui/main_menu.gd" id="1"]
+[ext_resource type="PackedScene" uid="uid://c4hw36xh8k7cs" path="res://scenes/ui/nickname_input.tscn" id="2_nick"]
+[ext_resource type="Texture2D" uid="uid://con2rpsbu3i2l" path="res://assets/textures/ui/duke.png" id="3_bqqt6"]
+[ext_resource type="FontFile" uid="uid://bn1f5cgy4rauy" path="res://assets/fonts/Montserrat-Regular.ttf" id="3_oa1go"]
+[ext_resource type="FontFile" uid="uid://b5wwdlpmaoo1t" path="res://assets/fonts/Montserrat-Bold.ttf" id="3_wu84c"]
+[ext_resource type="Texture2D" uid="uid://b32gsnl100kls" path="res://assets/textures/ui/circuit.png" id="4_8ln24"]
+[ext_resource type="Texture2D" uid="uid://mcvy52eqkp8l" path="res://assets/textures/ui/pieces-grid.png" id="5_rtw2f"]
+[ext_resource type="Shader" uid="uid://c86ns8cq6mtk5" path="res://shaders/main_menu_bg_scroll.gdshader" id="6_bgscroll"]
+[ext_resource type="Shader" uid="uid://cnl3nhpantuow" path="res://shaders/main_menu_icon_float.gdshader" id="7_iconfloat"]
+[ext_resource type="Theme" uid="uid://j3mrolm0j70w" path="res://themes/transparent_panel.tres" id="9_5dd4i"]
+[ext_resource type="Theme" uid="uid://njtiunbj4mnm" path="res://themes/menu_button.tres" id="10_lgwnu"]
+[ext_resource type="Texture2D" uid="uid://creg7doi502rt" path="res://assets/textures/pieces/white_queen.svg" id="11_rcqid"]
+[ext_resource type="Texture2D" uid="uid://ba8u5a2t6vwxd" path="res://assets/textures/pieces/white_king.svg" id="12_1ajci"]
+[ext_resource type="Theme" uid="uid://caxfi4yovmntm" path="res://themes/button.tres" id="12_flqon"]
+[ext_resource type="Texture2D" uid="uid://d1dl1lcyflqnp" path="res://assets/textures/pieces/white_rook.svg" id="13_qywvv"]
+[ext_resource type="Texture2D" uid="uid://uvf7mxoq5q70" path="res://assets/textures/pieces/white_knight.svg" id="14_a8gd2"]
+[ext_resource type="Texture2D" uid="uid://dpa8nghhm2jva" path="res://assets/textures/pieces/white_bishop.svg" id="14_j7ex8"]
+[ext_resource type="Texture2D" uid="uid://ih0bn2if7eyb" path="res://assets/textures/pieces/white_pawn.svg" id="15_a8gd2"]
+[ext_resource type="Theme" uid="uid://bmjxmhngpsc2k" path="res://themes/menu_label.tres" id="16_a8gd2"]
+[ext_resource type="Theme" uid="uid://2s5uoyj2dryf" path="res://themes/menu_section_title.tres" id="16_hstxw"]
+[ext_resource type="Theme" uid="uid://b5h30lei0eemm" path="res://themes/option_button.tres" id="19_8egab"]
+[ext_resource type="Theme" uid="uid://bywhcekfwqmcu" path="res://themes/table.tres" id="21_1dfpl"]
+[ext_resource type="Theme" uid="uid://docidxqt3s1pb" path="res://themes/slider.tres" id="21_gw5y6"]
+[ext_resource type="Theme" uid="uid://btb433dt14txa" path="res://themes/check_button.tres" id="22_svtp6"]
+[ext_resource type="Theme" uid="uid://4dx2mbasujkd" path="res://themes/menu_line_edit.tres" id="25_3wgol"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_icon_float"]
+shader = ExtResource("7_iconfloat")
+shader_parameter/float_amplitude = 10.0
+shader_parameter/float_speed = 2.4
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_bg_scroll"]
+shader = ExtResource("6_bgscroll")
+shader_parameter/scroll_speed = Vector2(-0.015, 0.0225)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1dfpl"]
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+bg_color = Color(1, 1, 1, 0.28627452)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+corner_detail = 5
+
+[node name="MainMenu" type="Control" unique_id=969542434]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1")
+
+[node name="DukeIcon" type="TextureRect" parent="." unique_id=429281023]
+texture_filter = 4
+material = SubResource("ShaderMaterial_icon_float")
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 0.4659584
+anchor_bottom = 1.0
+offset_right = -0.64001465
+offset_bottom = -0.23999023
+texture = ExtResource("3_bqqt6")
+expand_mode = 1
+stretch_mode = 5
+metadata/_edit_use_anchors_ = true
+metadata/_edit_lock_ = true
+
+[node name="Version" type="Label" parent="." unique_id=435606877]
+z_index = 10
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.020833334
+anchor_top = 0.8715926
+anchor_right = 0.41200003
+anchor_bottom = 0.99981487
+offset_top = -0.32000732
+offset_right = -0.040039063
+offset_bottom = 0.2000122
+theme_override_colors/font_color = Color(0.5650548, 0.91723067, 0.9613783, 1)
+theme_override_constants/outline_size = 10
+theme_override_fonts/font = ExtResource("3_oa1go")
+theme_override_font_sizes/font_size = 22
+text = "Created by: 0xM4R71N  |  Version: 1.0.0"
+vertical_alignment = 1
+metadata/_edit_use_anchors_ = true
+
+[node name="Title" type="Label" parent="." unique_id=1194487490]
+z_index = 10
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.47849998
+anchor_top = 0.10029633
+anchor_right = 0.9547917
+anchor_bottom = 0.29425928
+offset_left = 0.2800293
+offset_top = -0.32003784
+offset_right = -0.20007324
+offset_bottom = 0.19998169
+theme_override_colors/font_color = Color(0.5650548, 0.91723067, 0.9613783, 1)
+theme_override_constants/outline_size = 41
+theme_override_fonts/font = ExtResource("3_wu84c")
+theme_override_font_sizes/font_size = 110
+text = "Duke's Gambit"
+vertical_alignment = 1
+metadata/_edit_use_anchors_ = true
+
+[node name="Circuit" type="TextureRect" parent="." unique_id=315268659]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.5
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_bottom = 0.040039063
+grow_horizontal = 0
+texture = ExtResource("4_8ln24")
+expand_mode = 4
+stretch_mode = 4
+metadata/_edit_use_anchors_ = true
+metadata/_edit_lock_ = true
+
+[node name="Bg" type="TextureRect" parent="." unique_id=1741113824]
+z_index = -1
+texture_filter = 4
+material = SubResource("ShaderMaterial_bg_scroll")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("5_rtw2f")
+stretch_mode = 1
+metadata/_edit_lock_ = true
+
+[node name="MainPanel" type="PanelContainer" parent="." unique_id=97883763]
+z_index = 10
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.47864583
+anchor_top = 0.29444444
+anchor_right = 0.9546875
+anchor_bottom = 0.9
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("9_5dd4i")
+metadata/_edit_use_anchors_ = true
+
+[node name="MainVBox" type="GridContainer" parent="MainPanel" unique_id=1054197032]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_constants/h_separation = 25
+theme_override_constants/v_separation = 20
+columns = 2
+
+[node name="PvPBtn" type="Button" parent="MainPanel/MainVBox" unique_id=1470240247]
+custom_minimum_size = Vector2(0, 150)
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("10_lgwnu")
+text = " Player vs Player"
+icon = ExtResource("12_1ajci")
+alignment = 0
+
+[node name="PvAIBtn" type="Button" parent="MainPanel/MainVBox" unique_id=1442215935]
+custom_minimum_size = Vector2(0, 150)
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("10_lgwnu")
+text = " Player vs AI"
+icon = ExtResource("11_rcqid")
+alignment = 0
+
+[node name="OnlineBtn" type="Button" parent="MainPanel/MainVBox" unique_id=1174281154]
+custom_minimum_size = Vector2(0, 150)
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("10_lgwnu")
+text = " Online"
+icon = ExtResource("13_qywvv")
+alignment = 0
+
+[node name="StatsBtn" type="Button" parent="MainPanel/MainVBox" unique_id=1952988221]
+custom_minimum_size = Vector2(0, 150)
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("10_lgwnu")
+text = " Stats"
+icon = ExtResource("14_j7ex8")
+alignment = 0
+
+[node name="SettingsBtn" type="Button" parent="MainPanel/MainVBox" unique_id=556680951]
+custom_minimum_size = Vector2(0, 150)
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("10_lgwnu")
+text = " Settings"
+icon = ExtResource("14_a8gd2")
+alignment = 0
+
+[node name="QuitBtn" type="Button" parent="MainPanel/MainVBox" unique_id=204160667]
+custom_minimum_size = Vector2(0, 150)
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("10_lgwnu")
+text = " Quit"
+icon = ExtResource("15_a8gd2")
+alignment = 0
+
+[node name="PvPVBox" type="VBoxContainer" parent="MainPanel" unique_id=2115630850]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 25
+
+[node name="TitleLabel" type="Label" parent="MainPanel/PvPVBox" unique_id=893447260]
+layout_mode = 2
+theme = ExtResource("16_hstxw")
+text = "Player vs Player"
+horizontal_alignment = 1
+
+[node name="P1Row" type="HBoxContainer" parent="MainPanel/PvPVBox" unique_id=811576821]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="Label" type="Label" parent="MainPanel/PvPVBox/P1Row" unique_id=1061434817]
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+text = "White player"
+
+[node name="Input" parent="MainPanel/PvPVBox/P1Row" unique_id=1478746576 instance=ExtResource("2_nick")]
+custom_minimum_size = Vector2(300, 40)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="P2Row" type="HBoxContainer" parent="MainPanel/PvPVBox" unique_id=1750407663]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="Label" type="Label" parent="MainPanel/PvPVBox/P2Row" unique_id=645351761]
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+text = "Black player"
+
+[node name="Input" parent="MainPanel/PvPVBox/P2Row" unique_id=797808769 instance=ExtResource("2_nick")]
+custom_minimum_size = Vector2(300, 40)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TimeControlRow" type="HBoxContainer" parent="MainPanel/PvPVBox" unique_id=103173449]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="Label" type="Label" parent="MainPanel/PvPVBox/TimeControlRow" unique_id=1881178311]
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+text = "Time"
+
+[node name="TimeOption" type="OptionButton" parent="MainPanel/PvPVBox/TimeControlRow" unique_id=689579397]
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("19_8egab")
+
+[node name="ValidationLabel" type="Label" parent="MainPanel/PvPVBox" unique_id=1555125030]
+visible = false
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+theme_override_colors/font_color = Color(0.87695664, 1.973361e-06, 0.4555217, 1)
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="StartBtn" type="Button" parent="MainPanel/PvPVBox" unique_id=1781759922]
+layout_mode = 2
+theme = ExtResource("12_flqon")
+text = "Start Game"
+alignment = 0
+
+[node name="BackBtn" type="Button" parent="MainPanel/PvPVBox" unique_id=633771698]
+layout_mode = 2
+theme = ExtResource("12_flqon")
+text = "Back"
+alignment = 0
+
+[node name="PvAIVBox" type="VBoxContainer" parent="MainPanel" unique_id=455168554]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 25
+
+[node name="TitleLabel" type="Label" parent="MainPanel/PvAIVBox" unique_id=1738268734]
+layout_mode = 2
+theme = ExtResource("16_hstxw")
+text = "Player vs AI"
+horizontal_alignment = 1
+
+[node name="PlayerRow" type="HBoxContainer" parent="MainPanel/PvAIVBox" unique_id=1882615930]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="Label" type="Label" parent="MainPanel/PvAIVBox/PlayerRow" unique_id=267424275]
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+text = "Your name"
+
+[node name="Input" parent="MainPanel/PvAIVBox/PlayerRow" unique_id=860193888 instance=ExtResource("2_nick")]
+custom_minimum_size = Vector2(300, 40)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TimeControlRow" type="HBoxContainer" parent="MainPanel/PvAIVBox" unique_id=1395384204]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="Label" type="Label" parent="MainPanel/PvAIVBox/TimeControlRow" unique_id=649444643]
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+text = "Time"
+
+[node name="TimeOption" type="OptionButton" parent="MainPanel/PvAIVBox/TimeControlRow" unique_id=1281437693]
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("19_8egab")
+
+[node name="ColorRow" type="HBoxContainer" parent="MainPanel/PvAIVBox" unique_id=591610039]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="Label" type="Label" parent="MainPanel/PvAIVBox/ColorRow" unique_id=269180451]
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+text = "Play as"
+
+[node name="ColorOption" type="OptionButton" parent="MainPanel/PvAIVBox/ColorRow" unique_id=809045142]
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("19_8egab")
+
+[node name="AIStrengthRow" type="HBoxContainer" parent="MainPanel/PvAIVBox" unique_id=211568512]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="AIDifficultyLabel" type="Label" parent="MainPanel/PvAIVBox/AIStrengthRow" unique_id=537064021]
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+text = "AI Difficulty"
+
+[node name="AIDifficultyOption" type="OptionButton" parent="MainPanel/PvAIVBox/AIStrengthRow" unique_id=1791610626]
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("19_8egab")
+
+[node name="ValidationLabel" type="Label" parent="MainPanel/PvAIVBox" unique_id=1756880313]
+visible = false
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+theme_override_colors/font_color = Color(0.7254902, 0, 0.37254903, 1)
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="StartBtn" type="Button" parent="MainPanel/PvAIVBox" unique_id=2025251065]
+layout_mode = 2
+theme = ExtResource("12_flqon")
+text = "Start Game"
+
+[node name="BackBtn" type="Button" parent="MainPanel/PvAIVBox" unique_id=1462552386]
+layout_mode = 2
+theme = ExtResource("12_flqon")
+text = "Back"
+
+[node name="StatsVBox" type="VBoxContainer" parent="MainPanel" unique_id=661461912]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 25
+
+[node name="Title" type="Label" parent="MainPanel/StatsVBox" unique_id=1549087602]
+layout_mode = 2
+theme = ExtResource("16_hstxw")
+text = "Statistics"
+horizontal_alignment = 1
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MainPanel/StatsVBox" unique_id=349490233]
+custom_minimum_size = Vector2(0, 300)
+layout_mode = 2
+size_flags_vertical = 3
+theme = ExtResource("21_1dfpl")
+
+[node name="StatsTable" type="GridContainer" parent="MainPanel/StatsVBox/ScrollContainer" unique_id=423938033]
+custom_minimum_size = Vector2(1000, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+columns = 7
+
+[node name="HeaderPlayer" type="Label" parent="MainPanel/StatsVBox/ScrollContainer/StatsTable" unique_id=980610074]
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("16_a8gd2")
+text = "Player"
+
+[node name="HeaderElo" type="Label" parent="MainPanel/StatsVBox/ScrollContainer/StatsTable" unique_id=1895325612]
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("16_a8gd2")
+text = "ELO"
+
+[node name="HeaderWins" type="Label" parent="MainPanel/StatsVBox/ScrollContainer/StatsTable" unique_id=885228286]
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("16_a8gd2")
+text = "Wins"
+
+[node name="HeaderLosses" type="Label" parent="MainPanel/StatsVBox/ScrollContainer/StatsTable" unique_id=921827421]
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("16_a8gd2")
+text = "Losses"
+
+[node name="HeaderDraws" type="Label" parent="MainPanel/StatsVBox/ScrollContainer/StatsTable" unique_id=1327091562]
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("16_a8gd2")
+text = "Draws"
+
+[node name="HeaderAvgMove" type="Label" parent="MainPanel/StatsVBox/ScrollContainer/StatsTable" unique_id=258930572]
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("16_a8gd2")
+text = "Avg Move"
+
+[node name="HeaderGames" type="Label" parent="MainPanel/StatsVBox/ScrollContainer/StatsTable" unique_id=346051290]
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("16_a8gd2")
+text = "Games"
+
+[node name="BackBtn" type="Button" parent="MainPanel/StatsVBox" unique_id=1196503376]
+layout_mode = 2
+theme = ExtResource("12_flqon")
+text = "Back"
+
+[node name="SettingsVBox" type="VBoxContainer" parent="MainPanel" unique_id=1103937944]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 25
+
+[node name="Title" type="Label" parent="MainPanel/SettingsVBox" unique_id=2128207688]
+layout_mode = 2
+theme = ExtResource("16_hstxw")
+text = "Settings"
+horizontal_alignment = 1
+
+[node name="MusicVolRow" type="HBoxContainer" parent="MainPanel/SettingsVBox" unique_id=20073938]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="MusicVolLabel" type="Label" parent="MainPanel/SettingsVBox/MusicVolRow" unique_id=2044876493]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+text = "Music Volume"
+
+[node name="MusicVolSlider" type="HSlider" parent="MainPanel/SettingsVBox/MusicVolRow" unique_id=848671361]
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("21_gw5y6")
+step = 5.0
+value = 50.0
+tick_count = 5
+ticks_on_borders = true
+
+[node name="MusicVolValueLabel" type="Label" parent="MainPanel/SettingsVBox/MusicVolRow" unique_id=1287734509]
+custom_minimum_size = Vector2(90, 0)
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+text = "50%"
+horizontal_alignment = 2
+
+[node name="SFXVolRow" type="HBoxContainer" parent="MainPanel/SettingsVBox" unique_id=1838517052]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="SFXVolLabel" type="Label" parent="MainPanel/SettingsVBox/SFXVolRow" unique_id=1171189584]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+text = "SFX Volume"
+
+[node name="SFXVolSlider" type="HSlider" parent="MainPanel/SettingsVBox/SFXVolRow" unique_id=1578007712]
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("21_gw5y6")
+step = 5.0
+value = 100.0
+tick_count = 5
+ticks_on_borders = true
+
+[node name="SFXVolValueLabel" type="Label" parent="MainPanel/SettingsVBox/SFXVolRow" unique_id=21640665]
+custom_minimum_size = Vector2(90, 0)
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+text = "100%"
+horizontal_alignment = 2
+
+[node name="FacePlayerRow" type="HBoxContainer" parent="MainPanel/SettingsVBox" unique_id=2050643938]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="FacePlayerLabel" type="Label" parent="MainPanel/SettingsVBox/FacePlayerRow" unique_id=962295887]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("16_a8gd2")
+text = "Auto-rotate camera after move"
+
+[node name="FacePlayerCheck" type="CheckButton" parent="MainPanel/SettingsVBox/FacePlayerRow" unique_id=847821193]
+layout_mode = 2
+theme = ExtResource("22_svtp6")
+
+[node name="KillCamRow" type="HBoxContainer" parent="MainPanel/SettingsVBox" unique_id=2124416438]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="KillCamLabel" type="Label" parent="MainPanel/SettingsVBox/KillCamRow" unique_id=369233713]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("16_a8gd2")
+text = "Kill Cam"
+
+[node name="KillCamCheck" type="CheckButton" parent="MainPanel/SettingsVBox/KillCamRow" unique_id=262230345]
+layout_mode = 2
+theme = ExtResource("22_svtp6")
+button_pressed = true
+
+[node name="PanSensRow" type="HBoxContainer" parent="MainPanel/SettingsVBox" unique_id=1531540557]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="PanSensLabel" type="Label" parent="MainPanel/SettingsVBox/PanSensRow" unique_id=2121897254]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+text = "Pan Sensitivity"
+
+[node name="PanSensSlider" type="HSlider" parent="MainPanel/SettingsVBox/PanSensRow" unique_id=1200927991]
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("21_gw5y6")
+min_value = 1.0
+max_value = 10.0
+value = 5.0
+tick_count = 10
+ticks_on_borders = true
+
+[node name="PanSensValueLabel" type="Label" parent="MainPanel/SettingsVBox/PanSensRow" unique_id=20621712]
+custom_minimum_size = Vector2(90, 0)
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+text = "5"
+horizontal_alignment = 2
+
+[node name="TiltSensRow" type="HBoxContainer" parent="MainPanel/SettingsVBox" unique_id=1367002245]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="TiltSensLabel" type="Label" parent="MainPanel/SettingsVBox/TiltSensRow" unique_id=762740595]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+text = "Tilt Sensitivity"
+
+[node name="TiltSensSlider" type="HSlider" parent="MainPanel/SettingsVBox/TiltSensRow" unique_id=1414890674]
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("21_gw5y6")
+min_value = 1.0
+max_value = 10.0
+value = 5.0
+tick_count = 10
+ticks_on_borders = true
+
+[node name="TiltSensValueLabel" type="Label" parent="MainPanel/SettingsVBox/TiltSensRow" unique_id=1047562893]
+custom_minimum_size = Vector2(90, 0)
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+text = "5"
+horizontal_alignment = 2
+
+[node name="BackBtn" type="Button" parent="MainPanel/SettingsVBox" unique_id=775881788]
+layout_mode = 2
+theme = ExtResource("12_flqon")
+text = "Back"
+
+[node name="OnlineConnectVBox" type="VBoxContainer" parent="MainPanel" unique_id=2136435936]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 25
+
+[node name="TitleLabel" type="Label" parent="MainPanel/OnlineConnectVBox" unique_id=372993902]
+layout_mode = 2
+theme = ExtResource("16_hstxw")
+text = "Online — Connect"
+horizontal_alignment = 1
+
+[node name="URLRow" type="HBoxContainer" parent="MainPanel/OnlineConnectVBox" unique_id=747014050]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="Label" type="Label" parent="MainPanel/OnlineConnectVBox/URLRow" unique_id=1545336761]
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+text = "Server URL"
+
+[node name="URLInput" type="LineEdit" parent="MainPanel/OnlineConnectVBox/URLRow" unique_id=888840217]
+custom_minimum_size = Vector2(300, 40)
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("25_3wgol")
+text = "wss://127.0.0.1:8765"
+placeholder_text = "wss://server.example:8765"
+
+[node name="NickRow" type="HBoxContainer" parent="MainPanel/OnlineConnectVBox" unique_id=1397099321]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="Label" type="Label" parent="MainPanel/OnlineConnectVBox/NickRow" unique_id=68111021]
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+text = "Nickname"
+
+[node name="NickInput" type="LineEdit" parent="MainPanel/OnlineConnectVBox/NickRow" unique_id=209750010]
+custom_minimum_size = Vector2(300, 40)
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("25_3wgol")
+placeholder_text = "Your nickname (1–15 chars)"
+max_length = 15
+
+[node name="StatusLabel" type="Label" parent="MainPanel/OnlineConnectVBox" unique_id=871274573]
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+theme_override_colors/font_color = Color(0.87, 0, 0.45, 1)
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="ConnectBtn" type="Button" parent="MainPanel/OnlineConnectVBox" unique_id=1834713196]
+layout_mode = 2
+theme = ExtResource("12_flqon")
+text = "Connect"
+
+[node name="BackBtn" type="Button" parent="MainPanel/OnlineConnectVBox" unique_id=790071612]
+layout_mode = 2
+theme = ExtResource("12_flqon")
+text = "Back"
+
+[node name="OnlineLobbyVBox" type="VBoxContainer" parent="MainPanel" unique_id=1578426827]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 18
+
+[node name="TitleLabel" type="Label" parent="MainPanel/OnlineLobbyVBox" unique_id=599378867]
+layout_mode = 2
+theme = ExtResource("16_hstxw")
+text = "Online — Lobby"
+horizontal_alignment = 1
+
+[node name="CountLabel" type="Label" parent="MainPanel/OnlineLobbyVBox" unique_id=1224356665]
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+text = "0 players online · 0 rooms"
+horizontal_alignment = 1
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MainPanel/OnlineLobbyVBox" unique_id=2008308365]
+custom_minimum_size = Vector2(0, 280)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme = ExtResource("21_1dfpl")
+
+[node name="RoomList" type="VBoxContainer" parent="MainPanel/OnlineLobbyVBox/ScrollContainer" unique_id=1356542576]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="StatusLabel" type="Label" parent="MainPanel/OnlineLobbyVBox" unique_id=1548367259]
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="ActionsRow" type="HBoxContainer" parent="MainPanel/OnlineLobbyVBox" unique_id=1685837826]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="RefreshBtn" type="Button" parent="MainPanel/OnlineLobbyVBox/ActionsRow" unique_id=893289749]
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("12_flqon")
+text = "Refresh"
+
+[node name="CreateBtn" type="Button" parent="MainPanel/OnlineLobbyVBox/ActionsRow" unique_id=97119650]
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("12_flqon")
+text = "Create Room"
+
+[node name="BackBtn" type="Button" parent="MainPanel/OnlineLobbyVBox" unique_id=2022280372]
+layout_mode = 2
+theme = ExtResource("12_flqon")
+text = "Back"
+
+[node name="OnlineCreateRoomVBox" type="VBoxContainer" parent="MainPanel" unique_id=1370358513]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 25
+
+[node name="TitleLabel" type="Label" parent="MainPanel/OnlineCreateRoomVBox" unique_id=849928161]
+layout_mode = 2
+theme = ExtResource("16_hstxw")
+text = "Online — Create Room"
+horizontal_alignment = 1
+
+[node name="NameRow" type="HBoxContainer" parent="MainPanel/OnlineCreateRoomVBox" unique_id=2057024348]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="Label" type="Label" parent="MainPanel/OnlineCreateRoomVBox/NameRow" unique_id=1994780354]
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+text = "Room name"
+
+[node name="NameInput" type="LineEdit" parent="MainPanel/OnlineCreateRoomVBox/NameRow" unique_id=960896557]
+custom_minimum_size = Vector2(300, 40)
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("25_3wgol")
+placeholder_text = "Room name"
+max_length = 24
+
+[node name="ColorRow" type="HBoxContainer" parent="MainPanel/OnlineCreateRoomVBox" unique_id=1599538935]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="Label" type="Label" parent="MainPanel/OnlineCreateRoomVBox/ColorRow" unique_id=95047656]
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+text = "Your color"
+
+[node name="ColorOption" type="OptionButton" parent="MainPanel/OnlineCreateRoomVBox/ColorRow" unique_id=1393114162]
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("19_8egab")
+
+[node name="TimeRow" type="HBoxContainer" parent="MainPanel/OnlineCreateRoomVBox" unique_id=511882870]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="Label" type="Label" parent="MainPanel/OnlineCreateRoomVBox/TimeRow" unique_id=625363177]
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+text = "Time control"
+
+[node name="TimeOption" type="OptionButton" parent="MainPanel/OnlineCreateRoomVBox/TimeRow" unique_id=1185909100]
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("19_8egab")
+
+[node name="PasswordRow" type="HBoxContainer" parent="MainPanel/OnlineCreateRoomVBox" unique_id=1805795039]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="Label" type="Label" parent="MainPanel/OnlineCreateRoomVBox/PasswordRow" unique_id=676739507]
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+text = "Password"
+
+[node name="PasswordInput" type="LineEdit" parent="MainPanel/OnlineCreateRoomVBox/PasswordRow" unique_id=567608082]
+custom_minimum_size = Vector2(300, 40)
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("25_3wgol")
+placeholder_text = "Optional"
+max_length = 64
+secret = true
+
+[node name="StatusLabel" type="Label" parent="MainPanel/OnlineCreateRoomVBox" unique_id=1140401304]
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+theme_override_colors/font_color = Color(0.87, 0, 0.45, 1)
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="CreateConfirmBtn" type="Button" parent="MainPanel/OnlineCreateRoomVBox" unique_id=923589128]
+layout_mode = 2
+theme = ExtResource("12_flqon")
+text = "Create"
+
+[node name="BackBtn" type="Button" parent="MainPanel/OnlineCreateRoomVBox" unique_id=441729539]
+layout_mode = 2
+theme = ExtResource("12_flqon")
+text = "Back"
+
+[node name="OnlineJoinVBox" type="VBoxContainer" parent="MainPanel" unique_id=120272478]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 25
+
+[node name="TitleLabel" type="Label" parent="MainPanel/OnlineJoinVBox" unique_id=428406633]
+layout_mode = 2
+theme = ExtResource("16_hstxw")
+text = "Join Room"
+horizontal_alignment = 1
+
+[node name="RoomNameLabel" type="Label" parent="MainPanel/OnlineJoinVBox" unique_id=344462133]
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+horizontal_alignment = 1
+
+[node name="PasswordRow" type="HBoxContainer" parent="MainPanel/OnlineJoinVBox" unique_id=236365858]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="Label" type="Label" parent="MainPanel/OnlineJoinVBox/PasswordRow" unique_id=1674883987]
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+text = "Password"
+
+[node name="PasswordInput" type="LineEdit" parent="MainPanel/OnlineJoinVBox/PasswordRow" unique_id=535059860]
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("25_3wgol")
+placeholder_text = "Room password"
+max_length = 64
+secret = true
+
+[node name="StatusLabel" type="Label" parent="MainPanel/OnlineJoinVBox" unique_id=1849027401]
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+theme_override_colors/font_color = Color(0.87, 0, 0.45, 1)
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="JoinConfirmBtn" type="Button" parent="MainPanel/OnlineJoinVBox" unique_id=1573836379]
+layout_mode = 2
+theme = ExtResource("12_flqon")
+text = "Join"
+
+[node name="BackBtn" type="Button" parent="MainPanel/OnlineJoinVBox" unique_id=1294548547]
+layout_mode = 2
+theme = ExtResource("12_flqon")
+text = "Back"
+
+[node name="OnlineRoomWaitVBox" type="VBoxContainer" parent="MainPanel" unique_id=1488675419]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 18
+
+[node name="TitleLabel" type="Label" parent="MainPanel/OnlineRoomWaitVBox" unique_id=64804639]
+layout_mode = 2
+theme = ExtResource("16_hstxw")
+text = "Online — Room"
+horizontal_alignment = 1
+
+[node name="RoomTitle" type="Label" parent="MainPanel/OnlineRoomWaitVBox" unique_id=63214255]
+layout_mode = 2
+theme = ExtResource("16_hstxw")
+horizontal_alignment = 1
+
+[node name="WhiteLabel" type="Label" parent="MainPanel/OnlineRoomWaitVBox" unique_id=294238222]
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+text = "White: (waiting...)"
+
+[node name="BlackLabel" type="Label" parent="MainPanel/OnlineRoomWaitVBox" unique_id=23967232]
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+text = "Black: (waiting...)"
+
+[node name="InfoLabel" type="Label" parent="MainPanel/OnlineRoomWaitVBox" unique_id=1682146276]
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="StatusLabel" type="Label" parent="MainPanel/OnlineRoomWaitVBox" unique_id=1034125899]
+layout_mode = 2
+theme = ExtResource("16_a8gd2")
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="StartBtn" type="Button" parent="MainPanel/OnlineRoomWaitVBox" unique_id=1488675420]
+visible = false
+layout_mode = 2
+theme = ExtResource("12_flqon")
+text = "Start game"
+
+[node name="LeaveBtn" type="Button" parent="MainPanel/OnlineRoomWaitVBox" unique_id=263218362]
+layout_mode = 2
+theme = ExtResource("12_flqon")
+text = "Leave room"
+
+[node name="Panel" type="Panel" parent="." unique_id=1354729672]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.4609375
+anchor_top = 0.09962963
+anchor_right = 0.46593753
+anchor_bottom = 0.8996296
+offset_top = 0.3999939
+offset_right = -0.2800293
+offset_bottom = -0.2800293
+theme_override_styles/panel = SubResource("StyleBoxFlat_1dfpl")
+metadata/_edit_use_anchors_ = true

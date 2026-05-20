@@ -29,3 +29,20 @@ exports/
 
 # Local save data (user:// maps here during development)
 saves/
+
+# Duke's AI native build artifacts
+duke-s-gambit/native/dukes_ai/.sconsign.dblite
+duke-s-gambit/native/dukes_ai/.scons-option-cache
+duke-s-gambit/native/dukes_ai/bin/
+duke-s-gambit/native/dukes_ai/*.o
+duke-s-gambit/native/dukes_ai/**/*.o
+duke-s-gambit/native/dukes_ai/*.a
+duke-s-gambit/native/dukes_ai/**/*.a
+duke-s-gambit/native/dukes_ai/*.dylib
+duke-s-gambit/native/dukes_ai/**/*.dylib
+duke-s-gambit/native/dukes_ai/*.so
+duke-s-gambit/native/dukes_ai/**/*.so
+duke-s-gambit/native/dukes_ai/**/*.os
+duke-s-gambit/native/dukes_ai/*.dll
+duke-s-gambit/native/dukes_ai/**/*.dll
+duke-s-gambit/native/dukes_ai/build/

@@ -1,0 +1,60 @@
+Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
+
+Copyright (c) 2026 0xM4R71N (https://github.com/0xMartin)
+
+=======================================================================
+
+This work — including all source code, game scenes, scripts, shaders,
+and original assets contained in this repository — is licensed under the
+Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
+License (CC BY-NC-SA 4.0).
+
+Full legal text: https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode
+
+=======================================================================
+
+You are free to:
+
+  Share  — copy and redistribute the material in any medium or format
+  Adapt  — remix, transform, and build upon the material
+
+Under the following terms:
+
+  Attribution        — You must give appropriate credit, provide a link
+                       to the license, and indicate if changes were made.
+                       You may do so in any reasonable manner, but not in
+                       any way that suggests the licensor endorses you or
+                       your use.
+
+  NonCommercial      — You may not use the material for commercial
+                       purposes.
+
+  ShareAlike         — If you remix, transform, or build upon the
+                       material, you must distribute your contributions
+                       under the same license as the original.
+
+  No additional      — You may not apply legal terms or technological
+  restrictions         measures that legally restrict others from doing
+                       anything the license permits.
+
+=======================================================================
+
+THIRD-PARTY ASSETS
+
+This project incorporates third-party assets that are governed by their
+own respective licenses. The CC BY-NC-SA 4.0 license above applies only
+to original work created for this project. Please refer to the credits
+section in README.md for individual asset sources and their licenses.
+
+Notable third-party works included:
+
+  - Duke mascot model — OpenJDK/Duke (https://github.com/openjdk/duke)
+  - PeSTO evaluation tables — Ronald Friederich (public domain)
+  - Sound effects — various authors; see README.md for per-file credits
+  - Hit VFX — BinbunVFX Vol.2 by Binbun (itch.io commercial asset)
+
+DISCLAIMER
+
+This is a non-commercial fan game made for satirical and educational
+purposes. "Java" and "Duke" are trademarks of Oracle Corporation. This
+project is not affiliated with, endorsed by, or sponsored by Oracle.

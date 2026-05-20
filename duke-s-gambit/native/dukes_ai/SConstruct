@@ -1,0 +1,42 @@
+import os
+
+env = SConscript("godot-cpp/SConstruct")
+
+target = ARGUMENTS.get("target", "template_release")
+platform = ARGUMENTS.get("platform", env.get("platform", "linux"))
+arch = ARGUMENTS.get("arch", "x86_64")
+
+libname = "dukes_ai_native"
+
+if platform == "windows":
+    suffix = ".windows.%s.%s.dll" % (target, arch)
+elif platform == "linux":
+    suffix = ".linux.%s.%s.so" % (target, arch)
+elif platform == "macos":
+    suffix = ".macos.%s.%s.dylib" % (target, arch)
+elif platform == "android":
+    suffix = ".android.%s.%s.so" % (target, arch)
+else:
+    suffix = ".%s.%s.%s" % (platform, target, arch)
+
+out_dir = os.path.join("bin")
+out_file = os.path.join(out_dir, "lib%s%s" % (libname, suffix))
+
+sources = [
+    "src/ai_state.cpp",
+    "src/ai_eval.cpp",
+    "src/ai_search.cpp",
+    "src/dukes_ai_native.cpp",
+    "src/register_types.cpp",
+]
+
+env.Append(CPPPATH=["src"])
+# MSVC uses /std:c++20; GCC/Clang use -std=c++20.
+use_mingw = ARGUMENTS.get("use_mingw", "no").lower() in ("yes", "true", "1")
+if platform == "windows" and not use_mingw:
+    env.Append(CXXFLAGS=["/std:c++20"])
+else:
+    env.Append(CXXFLAGS=["-std=c++20"])
+
+library = env.SharedLibrary(target=out_file, source=sources)
+Default(library)

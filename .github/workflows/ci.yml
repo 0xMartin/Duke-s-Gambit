@@ -1,0 +1,23 @@
+# GitHub Actions CI – GDScript lint only (no compilation, no Godot binary)
+
+name: Lint
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  gdscript-lint:
+    name: GDScript Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install gdtoolkit
+        run: pip install gdtoolkit
+
+      - name: Check GDScript syntax
+        run: gdparse duke-s-gambit/scripts/**/*.gd -p

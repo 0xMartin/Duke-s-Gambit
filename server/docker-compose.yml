@@ -1,0 +1,25 @@
+services:
+  duke-server:
+    build: .
+    image: dukes-gambit-server:latest
+    container_name: dukes-gambit-server
+    restart: unless-stopped
+    ports:
+      - "8765:8765"
+    environment:
+      DUKE_HOST: "0.0.0.0"
+      DUKE_PORT: "8765"
+      # Set to "0" to disable TLS (LAN/dev only). Default "1" = WSS with self-signed cert.
+      DUKE_TLS: "1"
+      DUKE_CERT_DIR: "/data/certs"
+      # Optional: a long-lived secret used to sign session tokens (HMAC).
+      # If empty, a random one is generated on each container start (tokens invalidate on restart).
+      DUKE_SESSION_SECRET: ""
+      # Max number of rooms and clients (DoS guard).
+      DUKE_MAX_ROOMS: "256"
+      DUKE_MAX_CLIENTS: "512"
+    volumes:
+      - duke-certs:/data/certs
+
+volumes:
+  duke-certs:

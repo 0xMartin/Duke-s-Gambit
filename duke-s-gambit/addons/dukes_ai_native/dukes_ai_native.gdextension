@@ -1,0 +1,18 @@
+[configuration]
+entry_symbol = "dukes_ai_native_init"
+compatibility_minimum = "4.2"
+reloadable = true
+
+[libraries]
+windows.debug.x86_64 = "res://native/dukes_ai/bin/libdukes_ai_native.windows.template_debug.x86_64.dll"
+windows.release.x86_64 = "res://native/dukes_ai/bin/libdukes_ai_native.windows.template_release.x86_64.dll"
+linux.debug.x86_64 = "res://native/dukes_ai/bin/libdukes_ai_native.linux.template_debug.x86_64.so"
+linux.release.x86_64 = "res://native/dukes_ai/bin/libdukes_ai_native.linux.template_release.x86_64.so"
+macos.debug.x86_64 = "res://native/dukes_ai/bin/libdukes_ai_native.macos.template_debug.x86_64.dylib"
+macos.release.x86_64 = "res://native/dukes_ai/bin/libdukes_ai_native.macos.template_release.x86_64.dylib"
+macos.debug.arm64 = "res://native/dukes_ai/bin/libdukes_ai_native.macos.template_debug.arm64.dylib"
+macos.release.arm64 = "res://native/dukes_ai/bin/libdukes_ai_native.macos.template_release.arm64.dylib"
+android.debug.arm64 = "res://native/dukes_ai/bin/libdukes_ai_native.android.template_debug.arm64.so"
+android.release.arm64 = "res://native/dukes_ai/bin/libdukes_ai_native.android.template_release.arm64.so"
+android.debug.arm32 = "res://native/dukes_ai/bin/libdukes_ai_native.android.template_debug.arm32.so"
+android.release.arm32 = "res://native/dukes_ai/bin/libdukes_ai_native.android.template_release.arm32.so"
