@@ -11,10 +11,10 @@ config_version=5
 [application]
 
 config/name="Duke's Gambit"
-config/description="3D Chess game featuring Duke Java characters"
+config/description="Duke's Gambit is a fully-featured 3D chess game built in Godot 4. The rules are standard chess — what sets it apart is the presentation: all pieces are fully animated 3D characters from the Java world, the environment is stylised and thematic, and captures play out as short combat sequences rather than a simple disappearance. "
 run/main_scene="res://scenes/main_menu.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
-config/icon="res://icon.svg"
+config/icon="uid://db5kvho1lwga8"
 
 [autoload]
 

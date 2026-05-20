@@ -134,22 +134,23 @@ func _load_tracks() -> void:
 	if ms != null:
 		_menu_player.stream = ms
 
-	# Game music (random playlist)
-	var dir := DirAccess.open(MUSIC_DIR)
-	if dir == null:
-		push_warning("[MusicManager] Cannot open: " + MUSIC_DIR)
-		return
-	dir.list_dir_begin()
-	var file := dir.get_next()
-	while file != "":
-		if not dir.current_is_dir():
-			var ext := file.get_extension().to_lower()
-			if ext == "mp3" or ext == "ogg" or ext == "wav":
-				var s := load(MUSIC_DIR + file) as AudioStream
-				if s != null:
-					_game_streams.append(s)
-		file = dir.get_next()
-	dir.list_dir_end()
+	# Game music — hardcoded list so it works reliably in exported builds
+	const GAME_TRACKS: Array[String] = [
+		"res://assets/sounds/music/music1.mp3",
+		"res://assets/sounds/music/music2.mp3",
+		"res://assets/sounds/music/music3.mp3",
+		"res://assets/sounds/music/music4.mp3",
+		"res://assets/sounds/music/music5.mp3",
+		"res://assets/sounds/music/music6.mp3",
+		"res://assets/sounds/music/music7.mp3",
+		"res://assets/sounds/music/music8.mp3",
+		"res://assets/sounds/music/music9.mp3",
+		"res://assets/sounds/music/music10.mp3",
+	]
+	for path in GAME_TRACKS:
+		var s := load(path) as AudioStream
+		if s != null:
+			_game_streams.append(s)
 
 # ── Public API ──────────────────────────────────────────────────────────────
 
