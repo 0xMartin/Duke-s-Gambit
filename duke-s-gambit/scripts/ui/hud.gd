@@ -112,12 +112,16 @@ func _notification(what: int) -> void:
 func setup(white_name: String, white_elo: int,
 		   black_name: String, black_elo: int,
 		   has_time_limit: bool = false,
-		   show_elo: bool = true) -> void:
+		   show_elo: bool = true,
+		   white_elo_override: String = "",
+		   black_elo_override: String = "") -> void:
 	_has_time_limit = has_time_limit
 	_apply_player_name(ChessEnums.PieceColor.WHITE, white_name)
-	(_elo_lbl [ChessEnums.PieceColor.WHITE] as Label).text = "ELO %d" % white_elo
+	(_elo_lbl [ChessEnums.PieceColor.WHITE] as Label).text = \
+		white_elo_override if white_elo_override != "" else "ELO %d" % white_elo
 	_apply_player_name(ChessEnums.PieceColor.BLACK, black_name)
-	(_elo_lbl [ChessEnums.PieceColor.BLACK] as Label).text = "ELO %d" % black_elo
+	(_elo_lbl [ChessEnums.PieceColor.BLACK] as Label).text = \
+		black_elo_override if black_elo_override != "" else "ELO %d" % black_elo
 	(_elo_lbl[ChessEnums.PieceColor.WHITE] as Label).visible = show_elo
 	(_elo_lbl[ChessEnums.PieceColor.BLACK] as Label).visible = show_elo
 

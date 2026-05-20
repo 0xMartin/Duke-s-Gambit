@@ -84,6 +84,8 @@ var _captured_by: Array = [[], []]
 var _player_names: Array = ["Player1", "Player2"]
 var _player_elos:  Array = [1200, 1200]
 var _is_player_vs_ai: bool = false
+var _ai_color: int = -1          # color of the AI controller in PvAI (-1 if none)
+var _ai_difficulty_label: String = ""  # e.g. "Casual", "Challenger", "Master"
 
 # Online mode (server is the authority for move legality and game-over).
 var _online_mode: bool = false
@@ -191,6 +193,8 @@ func setup_online(white_name: String, black_name: String,
 	_player_elos[ChessEnums.PieceColor.BLACK]  = black_elo
 	_time_control_ms = time_control_ms
 	_is_player_vs_ai = false
+	_ai_color = -1
+	_ai_difficulty_label = ""
 
 	_controllers.clear()
 	for color in [ChessEnums.PieceColor.WHITE, ChessEnums.PieceColor.BLACK]:
@@ -225,6 +229,12 @@ func setup(p1_name: String, p2_name: String,
 	_player_names[ChessEnums.PieceColor.BLACK] = p2_name
 	_time_control_ms = time_control_ms
 	_is_player_vs_ai = white_is_ai != black_is_ai
+	_ai_color = -1
+	_ai_difficulty_label = ""
+	if _is_player_vs_ai:
+		_ai_color = ChessEnums.PieceColor.WHITE if white_is_ai else ChessEnums.PieceColor.BLACK
+		var diff := maxi(1, mini(3, ai_strength))
+		_ai_difficulty_label = _difficulty_label(diff)
 
 	# Read ELOs from SaveManager
 	var save_node := get_node_or_null("/root/SaveManager")
@@ -274,11 +284,15 @@ func start_game() -> void:
 	_board.clear_last_move()
 	# Setup HUD data now (it will be hidden during the intro).
 	if _hud != null:
+		var white_elo_override := _ai_difficulty_label if _ai_color == ChessEnums.PieceColor.WHITE else ""
+		var black_elo_override := _ai_difficulty_label if _ai_color == ChessEnums.PieceColor.BLACK else ""
 		_hud.setup(
 			_player_names[ChessEnums.PieceColor.WHITE], _player_elos[ChessEnums.PieceColor.WHITE],
 			_player_names[ChessEnums.PieceColor.BLACK], _player_elos[ChessEnums.PieceColor.BLACK],
 			_time_control_ms > 0,
-			not _online_mode
+			not _online_mode,
+			white_elo_override,
+			black_elo_override
 		)
 		if _hud.has_method("reset_move_history"):
 			_hud.call("reset_move_history")
@@ -561,6 +575,13 @@ func _human_player_color() -> int:
 		if ctrl != null and not ctrl.is_ai:
 			return color
 	return ChessEnums.PieceColor.WHITE
+
+func _difficulty_label(diff: int) -> String:
+	match diff:
+		1: return "Casual"
+		2: return "Challenger"
+		3: return "Master"
+		_: return ""
 
 func can_surrender() -> bool:
 	if _game_over_shown or _chess == null:
