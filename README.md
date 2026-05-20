@@ -55,7 +55,7 @@ Duke's Gambit includes a **native C++ chess AI** built as a [GDExtension](dukes_
 | Level | Description |
 |---|---|
 | `CASUAL` | Shallow search, limited time budget — great for beginners or a relaxed game. |
-| `CHALLENGER` | Balanced depth and time; puts up a real fight without being overwhelming. |
+| `CHALLENGER` | Balanced depth and time, puts up a real fight without being overwhelming. |
 | `MASTER` | Uses the full search budget, aspiration windows, and Lazy SMP (up to 4 threads). Tough to beat. |
 
 The AI scales its search depth and time limit dynamically based on the selected difficulty and the remaining clock time. It uses a shared transposition table (~16 MiB), null-move pruning, late-move reductions, and a history/killer heuristic for move ordering.
@@ -70,13 +70,13 @@ You can play Duke's Gambit against other players over the network. The game ship
 
 ### What the server supports
 
-- **Rooms** — create a named room, optionally password-protected; others browse the list and join
+- **Rooms** — create a named room, optionally password-protected, others browse the list and join
 - **Color & time control** — the host picks their side and the clock setting (e.g. 5+3, 10+0)
 - **Authoritative clock** — the server tracks both players' remaining time and enforces timeouts
 - **Draw offers** — offer, accept, or decline a draw mid-game
 - **Surrender** — resign at any point
-- **Graceful reconnect** — drop your connection and rejoin within a 30-second window; the game continues
-- **Secure by default** — WSS (TLS) with an auto-generated self-signed certificate; fingerprint or cert-file trust from within the game
+- **Graceful reconnect** — drop your connection and rejoin within a 30-second window, the game continues
+- **Secure by default** — WSS (TLS) with an auto-generated self-signed certificate
 
 > [!NOTE]
 > The server is written in **Python 3.12** using `asyncio` + `websockets` and validates every move with `python-chess`. No database, no login — players just pick a nickname and get a signed session token.

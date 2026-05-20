@@ -18,7 +18,7 @@
 
 namespace dukes_ai {
 
-inline constexpr const char *AI_VERSION = "1.0.0-cpp";
+inline constexpr const char *AI_VERSION = "1.0.1-cpp";
 
 // ---------------------------------------------------------------------------
 // Basic types
