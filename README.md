@@ -21,7 +21,7 @@
 
 <img src="./doc/game.png" alt="In-game screenshot" width="100%">
 
-Duke's Gambit is a fully-featured 3D chess game built in **Godot 4**. Each piece is a unique character from the Java ecosystem — pawns march forward like junior devs, knights leap like polymorphic code, and the Duke himself commands the board. Captures aren't just removed pieces — enemies clash in animated combat and fall defeated on the board. ♟️
+Duke's Gambit is a fully-featured 3D chess game built in **Godot 4**. The rules are standard chess — what sets it apart is the presentation: all pieces are fully animated 3D characters from the Java world, the environment is stylised and thematic, and captures play out as short combat sequences rather than a simple disappearance. ♟️
 
 **Features at a glance:**
 
