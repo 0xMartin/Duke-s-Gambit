@@ -8,6 +8,8 @@ const _LABEL_THEME := preload("res://themes/menu_label.tres")
 const _BTN_THEME   := preload("res://themes/button.tres")
 
 const NICKNAME_RE := "^[A-Za-z0-9_.\\- ]{1,15}$"
+const _PREFS_PATH := "user://online_prefs.cfg"
+const _PREFS_SECTION := "connection"
 
 # Panels (from scene)
 var connect_panel:  VBoxContainer = null
@@ -117,6 +119,23 @@ func _bind_nodes() -> void:
 	_wait_start_btn   = wait_panel.get_node("StartBtn") as Button
 	_wait_leave_btn   = wait_panel.get_node("LeaveBtn") as Button
 
+func _load_last_connection() -> void:
+	var cfg := ConfigFile.new()
+	if cfg.load(_PREFS_PATH) != OK:
+		return
+	var url: String = cfg.get_value(_PREFS_SECTION, "url", "")
+	var nick: String = cfg.get_value(_PREFS_SECTION, "nickname", "")
+	if not url.is_empty():
+		_url_input.text = url
+	if not nick.is_empty():
+		_nick_input.text = nick
+
+func _save_last_connection(url: String, nick: String) -> void:
+	var cfg := ConfigFile.new()
+	cfg.set_value(_PREFS_SECTION, "url", url)
+	cfg.set_value(_PREFS_SECTION, "nickname", nick)
+	cfg.save(_PREFS_PATH)
+
 func _populate_static_options() -> void:
 	_room_color_opt.clear()
 	_room_color_opt.add_item("White", 0)
@@ -131,6 +150,7 @@ func _populate_static_options() -> void:
 	_room_time_opt.add_item("10 min",  10 * 60 * 1000)
 	_room_time_opt.add_item("15 min",  15 * 60 * 1000)
 	_room_time_opt.select(3)
+	_load_last_connection()
 
 # ── Wiring ─────────────────────────────────────────────────────────────────
 func _connect_signals() -> void:
@@ -253,6 +273,7 @@ func _on_connection_error(msg: String) -> void:
 			_show_panel(connect_panel)
 
 func _on_welcomed(online_count: int) -> void:
+	_save_last_connection(_url_input.text.strip_edges(), _nick_input.text.strip_edges())
 	_connect_btn.disabled = false
 	_show_panel(lobby_panel)
 	_lobby_count_label.text = "%d players online" % online_count
