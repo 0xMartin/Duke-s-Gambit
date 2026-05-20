@@ -1,0 +1,6 @@
+disable:
+  - class-definitions-order
+  - max-returns
+  - duplicated-load
+  - max-line-length
+  - mixed-tabs-and-spaces
