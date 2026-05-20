@@ -8,7 +8,7 @@
 [![Language](https://img.shields.io/badge/language-GDScript%20%2B%20C%2B%2B-blue)](dukes_ai/)
 [![Server](https://img.shields.io/badge/server-Python%203.12-3776AB?logo=python&logoColor=white)](server/)
 [![Docker](https://img.shields.io/badge/docker-ready-2496ED?logo=docker&logoColor=white)](server/docker-compose.yml)
-[![License](https://img.shields.io/badge/license-Non--commercial-lightgrey)](#-license)
+[![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-lightgrey?logo=creativecommons&logoColor=white)](LICENSE)
 
 **A satirical 3D chess game where chess pieces are characters from the Java world — and they don't just move, they fight.**
 
@@ -105,6 +105,7 @@ See [`server/README.md`](server/README.md) for the full configuration reference,
 
 ### 3D models & art
 
+- **All other 3D models** (board, terrain, weapons, NPC, environment, …) — created by `0xM4R71N`
 - **Duke chess pieces** — [github.com/openjdk/duke](https://github.com/openjdk/duke) — edited in Blender, animated via [mixamo.com](https://www.mixamo.com/)
 - **Chess icons** — [Wikimedia Commons — SVG chess pieces](https://commons.wikimedia.org/wiki/Category:SVG_chess_pieces)
 - **Hit VFX** — [BinbunVFX Vol.2](https://binbun3d.itch.io/hit-fx) — autor: `Binbun`
@@ -129,7 +130,11 @@ See [`server/README.md`](server/README.md) for the full configuration reference,
 
 ## 📄 License
 
-Non-commercial fan project. Free to use, study, and modify for non-commercial purposes. See individual asset licences above for third-party content.
+This project is released under the **Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International** license.
+
+See the full license text in [LICENSE](LICENSE).
+
+Third-party assets (models, sounds, VFX) are subject to their own respective licenses — refer to the [Assets & credits](#-assets--credits) section above.
 
 ---
 
