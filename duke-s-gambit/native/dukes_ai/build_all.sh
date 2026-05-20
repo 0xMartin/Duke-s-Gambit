@@ -48,6 +48,19 @@ else
 fi
 
 # ── Android ───────────────────────────────────────────────────────────────
+# Ensure ANDROID_HOME is set (required by godot-cpp's android.py)
+if [ -z "${ANDROID_HOME:-}" ]; then
+    for sdk_base in \
+        "$HOME/Library/Android/sdk" \
+        "$HOME/Android/Sdk" \
+        "/usr/local/lib/android/sdk"; do
+        if [ -d "$sdk_base" ]; then
+            export ANDROID_HOME="$sdk_base"
+            break
+        fi
+    done
+fi
+
 NDK="${ANDROID_NDK_ROOT:-${ANDROID_NDK_HOME:-}}"
 if [ -z "$NDK" ]; then
     # Scan common SDK locations for any installed NDK version
