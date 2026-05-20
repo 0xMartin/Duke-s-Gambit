@@ -1,8 +1,8 @@
-# GitHub Actions CI for Godot C++ GDExtension (dukes_ai)
-# Builds dukes_ai_native for Windows, macOS, Linux, and Android
-# Exports Godot project with correct native library for each platform
+# GitHub Actions CI – smoke test only
+# Native binaries are built locally and committed to the repo.
+# CI just verifies the project imports and exports for Linux without errors.
 
-name: Build & Export Native AI
+name: Smoke Test
 
 on:
   push:
@@ -14,14 +14,12 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  export-godot:
-    name: Export Godot Project
+  smoke-test:
+    name: Godot Smoke Test (Linux)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
 
       - name: Set up Godot
         run: |
@@ -35,20 +33,16 @@ jobs:
 
       - name: Import project assets
         run: |
-          mkdir -p duke-s-gambit/.godot/editor duke-s-gambit/.godot/imported
           godot --headless --path duke-s-gambit --editor --quit || true
 
-      - name: Export for all platforms
+      - name: Export Linux build
         run: |
           mkdir -p export
-          godot --headless --path duke-s-gambit --export-release "Windows Desktop" ../export/game-windows.exe
           godot --headless --path duke-s-gambit --export-release "Linux/X11" ../export/game-linux.x86_64
-          godot --headless --path duke-s-gambit --export-release "macOS" ../export/game-macos.zip
-          godot --headless --path duke-s-gambit --export-release "Android" ../export/game-android.apk
 
-      - name: Upload exported builds
+      - name: Upload Linux build
         uses: actions/upload-artifact@v4
         with:
-          name: exported-builds
-          path: export/
-          retention-days: 14
+          name: game-linux
+          path: export/game-linux.x86_64
+          retention-days: 7
