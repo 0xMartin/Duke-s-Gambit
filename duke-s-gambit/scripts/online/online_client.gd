@@ -65,8 +65,8 @@ func get_your_color() -> String:
 
 ## Connect to the server. ``url`` must be a full ws:// or wss:// URL.
 ## ``trusted_cert_path`` (optional): absolute filesystem path to a PEM certificate
-##   to pin (e.g. the server's self-signed cert). When omitted the connection is
-##   encrypted but the certificate is not verified (suitable for LAN play).
+##   to pin (e.g. a self-signed LAN cert). When omitted wss:// connections are
+##   verified against Godot's bundled Mozilla CA store (works for Let's Encrypt).
 func connect_to_server(url: String, nickname: String,
 		trusted_cert_path: String = "") -> void:
 	disconnect_from_server()
@@ -92,11 +92,12 @@ func connect_to_server(url: String, nickname: String,
 	var tls_options: TLSOptions = null
 	if _url.begins_with("wss://"):
 		if _trusted_chain != null:
-			# Explicit cert provided → full verification against pinned chain.
+			# Explicit cert provided → verify against pinned chain only.
 			tls_options = TLSOptions.client(_trusted_chain)
 		else:
-			# No cert pinned → encrypt but skip verification (TOFU for LAN).
-			tls_options = TLSOptions.client_unsafe()
+			# No cert pinned → verify against Godot's bundled Mozilla CA store.
+			# Works for Let's Encrypt and other public CAs on all platforms incl. Android.
+			tls_options = TLSOptions.client()
 
 	var ok := _peer.connect_to_url(_url, tls_options)
 	if ok != OK:
@@ -186,9 +187,13 @@ func _process(_delta: float) -> void:
 			_peer = null
 			_set_state(State.DISCONNECTED)
 			if was_state != State.DISCONNECTED:
-				var msg := "Disconnected from server"
-				if code >= 0:
-					msg += " (code %d%s)" % [code, ": " + reason if reason != "" else ""]
+				var msg: String
+				if code == -1:
+					msg = "Connection failed (TLS/network error — check URL and internet access)"
+				elif code >= 0:
+					msg = "Disconnected from server (code %d%s)" % [code, ": " + reason if reason != "" else ""]
+				else:
+					msg = "Disconnected from server"
 				emit_signal("connection_error", msg)
 		WebSocketPeer.STATE_CONNECTING:
 			pass
