@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://dc4n6hpg6ya8d"
 path.s3tc="res://.godot/imported/color-palette.png-c0533e3c1bdb29df9439e3d644c0925d.s3tc.ctex"
+path.etc2="res://.godot/imported/color-palette.png-c0533e3c1bdb29df9439e3d644c0925d.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/textures/color-palette.png"
-dest_files=["res://.godot/imported/color-palette.png-c0533e3c1bdb29df9439e3d644c0925d.s3tc.ctex"]
+dest_files=["res://.godot/imported/color-palette.png-c0533e3c1bdb29df9439e3d644c0925d.s3tc.ctex", "res://.godot/imported/color-palette.png-c0533e3c1bdb29df9439e3d644c0925d.etc2.ctex"]
 
 [params]
 
