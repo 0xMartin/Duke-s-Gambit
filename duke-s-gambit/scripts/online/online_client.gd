@@ -42,8 +42,6 @@ var _peer: WebSocketPeer = null
 var _url: String = ""
 var _nickname: String = ""
 var _session_token: String = ""
-var _expected_fingerprint: String = ""
-var _trusted_chain: X509Certificate = null
 var _current_room_id: String = ""
 var _your_color: String = ""        # "white" / "black" once in a room
 
@@ -134,27 +132,14 @@ func get_current_room_id() -> String:
 func get_your_color() -> String:
 	return _your_color
 
-## Connect to the server. ``url`` must be a full ws:// or wss:// URL.
-## ``trusted_cert_path`` (optional): absolute filesystem path to a PEM certificate
-##   to pin (e.g. a self-signed LAN cert). When omitted wss:// connections are
-##   verified against Godot's bundled Mozilla CA store (works for Let's Encrypt).
-func connect_to_server(url: String, nickname: String,
-		trusted_cert_path: String = "") -> void:
+## Connect to the server. ``url`` is a ws://, wss:// URL or bare hostname.
+func connect_to_server(url: String, nickname: String) -> void:
 	disconnect_from_server()
 	_url = url.strip_edges()
+	# Auto-prepend wss:// if user entered bare hostname (e.g. "example.com:8080")
+	if not _url.begins_with("ws://") and not _url.begins_with("wss://"):
+		_url = "wss://" + _url
 	_nickname = nickname.strip_edges()
-	_expected_fingerprint = ""
-	_trusted_chain = null
-
-	if trusted_cert_path != "":
-		var cert := X509Certificate.new()
-		var err := cert.load(trusted_cert_path)
-		if err != OK:
-			emit_signal("connection_error",
-				"Failed to load trusted certificate (%s)" % trusted_cert_path)
-			_set_state(State.DISCONNECTED)
-			return
-		_trusted_chain = cert
 
 	_peer = WebSocketPeer.new()
 	_peer.inbound_buffer_size = 1 << 16
@@ -162,15 +147,8 @@ func connect_to_server(url: String, nickname: String,
 
 	var tls_options: TLSOptions = null
 	if _url.begins_with("wss://"):
-		if _trusted_chain != null:
-			tls_options = TLSOptions.client(_trusted_chain)
-			_tls_mode = "pinned"
-		elif _le_chain != null:
-			tls_options = TLSOptions.client(_le_chain)
-			_tls_mode = "le_chain"
-		else:
-			tls_options = TLSOptions.client()
-			_tls_mode = "builtin_ca"
+		tls_options = TLSOptions.client_unsafe()
+		_tls_mode = "unsafe"
 
 	var ok := _peer.connect_to_url(_url, tls_options)
 	if ok != OK:
@@ -279,14 +257,7 @@ func _set_state(new_state: int) -> void:
 	emit_signal("connection_state_changed", new_state)
 
 func _verify_fingerprint_or_disconnect() -> void:
-	if _expected_fingerprint == "":
-		return
-	# Godot doesn't currently expose peer cert from WebSocketPeer post-handshake.
-	# Treat fingerprint as advisory metadata for now and rely on the trusted-cert
-	# chain check when a cert is provided. This branch is a placeholder so the
-	# UI parameter stays valid; if a future Godot version exposes the peer cert,
-	# wire it here.
-	pass
+	pass # reserved for future cert pinning
 
 func _send(obj: Dictionary) -> void:
 	if _peer == null:
