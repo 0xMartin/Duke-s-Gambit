@@ -44,6 +44,10 @@ jobs:
         if: matrix.platform == 'linux' || matrix.platform == 'android'
         run: sudo apt-get update && sudo apt-get install -y build-essential pkg-config
 
+      - name: Install Android NDK
+        if: matrix.platform == 'android'
+        run: echo "y" | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager "ndk;28.1.13356709"
+
       - name: Build dukes_ai_native
         working-directory: duke-s-gambit/native/dukes_ai
         run: scons platform=${{ matrix.platform }} target=template_release
@@ -53,6 +57,7 @@ jobs:
         with:
           name: dukes_ai_native-${{ matrix.platform }}
           path: duke-s-gambit/native/dukes_ai/bin/*
+          retention-days: 14
 
   export-godot:
     name: Export Godot Project
@@ -88,3 +93,4 @@ jobs:
         with:
           name: exported-builds
           path: export/
+          retention-days: 14
