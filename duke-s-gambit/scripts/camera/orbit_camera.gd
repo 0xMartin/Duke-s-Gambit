@@ -43,6 +43,14 @@ var _panning: bool = false
 var _pan_start: Vector2 = Vector2.ZERO
 var _pan_pivot_start: Vector3 = Vector3.ZERO
 
+# Touch input state (Android)
+var _touch_points: Dictionary = {}        # finger index -> Vector2 position
+var _pinch_dist0: float = 0.0             # finger spread when pinch started
+var _pinch_target_dist0: float = 0.0      # _target_distance when pinch started
+var _touch_rot_start: Vector2 = Vector2.ZERO
+var _touch_rot_azimuth0: float = 0.0
+var _touch_rot_elevation0: float = 0.0
+
 # Kill cam state
 const KILL_CAM_ORBIT_SPEED      := 18.0   # deg/s cinematic orbit during regular kill cam
 const CHECKMATE_CAM_ORBIT_SPEED :=  6.0   # deg/s slow mournful orbit around dying king
@@ -133,6 +141,55 @@ func _unhandled_input(event: InputEvent) -> void:
 			new_pos.x = clamp(new_pos.x, -4.0, 4.0)
 			new_pos.z = clamp(new_pos.z, -4.0, 4.0)
 			position = new_pos
+
+	# ── Touch (Android) ────────────────────────────────────────────────────
+	elif event is InputEventScreenTouch:
+		var st := event as InputEventScreenTouch
+		if st.pressed:
+			_touch_points[st.index] = st.position
+			if _touch_points.size() == 1:
+				_touch_rot_start    = st.position
+				_touch_rot_azimuth0 = _azimuth
+				_touch_rot_elevation0 = elevation
+			elif _touch_points.size() == 2:
+				_begin_pinch()
+		else:
+			_touch_points.erase(st.index)
+			if _touch_points.size() == 1:
+				# One finger lifted → reinit rotation from remaining finger to avoid jump
+				var idx: int = _touch_points.keys()[0]
+				_touch_rot_start      = _touch_points[idx]
+				_touch_rot_azimuth0   = _azimuth
+				_touch_rot_elevation0 = elevation
+
+	elif event is InputEventScreenDrag:
+		var sd := event as InputEventScreenDrag
+		_touch_points[sd.index] = sd.position
+		if _touch_points.size() == 2:
+			# Pinch-to-zoom
+			if _pinch_dist0 > 0.0:
+				var keys := _touch_points.keys()
+				var cur := (_touch_points[keys[0]] as Vector2).distance_to(
+							_touch_points[keys[1]] as Vector2)
+				_target_distance = clamp(
+					_pinch_target_dist0 * (_pinch_dist0 / cur),
+					distance_min, distance_max)
+		elif _touch_points.size() == 1:
+			# Single-finger orbit — read sensitivity live so settings take effect immediately
+			var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
+			var rot_spd: float = cam_cfg.tilt_speed() if cam_cfg else rotate_speed
+			var delta := sd.position - _touch_rot_start
+			_azimuth        = _touch_rot_azimuth0 - delta.x * rot_spd
+			_target_azimuth = _azimuth
+			elevation        = clamp(_touch_rot_elevation0 + delta.y * rot_spd,
+									elevation_min, elevation_max)
+			_target_elevation = elevation
+
+func _begin_pinch() -> void:
+	var keys := _touch_points.keys()
+	_pinch_dist0        = (_touch_points[keys[0]] as Vector2).distance_to(
+							_touch_points[keys[1]] as Vector2)
+	_pinch_target_dist0 = _target_distance
 
 # ── Process ────────────────────────────────────────────────────────────────
 func _process(delta: float) -> void:

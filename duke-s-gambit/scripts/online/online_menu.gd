@@ -183,8 +183,8 @@ func _on_connect_pressed() -> void:
 	if not _validate_nickname(nick):
 		_connect_status.text = "Nickname must be 1–15 chars (letters, digits, _ . - space)."
 		return
-	if not (url.begins_with("ws://") or url.begins_with("wss://")):
-		_connect_status.text = "URL must start with ws:// or wss://."
+	if url.is_empty():
+		_connect_status.text = "URL must not be empty."
 		return
 	_connect_status.add_theme_color_override("font_color", Color(0.85, 0.85, 0.85, 1.0))
 	_connect_status.text = "Connecting..."

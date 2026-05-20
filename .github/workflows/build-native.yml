@@ -37,6 +37,10 @@ jobs:
             os: ubuntu-latest
           - platform: android
             os: ubuntu-latest
+            arch: arm64
+          - platform: android
+            os: ubuntu-latest
+            arch: arm32
 
     steps:
       - name: Checkout repository
@@ -67,6 +71,6 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: dukes_ai_native-${{ matrix.platform }}
+          name: dukes_ai_native-${{ matrix.platform }}${{ matrix.arch && format('-{0}', matrix.arch) || '' }}
           path: duke-s-gambit/native/dukes_ai/bin/*
           retention-days: 14
