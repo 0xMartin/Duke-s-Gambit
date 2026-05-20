@@ -10,13 +10,18 @@
 
 #include <godot_cpp/variant/dictionary.hpp>
 #include <godot_cpp/variant/packed_int32_array.hpp>
+#include <godot_cpp/variant/packed_byte_array.hpp>
+#include <godot_cpp/variant/array.hpp>
+#include <godot_cpp/variant/string.hpp>
 #include <godot_cpp/variant/variant.hpp>
+#include <godot_cpp/variant/utility_functions.hpp>
 
 #include <algorithm>
 #include <atomic>
 #include <bit>
 #include <chrono>
 #include <cstring>
+#include <memory>
 #include <thread>
 #include <vector>
 
@@ -51,19 +56,39 @@ enum TTFlag : uint8_t {
 	TT_UPPER = 3,
 };
 
+// Lockless transposition table using Hyatt-style XOR-key integrity checks.
+//
+// Each slot is two 64-bit atomics:
+//   * `data` packs   score(16) | move(16) | depth(8) | flag(8) | pad(16)
+//   * `key_xor_data` stores  key ^ data
+//
+// A reader loads both atomics independently (relaxed — we don't need ordering,
+// only per-word atomicity). If `key_xor_data ^ data == key`, the two halves
+// belong to the same write and are safe to use. If a concurrent writer
+// interleaved its two stores between the reader's loads, the XOR check fails
+// and we treat the slot as a miss. False positives are bounded by the 64-bit
+// key collision probability, which is good enough for chess search.
 struct TTEntry {
-	uint64_t key;
-	int16_t  score;
-	uint16_t move;
-	uint8_t  depth;
-	uint8_t  flag;
-	uint16_t _pad;
+	std::atomic<uint64_t> key_xor_data;
+	std::atomic<uint64_t> data;
 };
 static_assert(sizeof(TTEntry) == 16, "TTEntry must be 16 bytes");
 
 static constexpr size_t TT_SIZE = 1u << 20; // ~1M entries == 16 MiB.
-static std::vector<TTEntry> g_tt;
-static std::atomic<bool>    g_tt_ready{ false };
+static std::unique_ptr<TTEntry[]> g_tt;
+static std::atomic<bool>          g_tt_ready{ false };
+
+static inline uint64_t tt_pack(int16_t score, uint16_t move,
+		uint8_t depth, uint8_t flag) {
+	return  uint64_t(uint16_t(score))
+		  | (uint64_t(move)  << 16)
+		  | (uint64_t(depth) << 32)
+		  | (uint64_t(flag)  << 40);
+}
+static inline int16_t  tt_unpack_score(uint64_t d) { return int16_t(uint16_t(d & 0xFFFF)); }
+static inline uint16_t tt_unpack_move (uint64_t d) { return uint16_t((d >> 16) & 0xFFFF); }
+static inline uint8_t  tt_unpack_depth(uint64_t d) { return uint8_t((d >> 32) & 0xFF); }
+static inline uint8_t  tt_unpack_flag (uint64_t d) { return uint8_t((d >> 40) & 0xFF); }
 
 static void ensure_tt() {
 	if (g_tt_ready.load(std::memory_order_acquire)) {
@@ -75,7 +100,11 @@ static void ensure_tt() {
 		while (!g_tt_ready.load(std::memory_order_acquire)) { /* spin briefly */ }
 		return;
 	}
-	g_tt.assign(TT_SIZE, TTEntry{});
+	g_tt = std::unique_ptr<TTEntry[]>(new TTEntry[TT_SIZE]);
+	for (size_t i = 0; i < TT_SIZE; ++i) {
+		g_tt[i].key_xor_data.store(0, std::memory_order_relaxed);
+		g_tt[i].data.store(0, std::memory_order_relaxed);
+	}
 	g_tt_ready.store(true, std::memory_order_release);
 }
 
@@ -321,18 +350,23 @@ static int negamax(SearchState &s, SearchContext &ctx,
 
 	++ctx.nodes;
 
-	// ---- Transposition table probe ----
+	// ---- Transposition table probe (lockless XOR-key integrity check) ----
 	const uint64_t key = s.zobrist;
 	TTEntry &slot = g_tt[tt_index(key)];
-	TTEntry probe = slot; // Single 16-byte copy; tolerate torn reads.
+	uint64_t probe_kxd = slot.key_xor_data.load(std::memory_order_relaxed);
+	uint64_t probe_data = slot.data.load(std::memory_order_relaxed);
 	Move tt_move = MOVE_NONE;
-	if (probe.flag != TT_EMPTY && probe.key == key) {
-		tt_move = Move(probe.move);
-		if (!is_root && !is_pv && probe.depth >= depth) {
-			int tt_score = score_from_tt(probe.score, ply);
-			if (probe.flag == TT_EXACT) return tt_score;
-			if (probe.flag == TT_LOWER && tt_score >= beta)  return tt_score;
-			if (probe.flag == TT_UPPER && tt_score <= alpha) return tt_score;
+	const bool tt_hit = (probe_kxd ^ probe_data) == key && probe_data != 0;
+	if (tt_hit) {
+		uint8_t  probe_flag  = tt_unpack_flag(probe_data);
+		uint8_t  probe_depth = tt_unpack_depth(probe_data);
+		int16_t  probe_score = tt_unpack_score(probe_data);
+		tt_move = Move(tt_unpack_move(probe_data));
+		if (!is_root && !is_pv && probe_depth >= depth && probe_flag != TT_EMPTY) {
+			int tt_score = score_from_tt(probe_score, ply);
+			if (probe_flag == TT_EXACT) return tt_score;
+			if (probe_flag == TT_LOWER && tt_score >= beta)  return tt_score;
+			if (probe_flag == TT_UPPER && tt_score <= alpha) return tt_score;
 		}
 	}
 
@@ -475,15 +509,17 @@ static int negamax(SearchState &s, SearchContext &ctx,
 		return in_check ? (-MATE_SCORE + ply) : DRAW_SCORE;
 	}
 
-	// ---- TT store ----
-	TTEntry store;
-	store.key   = key;
-	store.score = score_to_tt(best, ply);
-	store.move  = best_move.data;
-	store.depth = uint8_t(depth < 0 ? 0 : (depth > 255 ? 255 : depth));
-	store.flag  = (flag == TT_UPPER && best > orig_alpha) ? TT_EXACT : flag;
-	store._pad  = 0;
-	slot = store;
+	// ---- TT store (lockless XOR-key integrity write) ----
+	// Order matters: stamp `key_xor_data` to an inconsistent value FIRST so a
+	// concurrent reader who races between our two stores will fail the XOR
+	// check and treat the slot as a miss rather than read a torn entry.
+	uint8_t store_flag  = (flag == TT_UPPER && best > orig_alpha)
+			? uint8_t(TT_EXACT) : flag;
+	uint8_t store_depth = uint8_t(depth < 0 ? 0 : (depth > 255 ? 255 : depth));
+	uint64_t store_data = tt_pack(score_to_tt(best, ply), best_move.data,
+			store_depth, store_flag);
+	slot.key_xor_data.store(key ^ store_data, std::memory_order_relaxed);
+	slot.data.store(store_data, std::memory_order_relaxed);
 
 	if (is_root) {
 		ctx.best_move_root  = best_move;
@@ -610,6 +646,7 @@ static void search_root(SearchState &state, SearchContext &ctx,
 static int classify_move_type(const SearchState &before, Move m, uint8_t captured) {
 	MoveFlag fl = m.flag();
 	if (fl == MF_CASTLING) {
+		// In LERF, kingside castle target file is g (6), queenside is c (2).
 		int to_file = file_of(m.to());
 		return (to_file == 6) ? 3 /* CASTLING_KINGSIDE */ : 4 /* CASTLING_QUEENSIDE */;
 	}
@@ -636,10 +673,14 @@ static ::godot::Dictionary serialize_move(const SearchState &before, Move m,
 	uint8_t captured = captured_piece_type(before, m);
 	int piece_color = before.side_to_move;
 
+	// Mirror file back to GDScript's convention (col 0 = h-file).
+	int from_col_godot = 7 - file_of(from);
+	int to_col_godot   = 7 - file_of(to);
+
 	d["ok"]            = true;
-	d["from_col"]      = file_of(from);
+	d["from_col"]      = from_col_godot;
 	d["from_row"]      = rank_of(from);
-	d["to_col"]        = file_of(to);
+	d["to_col"]        = to_col_godot;
 	d["to_row"]        = rank_of(to);
 	d["move_type"]     = classify_move_type(before, m, captured);
 	d["piece_type"]    = (moved < PT_NONE) ? INTERNAL_TO_GODOT_PT[moved] : 0;
@@ -661,6 +702,52 @@ static ::godot::Dictionary serialize_move(const SearchState &before, Move m,
 // ===========================================================================
 // Position parsing
 // ===========================================================================
+
+// Bit layout we expect: bit0 = W-K, bit1 = W-Q, bit2 = B-K, bit3 = B-Q.
+// Mirrors the GDScript side (chess_board_state.gd) and C++ CR_* constants.
+static int parse_castling_rights(const ::godot::Variant &v) {
+	using namespace ::godot;
+	switch (v.get_type()) {
+		case Variant::INT:
+			return int(int64_t(v)) & 0xF;
+		case Variant::BOOL:
+			return bool(v) ? 0xF : 0;
+		case Variant::STRING: {
+			String s = v;
+			int mask = 0;
+			if (s.find("K") >= 0) mask |= 1; // White king-side
+			if (s.find("Q") >= 0) mask |= 2; // White queen-side
+			if (s.find("k") >= 0) mask |= 4; // Black king-side
+			if (s.find("q") >= 0) mask |= 8; // Black queen-side
+			return mask;
+		}
+		case Variant::ARRAY: {
+			Array a = v;
+			int mask = 0;
+			int n = a.size();
+			if (n > 4) n = 4;
+			for (int i = 0; i < n; ++i) {
+				Variant elem = a[i];
+				bool b = (elem.get_type() == Variant::BOOL) ? bool(elem)
+						: (elem.get_type() == Variant::INT)  ? (int64_t(elem) != 0)
+						: false;
+				if (b) mask |= (1 << i);
+			}
+			return mask;
+		}
+		case Variant::PACKED_BYTE_ARRAY: {
+			PackedByteArray a = v;
+			int mask = 0;
+			int n = a.size();
+			if (n > 4) n = 4;
+			for (int i = 0; i < n; ++i) if (a[i]) mask |= (1 << i);
+			return mask;
+		}
+		default:
+			return 0;
+	}
+}
+
 static bool load_state_from_dict(const ::godot::Dictionary &position,
 		SearchState &out) {
 	using namespace ::godot;
@@ -674,21 +761,68 @@ static bool load_state_from_dict(const ::godot::Dictionary &position,
 		PackedInt32Array arr = board_var;
 		int n = arr.size();
 		if (n > 64) n = 64;
-		for (int i = 0; i < n; ++i) board[i] = arr[i];
+		// GDScript board is file-mirrored relative to standard notation:
+		//   col 0 = h-file, col 7 = a-file (king sits on col 3 = e-file from h).
+		// We flip the file when copying into our LERF buffer (a1 = 0).
+		for (int i = 0; i < n; ++i) {
+			int rank = i / 8;
+			int col  = i % 8;
+			int lerf_sq = rank * 8 + (7 - col);
+			board[lerf_sq] = arr[i];
+		}
 	} else if (board_var.get_type() == Variant::ARRAY) {
 		Array arr = board_var;
 		int n = arr.size();
 		if (n > 64) n = 64;
-		for (int i = 0; i < n; ++i) board[i] = int32_t(int(arr[i]));
+		for (int i = 0; i < n; ++i) {
+			int rank = i / 8;
+			int col  = i % 8;
+			int lerf_sq = rank * 8 + (7 - col);
+			board[lerf_sq] = int32_t(int(arr[i]));
+		}
 	} else {
 		return false;
 	}
 
 	int side     = int(position.get("active_color", 0));
-	int castling = int(position.get("castling_rights", 0));
+	int castling = parse_castling_rights(position.get("castling_rights", 0));
 	int ep_idx   = int(position.get("en_passant_index", -1));
 	int halfm    = int(position.get("halfmove_clock", 0));
 	int fullm    = int(position.get("fullmove_number", 1));
+
+	// Mirror the EP square's file too so it lines up with the LERF board.
+	if (ep_idx >= 0 && ep_idx < 64) {
+		ep_idx = (ep_idx / 8) * 8 + (7 - (ep_idx % 8));
+	}
+
+	// One-shot debug dump: prints the raw payload received from GDScript so
+	// you can confirm board orientation (LERF: index = rank*8 + file, a1 = 0)
+	// and the castling mask (bit0=WK, bit1=WQ, bit2=BK, bit3=BQ). Toggle off
+	// by setting the static flag below to true once verified.
+	static bool s_debug_printed = false;
+	if (!s_debug_printed) {
+		s_debug_printed = true;
+		UtilityFunctions::print("[dukes_ai] === position payload debug ===");
+		UtilityFunctions::print("[dukes_ai] castling_rights raw=",
+				position.get("castling_rights", 0),
+				" parsed=0x", String::num_int64(castling, 16),
+				" (WK=", bool(castling & 1),
+				" WQ=", bool(castling & 2),
+				" BK=", bool(castling & 4),
+				" BQ=", bool(castling & 8), ")");
+		UtilityFunctions::print("[dukes_ai] side=", side,
+				" ep_idx=", ep_idx,
+				" halfmove=", halfm,
+				" fullmove=", fullm);
+		for (int r = 7; r >= 0; --r) {
+			String row = "[dukes_ai] rank " + String::num_int64(r + 1) + ":";
+			for (int f = 0; f < 8; ++f) {
+				row += " " + String::num_int64(board[r * 8 + f]);
+			}
+			UtilityFunctions::print(row);
+		}
+		UtilityFunctions::print("[dukes_ai] (expect king code at index 4 (e1) and 60 (e8) at start)");
+	}
 
 	out.load_position(board, side, castling, ep_idx, halfm, fullm);
 	return true;
