@@ -33,7 +33,7 @@ jobs:
 
       - name: Import project assets
         run: |
-          godot --headless --path duke-s-gambit --editor --quit || true
+          godot --headless --path duke-s-gambit --import
 
       - name: Export Linux build
         run: |
