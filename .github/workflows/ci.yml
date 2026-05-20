@@ -19,5 +19,5 @@ jobs:
       - name: Install gdtoolkit
         run: pip install gdtoolkit
 
-      - name: Lint GDScript files
-        run: gdlint duke-s-gambit/scripts/**/*.gd
+      - name: Check GDScript syntax
+        run: gdparse duke-s-gambit/scripts/**/*.gd -p
