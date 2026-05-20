@@ -25,21 +25,22 @@ jobs:
 
       - name: Set up Godot
         run: |
-          wget -q https://github.com/godotengine/godot/releases/download/4.2.2-stable/Godot_v4.2.2-stable_linux.x86_64.zip
-          unzip -q Godot_v4.2.2-stable_linux.x86_64.zip
-          sudo mv Godot_v4.2.2-stable_linux.x86_64 /usr/local/bin/godot
-          wget -q https://github.com/godotengine/godot/releases/download/4.2.2-stable/Godot_v4.2.2-stable_export_templates.tpz
-          mkdir -p ~/.local/share/godot/export_templates/4.2.2.stable
-          unzip -q Godot_v4.2.2-stable_export_templates.tpz -d /tmp/godot_templates
-          mv /tmp/godot_templates/templates/* ~/.local/share/godot/export_templates/4.2.2.stable/
+          wget -q https://github.com/godotengine/godot/releases/download/4.6.2-stable/Godot_v4.6.2-stable_linux.x86_64.zip
+          unzip -q Godot_v4.6.2-stable_linux.x86_64.zip
+          sudo mv Godot_v4.6.2-stable_linux.x86_64 /usr/local/bin/godot
+          wget -q https://github.com/godotengine/godot/releases/download/4.6.2-stable/Godot_v4.6.2-stable_export_templates.tpz
+          mkdir -p ~/.local/share/godot/export_templates/4.6.2.stable
+          unzip -q Godot_v4.6.2-stable_export_templates.tpz -d /tmp/godot_templates
+          mv /tmp/godot_templates/templates/* ~/.local/share/godot/export_templates/4.6.2.stable/
 
       - name: Export for all platforms
         run: |
+          mkdir -p duke-s-gambit/.godot/editor duke-s-gambit/.godot/imported
           mkdir -p export
-          godot --headless --export-release "Windows Desktop" export/game-windows.exe
-          godot --headless --export-release "Linux/X11" export/game-linux.x86_64
-          godot --headless --export-release "macOS" export/game-macos.zip
-          godot --headless --export-release "Android" export/game-android.apk
+          godot --headless --path duke-s-gambit --export-release "Windows Desktop" ../export/game-windows.exe
+          godot --headless --path duke-s-gambit --export-release "Linux/X11" ../export/game-linux.x86_64
+          godot --headless --path duke-s-gambit --export-release "macOS" ../export/game-macos.zip
+          godot --headless --path duke-s-gambit --export-release "Android" ../export/game-android.apk
 
       - name: Upload exported builds
         uses: actions/upload-artifact@v4
