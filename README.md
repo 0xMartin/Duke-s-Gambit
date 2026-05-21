@@ -21,7 +21,7 @@
 
 - [Download & play](#-download--play)
 - [Controls](#-controls)
-- [Combat in action](#-combat-in-action)
+- [Combat in action](#️-combat-in-action)
 - [AI opponent](#-ai-opponent)
 - [Online multiplayer](#-online-multiplayer)
 - [Assets & credits](#-assets--credits)
