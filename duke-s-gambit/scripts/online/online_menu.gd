@@ -11,6 +11,22 @@ const NICKNAME_RE := "^[A-Za-z0-9_.\\- ]{1,15}$"
 const _PREFS_PATH := "user://online_prefs.cfg"
 const _PREFS_SECTION := "connection"
 
+# Status label colors: neutral (in-progress) vs error.
+const _STATUS_COLOR_INFO  := Color(0.85, 0.85, 0.85, 1.0)
+const _STATUS_COLOR_ERROR := Color(0.95, 0.30, 0.30, 1.0)
+
+static func _set_status_info(label: Label, msg: String) -> void:
+	if label == null:
+		return
+	label.add_theme_color_override("font_color", _STATUS_COLOR_INFO)
+	label.text = msg
+
+static func _set_status_error(label: Label, msg: String) -> void:
+	if label == null:
+		return
+	label.add_theme_color_override("font_color", _STATUS_COLOR_ERROR)
+	label.text = msg
+
 # Panels (from scene)
 var connect_panel:  VBoxContainer = null
 var lobby_panel:    VBoxContainer = null
@@ -204,17 +220,16 @@ func _on_connect_pressed() -> void:
 	var nick: String = _nick_input.text.strip_edges()
 	var url: String  = _url_input.text.strip_edges()
 	if not _validate_nickname(nick):
-		_connect_status.text = "Nickname must be 1–15 chars (letters, digits, _ . - space)."
+		_set_status_error(_connect_status, "Nickname must be 1–15 chars (letters, digits, _ . - space).")
 		return
 	if url.is_empty():
-		_connect_status.text = "URL must not be empty."
+		_set_status_error(_connect_status, "URL must not be empty.")
 		return
-	_connect_status.add_theme_color_override("font_color", Color(0.85, 0.85, 0.85, 1.0))
-	_connect_status.text = "Connecting..."
+	_set_status_info(_connect_status, "Connecting...")
 	_connect_btn.disabled = true
 	var oc := _online_client()
 	if oc == null:
-		_connect_status.text = "OnlineClient autoload missing."
+		_set_status_error(_connect_status, "OnlineClient autoload missing.")
 		_connect_btn.disabled = false
 		return
 	oc.connect_to_server(url, nick)
@@ -222,7 +237,7 @@ func _on_connect_pressed() -> void:
 func _on_create_confirm() -> void:
 	var nm: String = _room_name_input.text.strip_edges()
 	if nm.length() < 1:
-		_create_status.text = "Room name is required."
+		_set_status_error(_create_status, "Room name is required.")
 		return
 	var sel := _room_color_opt.get_selected_id()
 	var color := "random"
@@ -234,14 +249,14 @@ func _on_create_confirm() -> void:
 	var oc := _online_client()
 	if oc == null:
 		return
-	_create_status.text = "Creating..."
+	_set_status_info(_create_status, "Creating...")
 	oc.send_create_room(nm, color, time_ms, _room_password_input.text)
 
 func _on_join_confirm() -> void:
 	var oc := _online_client()
 	if oc == null or _join_room_id == "":
 		return
-	_join_status.text = "Joining..."
+	_set_status_info(_join_status, "Joining...")
 	oc.send_join_room(_join_room_id, _join_password_input.text)
 
 func _on_leave_room() -> void:
@@ -268,8 +283,7 @@ func _on_state_changed(_new_state: int) -> void:
 	pass
 
 func _on_connection_error(msg: String) -> void:
-	_connect_status.add_theme_color_override("font_color", Color(0.87, 0.0, 0.45, 1.0))
-	_connect_status.text = msg
+	_set_status_error(_connect_status, msg)
 	_connect_btn.disabled = false
 	if _menu != null and _menu.has_method("is_online_panel_active"):
 		if _menu.call("is_online_panel_active"):
@@ -395,10 +409,10 @@ func _show_wait_for(room: Dictionary) -> void:
 	if _am_host:
 		_wait_start_btn.visible = true
 		_wait_start_btn.disabled = not both_in
-		_wait_status.text = "Waiting for opponent..." if not both_in else "Both players ready — press Start to begin."
+		_set_status_info(_wait_status, "Waiting for opponent..." if not both_in else "Both players ready — press Start to begin.")
 	else:
 		_wait_start_btn.visible = false
-		_wait_status.text = "Waiting for opponent..." if not both_in else "Waiting for host to start the game..."
+		_set_status_info(_wait_status, "Waiting for opponent..." if not both_in else "Waiting for host to start the game...")
 	_show_panel(wait_panel)
 
 func _on_start_game_pressed() -> void:
@@ -406,7 +420,7 @@ func _on_start_game_pressed() -> void:
 	if oc == null:
 		return
 	_wait_start_btn.disabled = true
-	_wait_status.text = "Starting game..."
+	_set_status_info(_wait_status, "Starting game...")
 	oc.send_start_game()
 
 func _on_room_deleted(_rid: String, reason: String) -> void:
@@ -425,11 +439,11 @@ func _on_game_starting(payload: Dictionary) -> void:
 func _on_server_error(code: String, msg: String) -> void:
 	var text := "[%s] %s" % [code, msg]
 	if create_panel.visible:
-		_create_status.text = text
+		_set_status_error(_create_status, text)
 	elif join_panel.visible:
-		_join_status.text = text
+		_set_status_error(_join_status, text)
 	elif connect_panel.visible:
-		_connect_status.text = text
+		_set_status_error(_connect_status, text)
 		if msg == "nickname already in use":
 			_nick_input.text_changed.connect(
 				func(_t: String): _connect_btn.disabled = false, CONNECT_ONE_SHOT)

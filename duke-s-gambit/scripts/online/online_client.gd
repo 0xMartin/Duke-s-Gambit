@@ -36,7 +36,7 @@ signal server_error(code: String, message: String)
 
 # ── Configuration / state ──────────────────────────────────────────────────
 const PROTOCOL_VERSION := 1
-const GAME_VERSION := "1.0.0"
+var GAME_VERSION: String = str(ProjectSettings.get_setting("application/config/version", "0.0.0"))
 const MOVE_MAX_LEN := 6
 
 var _state: int = State.DISCONNECTED
@@ -182,7 +182,7 @@ func connect_to_server(url: String, nickname: String) -> void:
 
 	var ok := _peer.connect_to_url(_url, tls_options)
 	if ok != OK:
-		emit_signal("connection_error", "Connection failed: code %d" % ok)
+		emit_signal("connection_error", "Could not start connection to the server. Please check the server address and try again.")
 		_set_state(State.DISCONNECTED)
 		return
 	_set_state(State.CONNECTING)
@@ -275,11 +275,20 @@ func _process(_delta: float) -> void:
 			if was_state != State.DISCONNECTED:
 				var msg: String
 				if code == -1:
-					msg = "TLS error -1 | %s | %s" % [_tls_mode, _diag]
+					if was_state == State.CONNECTING:
+						msg = "Could not reach the server. Please check your internet connection or try again later."
+					else:
+						msg = "Connection to the server was lost. Please try again."
+				elif code == 1000:
+					msg = "Disconnected from server."
+				elif code == 1006:
+					msg = "Connection to the server was interrupted."
+				elif code == 1008 or code == 1011:
+					msg = "Server refused the connection%s." % (": " + reason if reason != "" else "")
 				elif code >= 0:
-					msg = "Disconnected from server (code %d%s)" % [code, ": " + reason if reason != "" else ""]
+					msg = "Disconnected from server%s." % (" (" + reason + ")" if reason != "" else "")
 				else:
-					msg = "Disconnected from server"
+					msg = "Disconnected from server."
 				emit_signal("connection_error", msg)
 		WebSocketPeer.STATE_CONNECTING:
 			pass

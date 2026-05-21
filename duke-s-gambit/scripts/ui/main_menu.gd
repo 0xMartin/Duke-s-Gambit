@@ -59,6 +59,7 @@ const _TITLE_VERTICAL_PADDING := 8.0
 func _ready() -> void:
 	_save = get_node("/root/SaveManager")
 	MusicManager.play_menu_music()
+	_apply_version_label()
 	_main_panel.visible = true
 	_setup_signals()
 	_populate_time_options(_pvp_time_opt)
@@ -75,6 +76,15 @@ func _ready() -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_RESIZED:
 		_fit_title_font_size()
+
+## Update the bottom-left credits label with the version from project settings,
+## so it stays in sync with application/config/version.
+func _apply_version_label() -> void:
+	var lbl := get_node_or_null("Version") as Label
+	if lbl == null:
+		return
+	var v := str(ProjectSettings.get_setting("application/config/version", "0.0.0"))
+	lbl.text = "Created by: 0xM4R71N  |  Version: %s" % v
 
 func _fit_title_font_size() -> void:
 	if _title_label == null:

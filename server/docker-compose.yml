@@ -23,7 +23,7 @@ services:
       # Optional: minimum required client game version (e.g. "1.2.0").
       # Empty/unset disables the check. Outdated clients receive an
       # `outdated_client` error during hello.
-      DUKE_MIN_CLIENT_VERSION: "1.0.0"
+      DUKE_MIN_CLIENT_VERSION: "1.0.1"
     volumes:
       - duke-certs:/data/certs
 
