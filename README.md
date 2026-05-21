@@ -2,7 +2,7 @@
 
 <div align="center">
 
-# Duke's Gambit: Battle for Java Code
+# Duke's Gambit
 
 [![Version](https://img.shields.io/badge/version-1.0.1-success)](duke-s-gambit/project.godot)
 [![Godot 4](https://img.shields.io/badge/Godot-4.6-478CBF?logo=godotengine&logoColor=white)](https://godotengine.org/)
