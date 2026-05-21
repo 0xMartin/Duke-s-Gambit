@@ -4,9 +4,6 @@ services:
     image: dukes-gambit-server:latest
     container_name: dukes-gambit-server
     restart: unless-stopped
-    env_file:
-      - path: .env
-        required: false
     ports:
       - "8765:8765"
     environment:
@@ -20,7 +17,7 @@ services:
       DUKE_SESSION_SECRET: ""
       # Max number of rooms and clients (DoS guard).
       DUKE_MAX_ROOMS: "256"
-      DUKE_MAX_CLIENTS: "500"
+      DUKE_MAX_CLIENTS: "600"
     volumes:
       - duke-certs:/data/certs
 
