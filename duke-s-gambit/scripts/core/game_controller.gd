@@ -366,6 +366,9 @@ func _intro_spawn_side(color: int) -> void:
 		await get_tree().create_timer(_INTRO_PIECE_INTERVAL - _INTRO_VFX_PIECE_DELAY).timeout
 
 func _spawn_intro_vfx(world_pos: Vector3) -> void:
+	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
+	if cam_cfg != null and cam_cfg.get("vfx_enabled") == false:
+		return
 	var vfx: Node3D = _PROMO_VFX_IMPACT_SCENE.instantiate() as Node3D
 	get_tree().root.add_child(vfx)
 	vfx.global_position = world_pos
@@ -992,16 +995,19 @@ func _swap_promoted_piece(old_piece: BasePiece, mv: ChessMove) -> void:
 
 func _spawn_promotion_impact(world_pos: Vector3) -> void:
 	# Same effect as death impact; scaled up by 20% for promotion emphasis.
-	var vfx: Node3D = _PROMO_VFX_IMPACT_SCENE.instantiate() as Node3D
-	get_tree().root.add_child(vfx)
-	vfx.global_position = world_pos + Vector3(0, 0.5, 0)
-	vfx.scale = vfx.scale * 1.2
-	vfx.set("one_shot", true)
-	if vfx.has_method("play"):
-		vfx.call("play")
-	get_tree().create_timer(4.0).timeout.connect(func() -> void:
-		if is_instance_valid(vfx):
-			vfx.queue_free())
+	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
+	var vfx_on: bool = cam_cfg == null or cam_cfg.get("vfx_enabled") != false
+	if vfx_on:
+		var vfx: Node3D = _PROMO_VFX_IMPACT_SCENE.instantiate() as Node3D
+		get_tree().root.add_child(vfx)
+		vfx.global_position = world_pos + Vector3(0, 0.5, 0)
+		vfx.scale = vfx.scale * 1.2
+		vfx.set("one_shot", true)
+		if vfx.has_method("play"):
+			vfx.call("play")
+		get_tree().create_timer(4.0).timeout.connect(func() -> void:
+			if is_instance_valid(vfx):
+				vfx.queue_free())
 
 	# Same spell SFX as death impact; root-level so it survives piece swap.
 	var tmp := AudioStreamPlayer.new()

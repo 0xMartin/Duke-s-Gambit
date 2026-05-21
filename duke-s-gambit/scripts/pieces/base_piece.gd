@@ -236,7 +236,7 @@ func _on_attack_hit() -> void:
 	hit_tmp.bus = "SFX"
 	get_tree().root.add_child(hit_tmp)
 	hit_tmp.stream    = _SFX_HIT
-	hit_tmp.volume_db = 10.0
+	hit_tmp.volume_db = 7.5
 	hit_tmp.finished.connect(hit_tmp.queue_free)
 	hit_tmp.play()
 	# Spawn hit flash VFX at the target's position
@@ -523,7 +523,7 @@ func _start_attack() -> void:
 	_play(anim_attack)
 	if piece_type != ChessEnums.PieceType.KNIGHT and _sfx != null:
 		_sfx.stream = _SFX_SWORD
-		_sfx.volume_db = 1.0
+		_sfx.volume_db = -1.5
 		_sfx.play()
 	# Trail start
 	await get_tree().create_timer(attack_trail_start).timeout
@@ -632,6 +632,9 @@ func _spawn_death_particles() -> void:
 ## Instantiate a VFX scene into the root scene so its global_transform is unaffected
 ## by any parent node, then auto-free it after 4 seconds.
 func _spawn_vfx(vfx_scene: PackedScene, world_pos: Vector3) -> void:
+	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
+	if cam_cfg != null and cam_cfg.get("vfx_enabled") == false:
+		return
 	var vfx: Node3D = vfx_scene.instantiate() as Node3D
 	get_tree().root.add_child(vfx)
 	vfx.global_position = world_pos

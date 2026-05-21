@@ -550,6 +550,22 @@ layout_mode = 2
 theme = ExtResource("22_svtp6")
 button_pressed = true
 
+[node name="VFXRow" type="HBoxContainer" parent="MainPanel/SettingsVBox"]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="VFXLabel" type="Label" parent="MainPanel/SettingsVBox/VFXRow"]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("16_a8gd2")
+text = "Visual effects (VFX)"
+
+[node name="VFXCheck" type="CheckButton" parent="MainPanel/SettingsVBox/VFXRow"]
+layout_mode = 2
+theme = ExtResource("22_svtp6")
+button_pressed = true
+
 [node name="PanSensRow" type="HBoxContainer" parent="MainPanel/SettingsVBox" unique_id=1531540557]
 layout_mode = 2
 theme_override_constants/separation = 40
