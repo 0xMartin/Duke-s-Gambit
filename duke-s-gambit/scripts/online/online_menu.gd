@@ -439,10 +439,9 @@ func _on_server_error(code: String, msg: String) -> void:
 
 # ── Helpers ────────────────────────────────────────────────────────────────
 func _fmt_count(online: int, rooms: int) -> String:
-	var base := "%d players online · %d rooms" % [online, rooms]
-	if _max_clients > 0:
-		base += " (max %d)" % _max_clients
-	return base
+	var players_str := "%d players online" % online if _max_clients <= 0 \
+		else "%d / %d players online" % [online, _max_clients]
+	return "%s · %d rooms" % [players_str, rooms]
 
 func _show_panel(panel: Control) -> void:
 	if _menu != null and _menu.has_method("show_online_panel"):
