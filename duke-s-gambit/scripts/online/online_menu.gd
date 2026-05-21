@@ -430,6 +430,14 @@ func _on_server_error(code: String, msg: String) -> void:
 		_join_status.text = text
 	elif connect_panel.visible:
 		_connect_status.text = text
+		if msg == "nickname already in use":
+			_nick_input.text_changed.connect(
+				func(_t: String): _connect_btn.disabled = false, CONNECT_ONE_SHOT)
+		elif msg == "already connected from this device":
+			_url_input.text_changed.connect(
+				func(_t: String): _connect_btn.disabled = false, CONNECT_ONE_SHOT)
+		else:
+			_connect_btn.disabled = false
 	elif wait_panel.visible:
 		_wait_status.add_theme_color_override("font_color", Color(0.87, 0.0, 0.45, 1.0))
 		_wait_status.text = text

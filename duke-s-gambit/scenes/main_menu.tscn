@@ -610,7 +610,6 @@ theme = ExtResource("12_flqon")
 text = "Back"
 
 [node name="OnlineConnectVBox" type="VBoxContainer" parent="MainPanel" unique_id=2136435936]
-visible = false
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -676,6 +675,7 @@ theme = ExtResource("12_flqon")
 text = "Back"
 
 [node name="OnlineLobbyVBox" type="VBoxContainer" parent="MainPanel" unique_id=1578426827]
+visible = false
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
