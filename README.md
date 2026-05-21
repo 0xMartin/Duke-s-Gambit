@@ -10,6 +10,9 @@
 [![Docker](https://img.shields.io/badge/docker-ready-2496ED?logo=docker&logoColor=white)](server/docker-compose.yml)
 [![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-lightgrey?logo=creativecommons&logoColor=white)](LICENSE)
 
+[![Build Native AI](https://github.com/0xMartin/Duke-s-Gambit/actions/workflows/build-native.yml/badge.svg)](https://github.com/0xMartin/Duke-s-Gambit/actions/workflows/build-native.yml)
+[![Lint](https://github.com/0xMartin/Duke-s-Gambit/actions/workflows/ci.yml/badge.svg)](https://github.com/0xMartin/Duke-s-Gambit/actions/workflows/ci.yml)
+
 **A 3D chess game with animated piece duels, a native C++ AI, and online multiplayer — built in Godot 4.**
 
 </div>
