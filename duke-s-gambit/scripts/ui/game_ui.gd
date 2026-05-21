@@ -24,6 +24,12 @@ var _pending_promo_sq: Vector2i = Vector2i(-1, -1)
 var _pending_promo_color: int = 0
 var _status_tween: Tween = null
 
+# Full-screen overlay that absorbs mouse/touch input while a modal dialog is
+# open. Game board picking and camera orbit both use _unhandled_input, so a
+# Control with MOUSE_FILTER_STOP layered above them blocks all interaction.
+var _modal_blocker: Control = null
+var _modal_panels: Array[Control] = []
+
 func _ready() -> void:
 	$GameOverPanel/VBox/ContentCenter/ContentVBox/ButtonsRow/BackButton.pressed.connect(_on_back_pressed)
 	$GameOverPanel/VBox/ContentCenter/ContentVBox/ButtonsRow/ExportButton.pressed.connect(_on_export_pressed)
@@ -39,6 +45,8 @@ func _ready() -> void:
 	if _disconnect_btn != null:
 		_disconnect_btn.pressed.connect(_on_disconnect_pressed)
 
+	_setup_modal_blocker()
+
 	_game.promotion_needed.connect(_on_promotion_needed)
 	_game.game_over.connect(func(_w: int, _r: int) -> void:
 		if _surrender_btn != null:
@@ -53,6 +61,41 @@ func _ready() -> void:
 	var _oc := get_node_or_null("/root/OnlineClient")
 	if _oc != null and _oc.has_signal("player_kicked"):
 		_oc.player_kicked.connect(_on_player_kicked)
+
+# ── Modal input blocker ────────────────────────────────────────────────────
+func _setup_modal_blocker() -> void:
+	var blocker := Control.new()
+	blocker.name = "ModalBlocker"
+	blocker.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	blocker.mouse_filter = Control.MOUSE_FILTER_STOP
+	blocker.visible = false
+	add_child(blocker)
+	_modal_blocker = blocker
+
+	var game_over_panel := get_node_or_null("GameOverPanel") as Control
+	_modal_panels = [_promo_panel, _surrender_panel, _kicked_panel]
+	if game_over_panel != null:
+		_modal_panels.append(game_over_panel)
+	for p in _modal_panels:
+		if p == null:
+			continue
+		p.visibility_changed.connect(_on_modal_visibility_changed.bind(p))
+
+func _on_modal_visibility_changed(panel: Control) -> void:
+	if _modal_blocker == null:
+		return
+	if panel.visible:
+		# Keep blocker just under the panel so input and rendering stay layered:
+		# blocker absorbs everything below, panel still receives clicks.
+		move_child(_modal_blocker, -1)
+		panel.move_to_front()
+	_modal_blocker.visible = _any_modal_visible()
+
+func _any_modal_visible() -> bool:
+	for p in _modal_panels:
+		if p != null and p.visible:
+			return true
+	return false
 
 # ── Status stack (mutually exclusive boxes at top-centre of HUD) ───────────
 # Only one of {SurrenderButton, AIThinkingBox, NETPlayerTurnBox, NETPlayerJoinBox}
