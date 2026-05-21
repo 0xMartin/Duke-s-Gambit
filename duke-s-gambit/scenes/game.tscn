@@ -1007,6 +1007,7 @@ alignment = 1
 
 [node name="TitleLabel" type="Label" parent="HUD/KickedBannedPanel/VBox" unique_id=555000003]
 layout_mode = 2
+theme = ExtResource("14_bhx41")
 theme_override_font_sizes/font_size = 32
 text = "You were kicked"
 horizontal_alignment = 1
@@ -1014,8 +1015,8 @@ vertical_alignment = 1
 
 [node name="ReasonLabel" type="Label" parent="HUD/KickedBannedPanel/VBox" unique_id=555000004]
 layout_mode = 2
+theme = ExtResource("14_pl11u")
 theme_override_font_sizes/font_size = 22
-text = ""
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
