@@ -81,6 +81,18 @@ You can play Duke's Gambit against other players over the network. The game ship
 > [!NOTE]
 > The server is written in **Python 3.12** using `asyncio` + `websockets` and validates every move with `python-chess`. No database, no login — players just pick a nickname and get a signed session token.
 
+### Public server
+
+A public server is available — no setup required, just launch the game and connect:
+
+| | |
+|---|---|
+| **URL** | `duke.sytes.net:8765` |
+| **Max players** | 50 |
+
+> [!TIP]
+> In the game, go to **Online → Connect**, enter your nickname and paste the URL above.
+
 ### Run locally
 
 ```bash
