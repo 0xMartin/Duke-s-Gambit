@@ -189,6 +189,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			_azimuth        = _touch_rot_azimuth0 - delta.x * pan_spd
 			_target_azimuth = _azimuth
 			elevation        = clamp(_touch_rot_elevation0 + delta.y * tilt_spd,
+									elevation_min, elevation_max)
 			_target_elevation = elevation
 
 func _begin_pinch() -> void:
