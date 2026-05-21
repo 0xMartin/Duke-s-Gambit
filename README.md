@@ -105,7 +105,7 @@ Download the build for your platform from the GitHub Releases page and run it �
 
 When a piece is captured, it doesn't just disappear. Pieces engage in a brief duel — attack animations play out, the loser staggers and falls to the ground. Every capture tells a story.
 
-**🎬 Gameplay preview (YouTube): ** [Link](https://youtu.be/LBlBCHfjq64)
+**🎬 Gameplay preview (YouTube):** [Link](https://youtu.be/LBlBCHfjq64)
 
 ---
 
