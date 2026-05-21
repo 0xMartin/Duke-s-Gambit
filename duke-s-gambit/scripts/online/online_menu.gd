@@ -200,6 +200,8 @@ func _connect_signals() -> void:
 	oc.room_deleted.connect(_on_room_deleted)
 	oc.game_starting.connect(_on_game_starting)
 	oc.server_error.connect(_on_server_error)
+	if oc.has_signal("player_kicked"):
+		oc.player_kicked.connect(_on_player_kicked)
 
 # ── Button handlers ────────────────────────────────────────────────────────
 func _on_online_pressed() -> void:
@@ -458,6 +460,15 @@ func _on_server_error(code: String, msg: String) -> void:
 	else:
 		if _menu != null and _menu.has_method("show_online_toast"):
 			_menu.call("show_online_toast", text)
+
+func _on_player_kicked(reason: String, is_ban: bool) -> void:
+	var title := "You are banned" if is_ban else "You were kicked"
+	var text := "%s: %s" % [title, reason] if reason != "" else title
+	_set_status_error(_connect_status, text)
+	_connect_btn.disabled = false
+	if _menu != null and _menu.has_method("is_online_panel_active"):
+		if _menu.call("is_online_panel_active"):
+			_show_panel(connect_panel)
 
 # ── Helpers ────────────────────────────────────────────────────────────────
 func _fmt_count(online: int, rooms: int) -> String:

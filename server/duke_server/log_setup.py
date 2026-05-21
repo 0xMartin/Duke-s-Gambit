@@ -56,8 +56,29 @@ class _DailyFileHandler(logging.FileHandler):
 
 # ── Public API ─────────────────────────────────────────────────────────────
 
-def setup_logging(log_level: int, log_dir: str = "logs") -> None:
+class CliLogFilter(logging.Filter):
+    """Logging filter attached to the console handler.
+
+    When *enabled* is False (the default) the console handler produces
+    no output so the admin CLI is not cluttered with log lines.  Use
+    the ``logon`` / ``logoff`` CLI commands to toggle it at runtime.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.enabled: bool = False
+
+    def filter(self, record: logging.LogRecord) -> bool:  # type: ignore[override]
+        return self.enabled
+
+
+def setup_logging(log_level: int, log_dir: str = "logs") -> CliLogFilter:
     """Attach a console handler and a daily file handler to the root logger.
+
+    The console handler starts **disabled** — use the CLI ``logon`` command
+    to enable it.  The file handler is always active.
+
+    Returns the :class:`CliLogFilter` so callers can pass it to the CLI.
 
     Parameters
     ----------
@@ -68,8 +89,11 @@ def setup_logging(log_level: int, log_dir: str = "logs") -> None:
     """
     fmt = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 
+    cli_filter = CliLogFilter()
+
     console = logging.StreamHandler()
     console.setFormatter(fmt)
+    console.addFilter(cli_filter)
 
     daily = _DailyFileHandler(Path(log_dir))
     daily.setFormatter(fmt)
@@ -78,3 +102,5 @@ def setup_logging(log_level: int, log_dir: str = "logs") -> None:
     root.setLevel(log_level)
     root.addHandler(console)
     root.addHandler(daily)
+
+    return cli_filter

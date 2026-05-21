@@ -33,6 +33,7 @@ signal draw_declined()
 signal game_over_received(payload: Dictionary)
 
 signal server_error(code: String, message: String)
+signal player_kicked(reason: String, is_ban: bool)
 
 # ── Configuration / state ──────────────────────────────────────────────────
 const PROTOCOL_VERSION := 1
@@ -363,12 +364,19 @@ func _handle_raw(raw: String) -> void:
 		"game_over":
 			emit_signal("game_over_received", msg)
 		"error":
-			emit_signal("server_error",
-				str(msg.get("code", "")), str(msg.get("message", "")))
+			var err_code: String = str(msg.get("code", ""))
+			var err_msg: String = str(msg.get("message", ""))
+			emit_signal("server_error", err_code, err_msg)
+			if err_code == "banned":
+				emit_signal("player_kicked", err_msg, true)
+				disconnect_from_server()
 		"pong":
 			pass
 		"kicked":
-			emit_signal("connection_error", "Kicked: %s" % msg.get("reason", ""))
+			var kick_reason: String = str(msg.get("reason", ""))
+			var kick_is_ban: bool = bool(msg.get("is_ban", false))
+			emit_signal("player_kicked", kick_reason, kick_is_ban)
+			emit_signal("connection_error", "Kicked: %s" % kick_reason)
 			disconnect_from_server()
 		_:
 			push_warning("OnlineClient: unknown message type '%s'" % mtype)

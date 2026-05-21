@@ -24,31 +24,33 @@ import chess
 
 from .banlist import BanList
 from .lobby import Lobby
+from .log_setup import CliLogFilter
 from .room import ROOM_STATE_PLAYING
 
 
 logger = logging.getLogger(__name__)
 
-_HELP = """\
-┌──────────────────────────────────────────────────────────────────┐
-│             Duke's Gambit server — admin CLI                     │
-├──────────────────────────────────────────────────────────────────┤
-│  status                   Server uptime & stats                  │
-│  who                      List connected players                 │
-│  kick <nick> [reason]     Kick a player by nickname             │
-│  kickip <ip> [reason]     Kick all connections from an IP       │
-│  rooms                    List all active rooms                  │
-│  game <room_id>           Show game state (board, clocks, …)    │
-├──────────────────────────────────────────────────────────────────┤
-│  ban <ip> [nickname]      Ban an IP address                     │
-│  unban <ip>               Remove a ban by IP                    │
-│  unban_nick <nickname>    Remove a ban by nickname              │
-│  bans                     List all banned IPs                   │
-├──────────────────────────────────────────────────────────────────┤
-│  shutdown                 Kick all players and stop the server   │
-│  exit                     Detach CLI (server keeps running)      │
-│  help                     Show this help                         │
-└──────────────────────────────────────────────────────────────────┘"""
+_SEP = "─" * 52
+
+_HELP = f"""\
+Duke's Gambit — admin CLI
+{_SEP}
+  status                 Server uptime & stats
+  who                    List connected players
+  kick <nick> [reason]   Kick a player by nickname
+  kickip <ip> [reason]   Kick all connections from an IP
+  rooms                  List all active rooms
+  game <room_id>         Show game state (board, clocks, ...)
+{_SEP}
+  ban <ip> [nick]        Ban an IP address
+  unban <ip>             Remove a ban by IP
+  unban_nick <nick>      Remove a ban by nickname
+  bans                   List all banned IPs
+{_SEP}
+  logon / logoff         Toggle log output to this console
+  shutdown               Kick all players and stop the server
+  exit                   Detach CLI (server keeps running)
+  help                   Show this help"""
 
 
 # ── Formatting helpers ──────────────────────────────────────────────────────
@@ -208,6 +210,7 @@ async def run_cli(
     shutdown_fn: Callable[[], None],
     start_time: float,
     stats: dict,
+    log_filter: "CliLogFilter | None" = None,
 ) -> None:
     """Background task: read admin commands from stdin until EOF."""
     loop = asyncio.get_event_loop()
@@ -233,6 +236,20 @@ async def run_cli(
         elif cmd == "exit":
             print("CLI detached. Server keeps running.", flush=True)
             break
+
+        elif cmd == "logon":
+            if log_filter is not None:
+                log_filter.enabled = True
+                print("Log output enabled.", flush=True)
+            else:
+                print("Log filter not available.", flush=True)
+
+        elif cmd == "logoff":
+            if log_filter is not None:
+                log_filter.enabled = False
+                print("Log output disabled.", flush=True)
+            else:
+                print("Log filter not available.", flush=True)
 
         elif cmd == "status":
             _cmd_status(lobby, start_time, stats)
@@ -270,6 +287,9 @@ async def run_cli(
             logger.info("BAN        ip=%s nick=%r (via CLI)", ip, nick)
             suffix = f" (nick: {nick!r})" if nick else ""
             print(f"Banned {ip}{suffix}", flush=True)
+            count = await kickip_fn(ip, "You are banned from this server.", is_ban=True)
+            if count:
+                print(f"Kicked {count} active connection(s) from {ip}.", flush=True)
 
         elif cmd == "unban":
             if len(parts) < 2:

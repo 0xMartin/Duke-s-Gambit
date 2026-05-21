@@ -16,6 +16,9 @@ extends Control
 @onready var _net_join_bar: ProgressBar = $NETPlayerJoinBox/NETPlayerJoinVBox/NETPlayerJoinProgress
 @onready var _disconnect_btn: Button = $NETPlayerJoinBox/NETPlayerJoinVBox/DisconnectButton
 @onready var _export_btn: Button = $GameOverPanel/VBox/ContentCenter/ContentVBox/ButtonsRow/ExportButton
+@onready var _kicked_panel: Control = $KickedBannedPanel
+@onready var _kicked_title: Label = $KickedBannedPanel/VBox/TitleLabel
+@onready var _kicked_reason: Label = $KickedBannedPanel/VBox/ReasonLabel
 
 var _pending_promo_sq: Vector2i = Vector2i(-1, -1)
 var _pending_promo_color: int = 0
@@ -32,6 +35,7 @@ func _ready() -> void:
 
 	$SurrenderConfirmPanel/VBox/ButtonHBox/YesButton.pressed.connect(_on_surrender_confirmed)
 	$SurrenderConfirmPanel/VBox/ButtonHBox/NoButton.pressed.connect(func(): _surrender_panel.visible = false)
+	$KickedBannedPanel/VBox/BackButton.pressed.connect(_on_back_pressed)
 	if _disconnect_btn != null:
 		_disconnect_btn.pressed.connect(_on_disconnect_pressed)
 
@@ -45,6 +49,10 @@ func _ready() -> void:
 			_export_btn.visible = _game._chess != null \
 					and not _game._chess.move_history.is_empty()
 	)
+
+	var _oc := get_node_or_null("/root/OnlineClient")
+	if _oc != null and _oc.has_signal("player_kicked"):
+		_oc.player_kicked.connect(_on_player_kicked)
 
 # ── Status stack (mutually exclusive boxes at top-centre of HUD) ───────────
 # Only one of {SurrenderButton, AIThinkingBox, NETPlayerTurnBox, NETPlayerJoinBox}
@@ -112,6 +120,17 @@ func _on_disconnect_pressed() -> void:
 		oc.send_leave_room()
 	hide_status()
 	_on_back_pressed()
+
+func _on_player_kicked(reason: String, is_ban: bool) -> void:
+	if _kicked_panel == null:
+		return
+	_kicked_title.text = "You are banned" if is_ban else "You were kicked"
+	_kicked_reason.text = reason
+	_kicked_panel.visible = true
+	if _surrender_btn != null:
+		_surrender_btn.visible = false
+	_surrender_panel.visible = false
+	hide_status()
 
 func _on_surrender_confirmed() -> void:
 	if _game == null or not _game.can_surrender():

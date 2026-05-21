@@ -57,7 +57,7 @@ from . import protocol as P
 from .banlist import BanList
 from .cli import run_cli
 from .config import ServerConfig
-from .log_setup import setup_logging
+from .log_setup import setup_logging, CliLogFilter
 from .game import BLACK, COLOR_NAMES, WHITE, IllegalMove, NotYourTurn, BadState, color_from_name
 from .lobby import Lobby
 from .room import Room, ROOM_STATE_PLAYING, ROOM_STATE_WAITING, ROOM_STATE_FINISHED
@@ -150,6 +150,7 @@ class Server:
         self.banlist = BanList(config.ban_file)
         self._start_time = time.monotonic()
         self._stop_event = asyncio.Event()
+        self._cli_log_filter: CliLogFilter | None = None
         # Per-room timeout watcher task.
         self._room_watchers: dict[str, asyncio.Task] = {}
         # Per-room reconnect timers.
@@ -211,6 +212,7 @@ class Server:
                 self.stop,
                 self._start_time,
                 self._stats,
+                self._cli_log_filter,
             ))
             await self._stop_event.wait()
         logger.info("Server stopped.")
@@ -1032,7 +1034,7 @@ class Server:
                 return True
         return False
 
-    async def _kick_by_ip(self, ip: str, reason: str) -> int:
+    async def _kick_by_ip(self, ip: str, reason: str, is_ban: bool = False) -> int:
         """Disconnect all connections from *ip*, sending S_KICKED first.
 
         Pass ``ip="*"`` to kick every connected client (used by shutdown).
@@ -1043,7 +1045,7 @@ class Server:
             addr = getattr(conn, "remote_address", None)
             conn_ip = addr[0] if addr else None
             if ip == "*" or conn_ip == ip:
-                await self._send(conn, P.S_KICKED, reason=reason)
+                await self._send(conn, P.S_KICKED, reason=reason, is_ban=is_ban)
                 await _close_conn(conn)
                 count += 1
         return count
@@ -1138,9 +1140,10 @@ def main() -> None:
     """
     config = ServerConfig.from_env()
     log_dir = os.environ.get("DUKE_LOG_DIR", "logs")
-    setup_logging(config.log_level, log_dir=log_dir)
+    cli_filter = setup_logging(config.log_level, log_dir=log_dir)
 
     server = Server(config)
+    server._cli_log_filter = cli_filter
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
