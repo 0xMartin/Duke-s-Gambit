@@ -22,6 +22,10 @@ func _ready() -> void:
 func pan_speed() -> float:
 	return pan_sensitivity * 0.0003        # 5 → 0.0015 (half of original 0.003)
 
+# Horizontal rotation speed for touch (deg/pixel), uses pan_sensitivity scale.
+func pan_rot_speed() -> float:
+	return pan_sensitivity * 0.08          # 5 → 0.40
+
 func tilt_speed() -> float:
 	return tilt_sensitivity * 0.08         # 5 → 0.40
 
