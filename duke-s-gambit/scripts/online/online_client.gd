@@ -267,6 +267,15 @@ func _process(_delta: float) -> void:
 				var raw := _peer.get_packet().get_string_from_utf8()
 				_handle_raw(raw)
 		WebSocketPeer.STATE_CLOSED, WebSocketPeer.STATE_CLOSING:
+			# Drain any buffered messages (e.g. "kicked") before handling the
+			# close, so messages sent just before the server closes the socket
+			# are not silently dropped.
+			while _peer != null and _peer.get_available_packet_count() > 0:
+				var raw := _peer.get_packet().get_string_from_utf8()
+				_handle_raw(raw)
+			# _handle_raw may have called disconnect_from_server() already.
+			if _peer == null:
+				return
 			var was_state := _state
 			set_process(false)
 			var code := _peer.get_close_code() if _peer != null else -1

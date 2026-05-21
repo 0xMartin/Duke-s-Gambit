@@ -130,6 +130,7 @@ class ClientCtx:
     room_id: Optional[str] = None
     machine_id: Optional[str] = None
     in_lobby: bool = False
+    kicked: bool = False
     last_msg_ts: float = field(default_factory=time.monotonic)
     msg_count_window: int = 0
     window_start: float = field(default_factory=time.monotonic)
@@ -966,13 +967,17 @@ class Server:
         if member is None:
             return
         if room.state == ROOM_STATE_PLAYING and room.game is not None and not room.game.game_over:
-            # Mark disconnected and start grace timer.
-            member.conn = None
-            member.disconnected_at = time.monotonic()
-            await self._broadcast_room(room)
-            key = (room.room_id, ctx.nickname or "")
-            self._reconnect_timers[key] = asyncio.create_task(
-                self._reconnect_timeout(room.room_id, ctx.nickname or ""))
+            if ctx.kicked:
+                # Kicked players resign immediately — no reconnect grace.
+                await self._leave_room(ctx, reason="kicked")
+            else:
+                # Mark disconnected and start grace timer.
+                member.conn = None
+                member.disconnected_at = time.monotonic()
+                await self._broadcast_room(room)
+                key = (room.room_id, ctx.nickname or "")
+                self._reconnect_timers[key] = asyncio.create_task(
+                    self._reconnect_timeout(room.room_id, ctx.nickname or ""))
         else:
             # Pre-game / finished: treat as leave.
             await self._leave_room(ctx, reason="disconnect")
@@ -1029,6 +1034,7 @@ class Server:
         for conn in list(self.lobby.all_clients()):
             ctx = getattr(conn, "_duke_ctx", None)
             if ctx and ctx.nickname == nickname:
+                ctx.kicked = True
                 await self._send(conn, P.S_KICKED, reason=reason)
                 await _close_conn(conn)
                 return True
@@ -1045,6 +1051,9 @@ class Server:
             addr = getattr(conn, "remote_address", None)
             conn_ip = addr[0] if addr else None
             if ip == "*" or conn_ip == ip:
+                ctx = getattr(conn, "_duke_ctx", None)
+                if ctx is not None:
+                    ctx.kicked = True
                 await self._send(conn, P.S_KICKED, reason=reason, is_ban=is_ban)
                 await _close_conn(conn)
                 count += 1
