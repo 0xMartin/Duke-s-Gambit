@@ -543,6 +543,8 @@ func _start_turn() -> void:
 	var state  := _chess.get_game_state()
 	var legal  := _chess.get_legal_moves(color)
 	_update_surrender_ui()
+	if _hud != null and _hud.has_method("set_active_color"):
+		_hud.set_active_color(color)
 
 	# Check / checkmate / stalemate
 	if state == ChessEnums.GameState.CHECKMATE:
@@ -1090,6 +1092,8 @@ func _start_defeat_sequence(loser_color: int) -> void:
 
 
 func _show_game_over(winner_color: int, reason: String) -> void:
+	if _hud != null and _hud.has_method("set_active_color"):
+		_hud.set_active_color(-1)
 	var panel := _ui.get_node_or_null("GameOverPanel") as Control
 	if panel == null:
 		return

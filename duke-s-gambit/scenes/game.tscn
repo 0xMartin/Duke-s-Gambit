@@ -7,6 +7,7 @@
 [ext_resource type="Script" uid="uid://bfgfin44nf1d2" path="res://scripts/ui/hud.gd" id="5"]
 [ext_resource type="Theme" uid="uid://b141h52b7443c" path="res://themes/game_panel.tres" id="5_bt5mj"]
 [ext_resource type="Theme" uid="uid://0v4k77luosjx" path="res://themes/player_card.tres" id="5_ir15t"]
+[ext_resource type="Theme" uid="uid://bkpc8m4dvqj0y" path="res://themes/player_card_black.tres" id="5_blkcd"]
 [ext_resource type="Texture2D" uid="uid://bomo6t88iri6d" path="res://assets/textures/skybox.png" id="6"]
 [ext_resource type="Texture2D" uid="uid://bga3yqhdbecjw" path="res://assets/textures/ui/white_king.png" id="6_ssvqc"]
 [ext_resource type="PackedScene" uid="uid://ddoai7gywl243" path="res://assets/word/terrain.blend" id="7"]
@@ -70,17 +71,6 @@ corner_radius_top_left = 100
 corner_radius_top_right = 100
 corner_radius_bottom_right = 100
 corner_radius_bottom_left = 100
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_37s47"]
-content_margin_left = 20.0
-content_margin_top = 0.0
-content_margin_right = 0.0
-content_margin_bottom = 5.0
-bg_color = Color(0.19076231, 0.19076234, 0.19076231, 0.627451)
-border_width_bottom = 10
-border_color = Color(0.050980393, 0.050980393, 0.050980393, 0.78431374)
-corner_radius_bottom_left = 25
-corner_detail = 5
 
 [sub_resource type="StyleBoxFlat" id="HudCaptureBlack"]
 content_margin_left = 4.0
@@ -512,8 +502,7 @@ mouse_filter = 2
 custom_minimum_size = Vector2(0, 130)
 layout_mode = 2
 mouse_filter = 2
-theme = ExtResource("5_ir15t")
-theme_override_styles/panel = SubResource("StyleBoxFlat_37s47")
+theme = ExtResource("5_blkcd")
 
 [node name="MainHBox" type="HBoxContainer" parent="HUD/TopBar/BlackPanel" unique_id=1050871494]
 layout_mode = 2
