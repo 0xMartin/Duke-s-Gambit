@@ -9,14 +9,17 @@ extends Control
 @onready var _surrender_panel: PanelContainer = $SurrenderConfirmPanel
 @onready var _surrender_btn: Button = $SurrenderButton
 @onready var _ai_thinking_box: Control = $AIThinkingBox
-@onready var _ai_thinking_label: Label = $AIThinkingBox/AIThinkingVBox/AIThinkingLabel
 @onready var _ai_status_bar: ProgressBar = $AIThinkingBox/AIThinkingVBox/AIThinkingProgress
-@onready var _disconnect_btn: Button = $AIThinkingBox/AIThinkingVBox/DisconnectButton
+@onready var _net_turn_box: Control = $NETPlayerTurnBox
+@onready var _net_turn_bar: ProgressBar = $NETPlayerTurnBox/NETPlayerTurnVBox/NETPlayerTurnProgress
+@onready var _net_join_box: Control = $NETPlayerJoinBox
+@onready var _net_join_bar: ProgressBar = $NETPlayerJoinBox/NETPlayerJoinVBox/NETPlayerJoinProgress
+@onready var _disconnect_btn: Button = $NETPlayerJoinBox/NETPlayerJoinVBox/DisconnectButton
 @onready var _export_btn: Button = $GameOverPanel/VBox/ContentCenter/ContentVBox/ButtonsRow/ExportButton
 
 var _pending_promo_sq: Vector2i = Vector2i(-1, -1)
 var _pending_promo_color: int = 0
-var _ai_loading_tween: Tween = null
+var _status_tween: Tween = null
 
 func _ready() -> void:
 	$GameOverPanel/VBox/ContentCenter/ContentVBox/ButtonsRow/BackButton.pressed.connect(_on_back_pressed)
@@ -37,47 +40,64 @@ func _ready() -> void:
 		if _surrender_btn != null:
 			_surrender_btn.visible = false
 		_surrender_panel.visible = false
-		hide_ai_thinking()
+		hide_status()
 		if _export_btn != null:
 			_export_btn.visible = _game._chess != null \
 					and not _game._chess.move_history.is_empty()
 	)
 
-func _animate_ai_loading_bar() -> void:
-	if _ai_status_bar == null:
+# ── Status stack (mutually exclusive boxes at top-centre of HUD) ───────────
+# Only one of {SurrenderButton, AIThinkingBox, NETPlayerTurnBox, NETPlayerJoinBox}
+# is visible at a time. Each box has fixed text — swap by toggling visibility,
+# never by rewriting labels.
+
+func _animate_progress_bar(bar: ProgressBar) -> void:
+	if bar == null:
 		return
-	if _ai_loading_tween != null:
-		_ai_loading_tween.kill()
-	_ai_loading_tween = create_tween().set_loops()
-	_ai_status_bar.value = 0
-	_ai_loading_tween.tween_property(_ai_status_bar, "value", 100, 1.5) \
-		.set_trans(Tween.TRANS_LINEAR)
-	_ai_loading_tween.tween_property(_ai_status_bar, "value", 0, 0.2)
+	if _status_tween != null:
+		_status_tween.kill()
+	bar.value = 0
+	_status_tween = create_tween().set_loops()
+	_status_tween.tween_property(bar, "value", 100, 1.5).set_trans(Tween.TRANS_LINEAR)
+	_status_tween.tween_property(bar, "value", 0, 0.2)
 
-func show_ai_thinking(label_text: String = "AI is thinking...", show_disconnect: bool = false) -> void:
-	if _ai_thinking_box != null:
-		_ai_thinking_box.visible = true
-	if _ai_thinking_label != null:
-		_ai_thinking_label.text = label_text
-		_ai_thinking_label.visible = true
-	if _ai_status_bar != null:
-		_ai_status_bar.visible = true
-		_animate_ai_loading_bar()
-	if _disconnect_btn != null:
-		_disconnect_btn.visible = show_disconnect
-
-func hide_ai_thinking() -> void:
-	if _ai_loading_tween != null:
-		_ai_loading_tween.kill()
-		_ai_loading_tween = null
+func _hide_status_boxes() -> void:
 	if _ai_thinking_box != null:
 		_ai_thinking_box.visible = false
-	if _ai_thinking_label != null:
-		_ai_thinking_label.visible = false
-	if _ai_status_bar != null:
-		_ai_status_bar.visible = false
-	if _disconnect_btn != null:
-		_disconnect_btn.visible = false
+	if _net_turn_box != null:
+		_net_turn_box.visible = false
+	if _net_join_box != null:
+		_net_join_box.visible = false
+
+func show_ai_thinking() -> void:
+	_hide_status_boxes()
+	if _surrender_btn != null:
+		_surrender_btn.visible = false
+	if _ai_thinking_box != null:
+		_ai_thinking_box.visible = true
+	_animate_progress_bar(_ai_status_bar)
+
+func show_opponent_turn() -> void:
+	_hide_status_boxes()
+	if _surrender_btn != null:
+		_surrender_btn.visible = false
+	if _net_turn_box != null:
+		_net_turn_box.visible = true
+	_animate_progress_bar(_net_turn_bar)
+
+func show_waiting_for_opponent() -> void:
+	_hide_status_boxes()
+	if _surrender_btn != null:
+		_surrender_btn.visible = false
+	if _net_join_box != null:
+		_net_join_box.visible = true
+	_animate_progress_bar(_net_join_bar)
+
+func hide_status() -> void:
+	if _status_tween != null:
+		_status_tween.kill()
+		_status_tween = null
+	_hide_status_boxes()
 
 func _on_surrender_pressed() -> void:
 	if _game == null or not _game.can_surrender():
@@ -90,7 +110,7 @@ func _on_disconnect_pressed() -> void:
 	var oc := get_node_or_null("/root/OnlineClient")
 	if oc != null:
 		oc.send_leave_room()
-	hide_ai_thinking()
+	hide_status()
 	_on_back_pressed()
 
 func _on_surrender_confirmed() -> void:
@@ -103,6 +123,9 @@ func _on_surrender_confirmed() -> void:
 func set_surrender_available(available: bool) -> void:
 	if _surrender_btn == null:
 		return
+	if available:
+		# Player's local turn — ensure no status box steals the spot.
+		hide_status()
 	_surrender_btn.visible = available
 	_surrender_btn.disabled = not available
 	if not available and _surrender_panel != null:

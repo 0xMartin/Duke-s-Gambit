@@ -318,15 +318,15 @@ func _await_online_ready() -> void:
 	oc.send_client_ready()
 	var game_ui = _ui as Control
 	var bar_shown := false
-	if game_ui != null and game_ui.has_method("show_ai_thinking"):
-		game_ui.show_ai_thinking("Waiting for opponent to load...", true)
+	if game_ui != null and game_ui.has_method("show_waiting_for_opponent"):
+		game_ui.show_waiting_for_opponent()
 		bar_shown = true
 	while true:
 		var payload: Variant = await oc.ready_state_updated
 		if typeof(payload) == TYPE_DICTIONARY and bool((payload as Dictionary).get("all_ready", false)):
 			break
-	if bar_shown and game_ui != null and game_ui.has_method("hide_ai_thinking"):
-		game_ui.hide_ai_thinking()
+	if bar_shown and game_ui != null and game_ui.has_method("hide_status"):
+		game_ui.hide_status()
 
 # ── Intro animation ────────────────────────────────────────────────────────
 func _play_intro_animation() -> void:
@@ -582,9 +582,12 @@ func _start_turn() -> void:
 	# Show thinking indicator for AI or remote (online) opponent.
 	if ctrl.is_ai and _ui != null:
 		var game_ui = _ui as Control
-		if game_ui.has_method("show_ai_thinking"):
-			var label_text := "Opponent is thinking..." if _online_mode else "AI is thinking..."
-			game_ui.show_ai_thinking(label_text)
+		if _online_mode:
+			if game_ui.has_method("show_opponent_turn"):
+				game_ui.show_opponent_turn()
+		else:
+			if game_ui.has_method("show_ai_thinking"):
+				game_ui.show_ai_thinking()
 	ctrl.request_move(_chess, legal)
 
 func is_human_turn() -> bool:
@@ -877,8 +880,8 @@ func _on_move_chosen(mv: ChessMove) -> void:
 	# Hide AI thinking indicator
 	if _ui != null:
 		var game_ui = _ui as Control
-		if game_ui.has_method("hide_ai_thinking"):
-			game_ui.hide_ai_thinking()
+		if game_ui.has_method("hide_status"):
+			game_ui.hide_status()
 	_busy = true
 	_deselect_piece()   # clear outline before move animation
 	# Track timing + deduct from clock

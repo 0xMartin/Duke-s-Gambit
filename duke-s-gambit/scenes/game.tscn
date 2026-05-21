@@ -690,8 +690,65 @@ theme_override_styles/background = SubResource("StyleBoxFlat_sww3w")
 theme_override_styles/fill = SubResource("StyleBoxFlat_suyxu")
 show_percentage = false
 
-[node name="DisconnectButton" type="Button" parent="HUD/AIThinkingBox/AIThinkingVBox" unique_id=482116733]
+[node name="NETPlayerTurnBox" type="CenterContainer" parent="HUD" unique_id=488112201]
 visible = false
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 12.0
+offset_bottom = 108.0
+grow_horizontal = 2
+mouse_filter = 2
+
+[node name="NETPlayerTurnVBox" type="VBoxContainer" parent="HUD/NETPlayerTurnBox" unique_id=488112202]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="NETPlayerTurnLabel" type="Label" parent="HUD/NETPlayerTurnBox/NETPlayerTurnVBox" unique_id=488112203]
+layout_mode = 2
+theme = ExtResource("14_pl11u")
+text = "Opponent is thinking..."
+horizontal_alignment = 1
+
+[node name="NETPlayerTurnProgress" type="ProgressBar" parent="HUD/NETPlayerTurnBox/NETPlayerTurnVBox" unique_id=488112204]
+custom_minimum_size = Vector2(360, 24)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/background = SubResource("StyleBoxFlat_sww3w")
+theme_override_styles/fill = SubResource("StyleBoxFlat_suyxu")
+show_percentage = false
+
+[node name="NETPlayerJoinBox" type="CenterContainer" parent="HUD" unique_id=488112301]
+visible = false
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 12.0
+offset_bottom = 180.0
+grow_horizontal = 2
+mouse_filter = 2
+
+[node name="NETPlayerJoinVBox" type="VBoxContainer" parent="HUD/NETPlayerJoinBox" unique_id=488112302]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="NETPlayerJoinLabel" type="Label" parent="HUD/NETPlayerJoinBox/NETPlayerJoinVBox" unique_id=488112303]
+layout_mode = 2
+theme = ExtResource("14_pl11u")
+text = "Waiting for opponent to load..."
+horizontal_alignment = 1
+
+[node name="NETPlayerJoinProgress" type="ProgressBar" parent="HUD/NETPlayerJoinBox/NETPlayerJoinVBox" unique_id=488112304]
+custom_minimum_size = Vector2(360, 24)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/background = SubResource("StyleBoxFlat_sww3w")
+theme_override_styles/fill = SubResource("StyleBoxFlat_suyxu")
+show_percentage = false
+
+[node name="DisconnectButton" type="Button" parent="HUD/NETPlayerJoinBox/NETPlayerJoinVBox" unique_id=482116733]
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
 size_flags_horizontal = 4
