@@ -268,9 +268,9 @@ class Server:
         ip = conn.remote_address[0] if conn.remote_address else None
         if ip and self.banlist.is_banned(ip):
             logger.info("BANNED     ip=%s (connection refused)", ip)
-            await self._send(conn, P.S_ERROR, code=P.ERR_BANNED,
-                             message="You are banned from this server.")
-            await conn.close()
+            ban_msg = "You are banned from this server."
+            await self._send(conn, P.S_ERROR, code=P.ERR_BANNED, message=ban_msg)
+            await _close_conn(conn, code=4001, reason=ban_msg)
             return
         if len(self.lobby.all_clients()) >= self.config.max_clients:
             await self._send(conn, P.S_ERROR, code=P.ERR_FULL, message="server full")
