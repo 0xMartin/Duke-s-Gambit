@@ -101,9 +101,14 @@ Z1682chR6zNRCseyie4SjyTCdkvsAa+omQSf
 var _le_chain: X509Certificate = null
 var _diag: String = ""  # diagnostic info included in TLS error messages
 var _tls_mode: String = "none"
+var _machine_id: String = ""
+
+const _MACHINE_ID_PATH := "user://machine_id.cfg"
+const _MACHINE_ID_SECTION := "device"
 
 func _ready() -> void:
 	set_process(false)
+	_machine_id = _get_or_create_machine_id()
 	# Write bundled chain to user:// so X509Certificate can load it.
 	var f := FileAccess.open("user://le_chain.pem", FileAccess.WRITE)
 	if f == null:
@@ -118,6 +123,29 @@ func _ready() -> void:
 		_diag = "[cert_loaded]"
 	else:
 		_diag = "[cert_load_failed err=%d]" % load_err
+
+# ── Machine ID ─────────────────────────────────────────────────────────────
+func _get_or_create_machine_id() -> String:
+	var cfg := ConfigFile.new()
+	if cfg.load(_MACHINE_ID_PATH) == OK:
+		var mid: String = str(cfg.get_value(_MACHINE_ID_SECTION, "id", ""))
+		if mid.length() >= 8:
+			return mid
+	var mid := _generate_uuid()
+	cfg.set_value(_MACHINE_ID_SECTION, "id", mid)
+	cfg.save(_MACHINE_ID_PATH)
+	return mid
+
+func _generate_uuid() -> String:
+	var b := PackedByteArray()
+	for _i in 16:
+		b.append(randi() % 256)
+	b[6] = (b[6] & 0x0f) | 0x40  # version 4
+	b[8] = (b[8] & 0x3f) | 0x80  # variant
+	return "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x" % [
+		b[0], b[1], b[2], b[3], b[4], b[5], b[6], b[7],
+		b[8], b[9], b[10], b[11], b[12], b[13], b[14], b[15]
+	]
 
 # ── Public API ─────────────────────────────────────────────────────────────
 func get_state() -> int:
@@ -226,7 +254,8 @@ func _process(_delta: float) -> void:
 				_set_state(State.HANDSHAKING)
 				_verify_fingerprint_or_disconnect()
 				_send({"type": "hello", "nickname": _nickname,
-					"client_version": PROTOCOL_VERSION})
+					"client_version": PROTOCOL_VERSION,
+					"machine_id": _machine_id})
 			while _peer != null and _peer.get_available_packet_count() > 0:
 				var raw := _peer.get_packet().get_string_from_utf8()
 				_handle_raw(raw)

@@ -64,6 +64,7 @@ logger = logging.getLogger("duke_server")
 NICKNAME_RE = re.compile(r"^[A-Za-z0-9_.\- ]{1,15}$")
 MAX_PASSWORD_LEN = 64
 MAX_ROOM_NAME_LEN = 40
+MAX_MACHINE_ID_LEN = 64
 PROTOCOL_VERSION = P.PROTOCOL_VERSION
 MAX_MESSAGE_SIZE = 8 * 1024
 
@@ -98,6 +99,7 @@ class ClientCtx:
     nickname: Optional[str] = None
     session_token: Optional[str] = None
     room_id: Optional[str] = None
+    machine_id: Optional[str] = None
     in_lobby: bool = False
     last_msg_ts: float = field(default_factory=time.monotonic)
     msg_count_window: int = 0
@@ -315,7 +317,17 @@ class Server:
             other_ctx = getattr(other, "_duke_ctx", None)
             if other_ctx and other_ctx.nickname == nickname:
                 raise _ClientError(P.ERR_FORBIDDEN, "nickname already in use")
+        # Reject duplicate device connections (one connection per machine).
+        machine_id = str(msg.get("machine_id", "")).strip()[:MAX_MACHINE_ID_LEN]
+        if machine_id:
+            for other in list(self.lobby.all_clients()):
+                if other is ctx.conn:
+                    continue
+                other_ctx = getattr(other, "_duke_ctx", None)
+                if other_ctx and other_ctx.machine_id == machine_id:
+                    raise _ClientError(P.ERR_FORBIDDEN, "already connected from this device")
         ctx.nickname = nickname
+        ctx.machine_id = machine_id or None
         ctx.session_token = auth.issue_token(nickname, self.config.session_secret)
         ctx.conn._duke_ctx = ctx  # type: ignore[attr-defined]
 

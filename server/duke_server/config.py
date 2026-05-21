@@ -13,7 +13,7 @@ Environment variables
 ``DUKE_SESSION_SECRET``     HMAC key for session tokens. Random per-boot
                             if unset (clients lose sessions on restart).
 ``DUKE_MAX_ROOMS``          Hard cap on concurrent rooms.
-``DUKE_MAX_CLIENTS``        Hard cap on simultaneous WebSocket clients.
+``DUKE_MAX_CLIENTS``        Hard cap on simultaneous WebSocket clients. Default 1000.
 ``DUKE_ROOM_IDLE_S``        Auto-close empty rooms after N seconds.
 ``DUKE_RECONNECT_S``        Reconnect grace window for in-game disconnects.
 ``DUKE_MOVE_MAX_AGE_S``     Reject moves stamped too far in the past.
@@ -126,7 +126,7 @@ class ServerConfig:
             cert_dir=os.environ.get("DUKE_CERT_DIR", "./certs"),
             session_secret=secret_bytes,
             max_rooms=_env_int("DUKE_MAX_ROOMS", 256),
-            max_clients=_env_int("DUKE_MAX_CLIENTS", 512),
+            max_clients=_env_int("DUKE_MAX_CLIENTS", 1000),
             room_idle_timeout_s=_env_int("DUKE_ROOM_IDLE_S", 600),
             reconnect_grace_s=_env_int("DUKE_RECONNECT_S", 30),
             move_max_age_s=_env_int("DUKE_MOVE_MAX_AGE_S", 30),

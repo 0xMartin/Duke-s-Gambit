@@ -32,6 +32,13 @@ var _lobby_list:        VBoxContainer
 var _refresh_btn:       Button
 var _create_btn:        Button
 var _lobby_back_btn:    Button
+var _search_input:      LineEdit
+var _page_back_btn:     Button
+var _page_label:        Label
+var _page_next_btn:     Button
+
+const _PAGE_SIZE := 8
+var _current_page: int = 0
 
 # Create
 var _room_name_input:     LineEdit
@@ -93,6 +100,10 @@ func _bind_nodes() -> void:
 	_refresh_btn       = lobby_panel.get_node("ActionsRow/RefreshBtn") as Button
 	_create_btn        = lobby_panel.get_node("ActionsRow/CreateBtn") as Button
 	_lobby_back_btn    = lobby_panel.get_node("BackBtn") as Button
+	_search_input      = lobby_panel.get_node("SearchRow/SearchInput") as LineEdit
+	_page_back_btn     = lobby_panel.get_node("PaginationRow/PageBackBtn") as Button
+	_page_label        = lobby_panel.get_node("PaginationRow/PageLabel") as Label
+	_page_next_btn     = lobby_panel.get_node("PaginationRow/PageNextBtn") as Button
 
 	create_panel = _menu.get_node("MainPanel/OnlineCreateRoomVBox") as VBoxContainer
 	_room_name_input     = create_panel.get_node("NameRow/NameInput") as LineEdit
@@ -160,6 +171,9 @@ func _connect_signals() -> void:
 	_refresh_btn.pressed.connect(_on_refresh_pressed)
 	_create_btn.pressed.connect(func(): _show_panel(create_panel))
 	_lobby_back_btn.pressed.connect(_disconnect_and_back)
+	_search_input.text_changed.connect(func(_t: String): _current_page = 0; _rebuild_room_list())
+	_page_back_btn.pressed.connect(func(): _current_page -= 1; _rebuild_room_list())
+	_page_next_btn.pressed.connect(func(): _current_page += 1; _rebuild_room_list())
 	_create_confirm_btn.pressed.connect(_on_create_confirm)
 	_create_back_btn.pressed.connect(func(): _show_panel(lobby_panel))
 	_join_confirm_btn.pressed.connect(_on_join_confirm)
@@ -287,16 +301,41 @@ func _on_online_count(n: int) -> void:
 func _on_room_list(rooms: Array, online_count: int) -> void:
 	_current_lobby_rooms = rooms
 	_lobby_count_label.text = "%d players online · %d rooms" % [online_count, rooms.size()]
+	_current_page = 0
+	_rebuild_room_list()
+
+func _rebuild_room_list() -> void:
+	# Filter by search text (case-insensitive partial match on name).
+	var filter := _search_input.text.strip_edges().to_lower()
+	var filtered: Array = []
+	for r in _current_lobby_rooms:
+		if filter == "" or str(r.get("name", "")).to_lower().contains(filter):
+			filtered.append(r)
+
+	# Clamp page.
+	var total_pages := max(1, ceili(float(filtered.size()) / _PAGE_SIZE))
+	_current_page = clampi(_current_page, 0, total_pages - 1)
+
+	# Update pagination controls.
+	_page_label.text = "Page %d / %d" % [_current_page + 1, total_pages]
+	_page_back_btn.disabled = (_current_page <= 0)
+	_page_next_btn.disabled = (_current_page >= total_pages - 1)
+
+	# Slice.
+	var start := _current_page * _PAGE_SIZE
+	var page_rooms := filtered.slice(start, start + _PAGE_SIZE)
+
+	# Rebuild list.
 	for child in _lobby_list.get_children():
 		child.queue_free()
-	if rooms.is_empty():
+	if page_rooms.is_empty():
 		var empty := Label.new()
 		empty.theme = _LABEL_THEME
-		empty.text = "No rooms — be the first to create one!"
+		empty.text = "No rooms — be the first to create one!" if filtered.is_empty() else "No rooms match your search."
 		empty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		_lobby_list.add_child(empty)
 		return
-	for r in rooms:
+	for r in page_rooms:
 		_lobby_list.add_child(_make_room_row(r))
 
 func _make_room_row(room: Dictionary) -> Control:
