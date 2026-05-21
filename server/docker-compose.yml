@@ -6,6 +6,7 @@ services:
     image: dukes-gambit-server:latest
     container_name: dukes-gambit-server
     restart: unless-stopped
+    stdin_open: true
     ports:
       - "8765:8765"
     environment:
@@ -18,14 +19,18 @@ services:
       # If empty, a random one is generated on each container start (tokens invalidate on restart).
       DUKE_SESSION_SECRET: ""
       # Max number of rooms and clients (DoS guard).
-      DUKE_MAX_ROOMS: "256"
-      DUKE_MAX_CLIENTS: "600"
+      DUKE_MAX_ROOMS: "25"
+      DUKE_MAX_CLIENTS: "50"
       # Optional: minimum required client game version (e.g. "1.2.0").
       # Empty/unset disables the check. Outdated clients receive an
       # `outdated_client` error during hello.
       DUKE_MIN_CLIENT_VERSION: "1.0.1"
+      # Path to the JSON file that stores banned IPs (persisted via the duke-data volume).
+      DUKE_BAN_FILE: "/data/banlist.json"
     volumes:
       - duke-certs:/data/certs
+      - duke-data:/data
 
 volumes:
   duke-certs:
+  duke-data:

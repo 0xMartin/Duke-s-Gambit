@@ -107,6 +107,7 @@ class ServerConfig:
     heartbeat_interval_s: int
     log_level: str
     min_client_version: str
+    ban_file: str
 
     @classmethod
     def from_env(cls) -> "ServerConfig":
@@ -136,5 +137,6 @@ class ServerConfig:
             heartbeat_interval_s=_env_int("DUKE_HEARTBEAT_S", 20),
             log_level=os.environ.get("DUKE_LOG_LEVEL", "INFO").upper(),
             min_client_version=os.environ.get("DUKE_MIN_CLIENT_VERSION", "").strip(),
+            ban_file=os.environ.get("DUKE_BAN_FILE", "/data/banlist.json"),
         )
 

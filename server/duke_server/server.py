@@ -38,9 +38,11 @@ Connection drops always go through :meth:`Server._on_disconnect`.
 from __future__ import annotations
 
 import asyncio
+import datetime
 import http
 import json
 import logging
+import os
 import re
 import signal
 import time
@@ -52,7 +54,10 @@ from websockets.server import WebSocketServerProtocol
 
 from . import auth
 from . import protocol as P
+from .banlist import BanList
+from .cli import run_cli
 from .config import ServerConfig
+from .log_setup import setup_logging
 from .game import BLACK, COLOR_NAMES, WHITE, IllegalMove, NotYourTurn, BadState, color_from_name
 from .lobby import Lobby
 from .room import Room, ROOM_STATE_PLAYING, ROOM_STATE_WAITING, ROOM_STATE_FINISHED
@@ -142,6 +147,8 @@ class Server:
         """Build a server bound to ``config`` (does not start listening)."""
         self.config = config
         self.lobby = Lobby(max_rooms=config.max_rooms)
+        self.banlist = BanList(config.ban_file)
+        self._start_time = time.monotonic()
         self._stop_event = asyncio.Event()
         # Per-room timeout watcher task.
         self._room_watchers: dict[str, asyncio.Task] = {}
@@ -150,6 +157,12 @@ class Server:
         # TLS bootstrap data served via HTTP for TOFU certificate pinning.
         self._cert_pem: Optional[bytes] = None
         self._fingerprint: Optional[str] = None
+        # Live stats exposed to the admin CLI.
+        self._stats: dict = {
+            "peak_players": 0,
+            "connects_today": 0,
+            "today_date": datetime.date.today(),
+        }
 
     # ── Lifecycle ──────────────────────────────────────────────────────────
     async def run(self) -> None:
@@ -162,6 +175,7 @@ class Server:
         """
         ssl_context = None
         scheme = "ws"
+        self.banlist.load()
         if self.config.tls_enabled:
             cert_path, key_path, fingerprint = ensure_cert(self.config.cert_dir)
             ssl_context = make_ssl_context(cert_path, key_path)
@@ -189,6 +203,15 @@ class Server:
             ping_timeout=self.config.heartbeat_interval_s * 2,
             process_request=self._http_process_request,
         ):
+            asyncio.ensure_future(run_cli(
+                self.banlist,
+                self.lobby,
+                self._kick_user,
+                self._kick_by_ip,
+                self.stop,
+                self._start_time,
+                self._stats,
+            ))
             await self._stop_event.wait()
         logger.info("Server stopped.")
 
@@ -239,6 +262,13 @@ class Server:
         crashes.
         """
         ctx = ClientCtx(conn=conn)
+        ip = conn.remote_address[0] if conn.remote_address else None
+        if ip and self.banlist.is_banned(ip):
+            logger.info("BANNED     ip=%s (connection refused)", ip)
+            await self._send(conn, P.S_ERROR, code=P.ERR_BANNED,
+                             message="You are banned from this server.")
+            await conn.close()
+            return
         if len(self.lobby.all_clients()) >= self.config.max_clients:
             await self._send(conn, P.S_ERROR, code=P.ERR_FULL, message="server full")
             await conn.close()
@@ -390,6 +420,10 @@ class Server:
                          max_clients=self.config.max_clients)
 
         if rejoined_room:
+            logger.info(
+                "RECONNECT  nick=%r ip=%s room_id=%s",
+                nickname, _peer_ip(ctx), rejoined_room.room_id,
+            )
             await self._send(ctx.conn, P.S_ROOM_JOINED,
                              room=rejoined_room.public_detail(nickname),
                              role="host" if rejoined_room.is_host(nickname) else "guest")
@@ -408,6 +442,9 @@ class Server:
                                  white_ms=rejoined_room.game.remaining_ms()[0],
                                  black_ms=rejoined_room.game.remaining_ms()[1],
                                  ply=rejoined_room.game.ply)
+        else:
+            logger.info("CONNECT    nick=%r ip=%s", nickname, _peer_ip(ctx))
+            self._record_connect()
 
         await self._broadcast_online_count()
 
@@ -458,6 +495,10 @@ class Server:
         ctx.in_lobby = False
         self.lobby.remove_listener(ctx.conn)
 
+        logger.info(
+            "ROOM_CREATE nick=%r ip=%s room_id=%s room=%r",
+            ctx.nickname, _peer_ip(ctx), room.room_id, room.name,
+        )
         await self._send(ctx.conn, P.S_ROOM_CREATED,
                          room=room.public_detail(ctx.nickname), role="host")
         await self._broadcast_lobby()
@@ -494,6 +535,10 @@ class Server:
         self.lobby.remove_listener(ctx.conn)
 
         role = "host" if room.is_host(ctx.nickname) else "guest"
+        logger.info(
+            "ROOM_JOIN   nick=%r ip=%s room_id=%s room=%r",
+            ctx.nickname, _peer_ip(ctx), room.room_id, room.name,
+        )
         await self._send(ctx.conn, P.S_ROOM_JOINED,
                          room=room.public_detail(ctx.nickname), role=role)
         await self._broadcast_room(room)
@@ -569,6 +614,10 @@ class Server:
             raise _ClientError(P.ERR_FORBIDDEN, "only the host can delete the room")
         if room.state == ROOM_STATE_PLAYING:
             raise _ClientError(P.ERR_BAD_STATE, "game in progress")
+        logger.info(
+            "ROOM_DELETE nick=%r ip=%s room_id=%s room=%r",
+            ctx.nickname, _peer_ip(ctx), room.room_id, room.name,
+        )
         await self._destroy_room(room, reason="closed by host")
 
     async def _handle_move(self, ctx: ClientCtx, msg: dict) -> None:
@@ -706,6 +755,10 @@ class Server:
         white = _get_member_by_color(room, WHITE)
         black = _get_member_by_color(room, BLACK)
         white_ms, black_ms = room.game.remaining_ms() if room.game else (0, 0)
+        logger.info(
+            "GAME_START  room_id=%s room=%r white=%r black=%r time_ms=%d",
+            room.room_id, room.name, white, black, room.time_ms,
+        )
         for m in room.members.values():
             if m.conn is None:
                 continue
@@ -778,6 +831,12 @@ class Server:
             "black_ms": result.black_ms,
             "fen": result.fen,
         }
+        logger.info(
+            "GAME_OVER   room_id=%s room=%r winner=%s reason=%s",
+            room.room_id, room.name,
+            result.winner if result.winner else "draw",
+            result.reason,
+        )
         for m in room.members.values():
             if m.conn is not None:
                 await self._send(m.conn, P.S_GAME_OVER, **payload)
@@ -894,6 +953,8 @@ class Server:
         """
         await self.lobby.remove_client(ctx.conn)
         await self._broadcast_online_count()
+        if ctx.nickname:
+            logger.info("DISCONNECT  nick=%r ip=%s", ctx.nickname, _peer_ip(ctx))
         if not ctx.room_id:
             return
         room = self.lobby.get(ctx.room_id)
@@ -944,6 +1005,48 @@ class Server:
         if len(room.members) == 0:
             await self.lobby.remove_room(room_id)
             await self._broadcast_lobby()
+
+    def _record_connect(self) -> None:
+        """Increment today's connection counter and refresh peak player count."""
+        today = datetime.date.today()
+        if today != self._stats["today_date"]:
+            self._stats["connects_today"] = 0
+            self._stats["today_date"] = today
+        self._stats["connects_today"] += 1
+        online = self.lobby.online_count
+        if online > self._stats["peak_players"]:
+            self._stats["peak_players"] = online
+
+    async def _kick_user(self, nickname: str, reason: str) -> bool:
+        """Disconnect a player by nickname, sending S_KICKED first.
+
+        Used by the admin CLI. Returns ``True`` if the player was found
+        and the kick was sent, ``False`` if no matching connected client
+        exists.
+        """
+        for conn in list(self.lobby.all_clients()):
+            ctx = getattr(conn, "_duke_ctx", None)
+            if ctx and ctx.nickname == nickname:
+                await self._send(conn, P.S_KICKED, reason=reason)
+                await _close_conn(conn)
+                return True
+        return False
+
+    async def _kick_by_ip(self, ip: str, reason: str) -> int:
+        """Disconnect all connections from *ip*, sending S_KICKED first.
+
+        Pass ``ip="*"`` to kick every connected client (used by shutdown).
+        Returns the number of connections closed.
+        """
+        count = 0
+        for conn in list(self.lobby.all_clients()):
+            addr = getattr(conn, "remote_address", None)
+            conn_ip = addr[0] if addr else None
+            if ip == "*" or conn_ip == ip:
+                await self._send(conn, P.S_KICKED, reason=reason)
+                await _close_conn(conn)
+                count += 1
+        return count
 
     # ── Wire I/O ───────────────────────────────────────────────────────────
     @staticmethod
@@ -1010,6 +1113,20 @@ def _get_member_by_color(room: Room, color: int) -> Optional[str]:
     return m.nickname if m else None
 
 
+def _peer_ip(ctx: ClientCtx) -> str:
+    """Return the remote IP address string of *ctx*'s connection."""
+    addr = getattr(ctx.conn, "remote_address", None)
+    return addr[0] if addr else "?"
+
+
+async def _close_conn(conn) -> None:
+    """Close a WebSocket connection, ignoring already-closed errors."""
+    try:
+        await conn.close()
+    except Exception:
+        pass
+
+
 # ── Entry point ─────────────────────────────────────────────────────────────────────
 
 def main() -> None:
@@ -1020,10 +1137,8 @@ def main() -> None:
     and runs the asyncio loop until :meth:`Server.run` returns.
     """
     config = ServerConfig.from_env()
-    logging.basicConfig(
-        level=config.log_level,
-        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    )
+    log_dir = os.environ.get("DUKE_LOG_DIR", "logs")
+    setup_logging(config.log_level, log_dir=log_dir)
 
     server = Server(config)
 

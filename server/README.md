@@ -88,10 +88,115 @@ All settings come from environment variables.
 | `DUKE_ROOM_IDLE_S`       | `600`          | Idle empty-room cleanup (s).                                      |
 | `DUKE_HEARTBEAT_S`       | `20`           | WebSocket ping interval (s).                                      |
 | `DUKE_LOG_LEVEL`         | `INFO`         | Standard Python log level.                                        |
+| `DUKE_BAN_FILE`          | `/data/banlist.json` | Path to the JSON file storing banned IPs (persisted via volume). |
 
 ---
 
-## Wire protocol (summary)
+## Commands (admin CLI)
+
+While the server is running you can send admin commands through its
+**standard input**. In Docker the easiest way is `docker attach`:
+
+```bash
+docker attach dukes-gambit-server
+# type commands, then Ctrl-P Ctrl-Q to detach without stopping the server
+```
+
+For one-shot scripted use:
+
+```bash
+echo "bans" | docker exec -i dukes-gambit-server sh -c 'cat >/proc/1/fd/0'
+```
+
+### Available commands
+
+| Command | Description |
+|---|-----------|
+| `status` | Uptime, connected player count, room breakdown (waiting / playing). |
+| `who` | List all connected players with IP and current room. |
+| `kick <nick> [reason]` | Disconnect a player by nickname (sends the reason to the client). |
+| `kickip <ip> [reason]` | Disconnect all connections from an IP address. |
+| `rooms` | List all active rooms with state, players and clock setting. |
+| `game <room_id>` | Show game details: board, clocks, whose turn it is, ply count. |
+| `ban <ip> [nickname]` | Ban an IP address; the nickname is stored for reference only. |
+| `unban <ip>` | Remove a ban by IP. |
+| `unban_nick <nickname>` | Remove all bans whose stored nickname matches (handy when IP was forgotten). |
+| `bans` | List all currently banned IPs with nicknames and timestamps. |
+| `shutdown` | Kick all players with a warning message, then stop the server. |
+| `exit` | Detach the CLI session — server keeps running. |
+| `help` | Print the command list. |
+
+### Examples
+
+```
+status
+who
+kick CheaterNick toxic behaviour
+kickip 1.2.3.4 too many connections
+rooms
+game abc123XY
+ban 1.2.3.4 CheaterNick
+ban 5.6.7.8
+unban 1.2.3.4
+unban_nick CheaterNick
+bans
+shutdown
+```
+
+A banned player who tries to connect receives an error in the game's
+**Online → Connect** screen and is immediately disconnected.
+
+---
+
+## Logs
+
+The server writes a log file per calendar day into the `logs/` directory
+(configurable via `DUKE_LOG_DIR`). The filename matches the date:
+
+```
+logs/
+  2026-05-21.log
+  2026-05-22.log
+  ...
+```
+
+The same entries also appear on the server console (stdout).
+
+### Viewing logs in Docker
+
+```bash
+# Follow live server output (console):
+docker compose logs -f duke-server
+
+# Show all log files inside the container:
+docker exec dukes-gambit-server ls logs/
+
+# Print today's log file:
+docker exec dukes-gambit-server cat logs/$(date +%Y-%m-%d).log
+
+# Print a specific day:
+docker exec dukes-gambit-server cat logs/2026-05-21.log
+```
+
+### What is logged
+
+| Event | Example |
+|---|---|
+| Player connects | `CONNECT    nick='Player1' ip=1.2.3.4` |
+| Player reconnects mid-game | `RECONNECT  nick='Player1' ip=1.2.3.4 room_id=abc123` |
+| Player disconnects | `DISCONNECT nick='Player1' ip=1.2.3.4` |
+| Room created | `ROOM_CREATE nick='Player1' ip=1.2.3.4 room_id=abc123 room="Player1's room"` |
+| Room deleted by host | `ROOM_DELETE nick='Player1' ip=1.2.3.4 room_id=abc123 room="Player1's room"` |
+| Player joins a room | `ROOM_JOIN   nick='Player2' ip=5.6.7.8 room_id=abc123 room="Player1's room"` |
+| Game started | `GAME_START  room_id=abc123 room="Player1's room" white='Player1' black='Player2' time_ms=300000` |
+| Game ended | `GAME_OVER   room_id=abc123 room="Player1's room" winner=white reason=checkmate` |
+| Banned IP blocked | `BANNED      ip=1.2.3.4 (connection refused)` |
+| IP banned via CLI | `BAN         ip=1.2.3.4 nick='CheaterNick' (via CLI)` |
+| IP unbanned via CLI | `UNBAN       ip=1.2.3.4 (via CLI)` |
+
+---
+
+
 
 JSON messages over WebSocket, one object per frame, mandatory `type` field.
 
@@ -148,7 +253,7 @@ The server replies with a `move_applied` event whose `from`, `to` and
 
 `bad_request`, `protocol_error`, `auth_error`, `not_found`, `forbidden`,
 `full`, `bad_state`, `illegal_move`, `not_your_turn`, `rate_limited`,
-`internal`.
+`internal`, `banned`.
 
 ---
 
