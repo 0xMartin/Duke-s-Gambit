@@ -5,14 +5,25 @@
 # Duke's Gambit: Battle for Java Code
 
 [![Godot 4](https://img.shields.io/badge/Godot-4.6-478CBF?logo=godotengine&logoColor=white)](https://godotengine.org/)
-[![Language](https://img.shields.io/badge/language-GDScript%20%2B%20C%2B%2B-blue)](dukes_ai/)
+[![Language](https://img.shields.io/badge/language-GDScript%20%7C%20C%2B%2B-blue)](dukes_ai/)
 [![Server](https://img.shields.io/badge/server-Python%203.12-3776AB?logo=python&logoColor=white)](server/)
 [![Docker](https://img.shields.io/badge/docker-ready-2496ED?logo=docker&logoColor=white)](server/docker-compose.yml)
 [![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-lightgrey?logo=creativecommons&logoColor=white)](LICENSE)
 
-**A satirical 3D chess game where chess pieces are characters from the Java world — and they don't just move, they fight.**
+**A 3D chess game with animated piece duels, a native C++ AI, and online multiplayer — built in Godot 4.**
 
 </div>
+
+## 📑 Table of contents
+
+- [Download & play](#-download--play)
+- [Controls](#-controls)
+- [Combat in action](#-combat-in-action)
+- [AI opponent](#-ai-opponent)
+- [Online multiplayer](#-online-multiplayer)
+- [Assets & credits](#-assets--credits)
+- [License](#-license)
+- [Author](#-author)
 
 > [!NOTE]
 > **Disclaimer:** This is an open-source, non-commercial fan game made for satirical and educational purposes. `Java` is a trademark of Oracle Corporation. This project is not affiliated with, endorsed, or sponsored by Oracle.
@@ -30,6 +41,40 @@ Duke's Gambit is a fully-featured 3D chess game built in **Godot 4**. The rules 
 - Local PvP, single-player vs AI, and online multiplayer
 - Stylised visuals with custom shaders, VFX, and a dynamic skybox
 - Fully themed UI with custom fonts, panels, and sound design
+
+---
+
+## 📥 Download & play
+
+Pre-built binaries are available on the GitHub Releases page — pick the build for your platform and run it:
+
+**➡️ [Download the latest release](https://github.com/0xMartin/Duke-s-Gambit/releases/latest)**
+
+The native C++ AI is built in CI for Windows, macOS, Linux, and Android — see the [Build Native AI workflow](https://github.com/0xMartin/Duke-s-Gambit/actions/workflows/build-native.yml) for the latest artifacts.
+
+---
+
+## 🎮 Controls
+
+### Desktop (PC)
+
+| Action | Input |
+|---|---|
+| Select piece / tile | **Left mouse click** |
+| Rotate camera (orbit) | **Right mouse drag** |
+| Zoom in / out | **Mouse wheel** |
+| Pan camera pivot | **Middle mouse drag** |
+
+### Mobile (touch)
+
+| Action | Input |
+|---|---|
+| Select piece / tile | **Tap** |
+| Rotate camera (orbit) | **One-finger drag** |
+| Zoom in / out | **Two-finger pinch** |
+
+> [!TIP]
+> Camera pan & tilt sensitivity can be adjusted in **Settings → Camera**.
 
 ---
 
