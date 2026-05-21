@@ -66,7 +66,7 @@ from .tls import ensure_cert, make_ssl_context
 
 logger = logging.getLogger("duke_server")
 
-NICKNAME_RE = re.compile(r"^[A-Za-z0-9_.\- ]{1,15}$")
+NICKNAME_RE = re.compile(r"^[A-Za-z0-9_\- ]{1,15}$")
 MAX_PASSWORD_LEN = 64
 MAX_ROOM_NAME_LEN = 40
 MAX_MACHINE_ID_LEN = 64
@@ -155,6 +155,10 @@ class Server:
         self._room_watchers: dict[str, asyncio.Task] = {}
         # Per-room reconnect timers.
         self._reconnect_timers: dict[tuple[str, str], asyncio.Task] = {}
+        # Per-IP open-connection counter (DoS guard, max 10 per IP).
+        self._conn_per_ip: dict[str, int] = {}
+        _MAX_CONNS_PER_IP = 10
+        self._MAX_CONNS_PER_IP = _MAX_CONNS_PER_IP
         # TLS bootstrap data served via HTTP for TOFU certificate pinning.
         self._cert_pem: Optional[bytes] = None
         self._fingerprint: Optional[str] = None
@@ -276,12 +280,23 @@ class Server:
             await self._send(conn, P.S_ERROR, code=P.ERR_FULL, message="server full")
             await conn.close()
             return
+        if ip and self._conn_per_ip.get(ip, 0) >= self._MAX_CONNS_PER_IP:
+            logger.warning("CONN_LIMIT ip=%s (too many open connections)", ip)
+            await self._send(conn, P.S_ERROR, code=P.ERR_FULL, message="too many connections from your IP")
+            await conn.close()
+            return
+        if ip:
+            self._conn_per_ip[ip] = self._conn_per_ip.get(ip, 0) + 1
         await self.lobby.add_client(conn)
         try:
             async for raw in conn:
                 if not await self._rate_limit_ok(ctx):
                     await self._send(conn, P.S_ERROR, code=P.ERR_RATE_LIMITED,
                                      message="too many messages")
+                    if ctx.msg_count_window > 60:
+                        logger.warning("RATE_ABUSE nick=%r ip=%s — disconnecting", ctx.nickname, ip)
+                        await _close_conn(conn, code=4000, reason="rate limit exceeded")
+                        break
                     continue
                 try:
                     msg = self._parse(raw)
@@ -299,6 +314,12 @@ class Server:
         except websockets.ConnectionClosed:
             pass
         finally:
+            if ip:
+                count = self._conn_per_ip.get(ip, 1) - 1
+                if count <= 0:
+                    self._conn_per_ip.pop(ip, None)
+                else:
+                    self._conn_per_ip[ip] = count
             await self._on_disconnect(ctx)
 
     # ── Dispatch ───────────────────────────────────────────────────────────
