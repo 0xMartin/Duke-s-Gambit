@@ -11,6 +11,7 @@ extends Control
 @onready var _ai_thinking_box: Control = $AIThinkingBox
 @onready var _ai_thinking_label: Label = $AIThinkingBox/AIThinkingVBox/AIThinkingLabel
 @onready var _ai_status_bar: ProgressBar = $AIThinkingBox/AIThinkingVBox/AIThinkingProgress
+@onready var _disconnect_btn: Button = $AIThinkingBox/AIThinkingVBox/DisconnectButton
 @onready var _export_btn: Button = $GameOverPanel/VBox/ContentCenter/ContentVBox/ButtonsRow/ExportButton
 
 var _pending_promo_sq: Vector2i = Vector2i(-1, -1)
@@ -28,6 +29,8 @@ func _ready() -> void:
 
 	$SurrenderConfirmPanel/VBox/ButtonHBox/YesButton.pressed.connect(_on_surrender_confirmed)
 	$SurrenderConfirmPanel/VBox/ButtonHBox/NoButton.pressed.connect(func(): _surrender_panel.visible = false)
+	if _disconnect_btn != null:
+		_disconnect_btn.pressed.connect(_on_disconnect_pressed)
 
 	_game.promotion_needed.connect(_on_promotion_needed)
 	_game.game_over.connect(func(_w: int, _r: int) -> void:
@@ -51,7 +54,7 @@ func _animate_ai_loading_bar() -> void:
 		.set_trans(Tween.TRANS_LINEAR)
 	_ai_loading_tween.tween_property(_ai_status_bar, "value", 0, 0.2)
 
-func show_ai_thinking(label_text: String = "AI is thinking...") -> void:
+func show_ai_thinking(label_text: String = "AI is thinking...", show_disconnect: bool = false) -> void:
 	if _ai_thinking_box != null:
 		_ai_thinking_box.visible = true
 	if _ai_thinking_label != null:
@@ -60,6 +63,8 @@ func show_ai_thinking(label_text: String = "AI is thinking...") -> void:
 	if _ai_status_bar != null:
 		_ai_status_bar.visible = true
 		_animate_ai_loading_bar()
+	if _disconnect_btn != null:
+		_disconnect_btn.visible = show_disconnect
 
 func hide_ai_thinking() -> void:
 	if _ai_loading_tween != null:
@@ -71,11 +76,22 @@ func hide_ai_thinking() -> void:
 		_ai_thinking_label.visible = false
 	if _ai_status_bar != null:
 		_ai_status_bar.visible = false
+	if _disconnect_btn != null:
+		_disconnect_btn.visible = false
 
 func _on_surrender_pressed() -> void:
 	if _game == null or not _game.can_surrender():
 		return
 	_surrender_panel.visible = true
+
+func _on_disconnect_pressed() -> void:
+	# Used while waiting for the opponent to finish loading: leave the room
+	# (server treats mid-game leave as resignation) and return to main menu.
+	var oc := get_node_or_null("/root/OnlineClient")
+	if oc != null:
+		oc.send_leave_room()
+	hide_ai_thinking()
+	_on_back_pressed()
 
 func _on_surrender_confirmed() -> void:
 	if _game == null or not _game.can_surrender():

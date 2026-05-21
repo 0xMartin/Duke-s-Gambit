@@ -690,6 +690,15 @@ theme_override_styles/background = SubResource("StyleBoxFlat_sww3w")
 theme_override_styles/fill = SubResource("StyleBoxFlat_suyxu")
 show_percentage = false
 
+[node name="DisconnectButton" type="Button" parent="HUD/AIThinkingBox/AIThinkingVBox" unique_id=482116733]
+visible = false
+custom_minimum_size = Vector2(200, 40)
+layout_mode = 2
+size_flags_horizontal = 4
+theme = ExtResource("7_trtic")
+theme_override_font_sizes/font_size = 20
+text = "Disconnect"
+
 [node name="SurrenderButton" type="Button" parent="HUD" unique_id=1889013262]
 layout_mode = 1
 anchors_preset = 5

@@ -319,7 +319,7 @@ func _await_online_ready() -> void:
 	var game_ui = _ui as Control
 	var bar_shown := false
 	if game_ui != null and game_ui.has_method("show_ai_thinking"):
-		game_ui.show_ai_thinking("Waiting for opponent to load...")
+		game_ui.show_ai_thinking("Waiting for opponent to load...", true)
 		bar_shown = true
 	while true:
 		var payload: Variant = await oc.ready_state_updated
