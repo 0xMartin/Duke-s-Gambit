@@ -1036,7 +1036,7 @@ class Server:
             if ctx and ctx.nickname == nickname:
                 ctx.kicked = True
                 await self._send(conn, P.S_KICKED, reason=reason)
-                await _close_conn(conn)
+                await _close_conn(conn, code=4000, reason=reason)
                 return True
         return False
 
@@ -1055,7 +1055,8 @@ class Server:
                 if ctx is not None:
                     ctx.kicked = True
                 await self._send(conn, P.S_KICKED, reason=reason, is_ban=is_ban)
-                await _close_conn(conn)
+                close_code = 4001 if is_ban else 4000
+                await _close_conn(conn, code=close_code, reason=reason)
                 count += 1
         return count
 
@@ -1130,10 +1131,15 @@ def _peer_ip(ctx: ClientCtx) -> str:
     return addr[0] if addr else "?"
 
 
-async def _close_conn(conn) -> None:
-    """Close a WebSocket connection, ignoring already-closed errors."""
+async def _close_conn(conn, code: int = 1000, reason: str = "") -> None:
+    """Close a WebSocket connection, ignoring already-closed errors.
+
+    WebSocket close ``reason`` is limited to 123 bytes by RFC 6455;
+    we truncate to be safe.
+    """
     try:
-        await conn.close()
+        truncated = reason.encode("utf-8")[:120].decode("utf-8", errors="ignore")
+        await conn.close(code=code, reason=truncated)
     except Exception:
         pass
 

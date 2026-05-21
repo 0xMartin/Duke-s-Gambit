@@ -283,6 +283,13 @@ func _process(_delta: float) -> void:
 			_peer = null
 			_set_state(State.DISCONNECTED)
 			if was_state != State.DISCONNECTED:
+				# Custom close codes 4000 (kick) / 4001 (ban) carry the reason
+				# in the close frame itself. This is more reliable than sending
+				# a separate JSON message which can be dropped if the server
+				# closes the TCP socket before the frame is flushed.
+				if code == 4000 or code == 4001:
+					emit_signal("player_kicked", reason, code == 4001)
+					return
 				var msg: String
 				if code == -1:
 					if was_state == State.CONNECTING:
