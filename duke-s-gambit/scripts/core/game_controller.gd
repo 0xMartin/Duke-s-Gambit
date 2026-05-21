@@ -297,6 +297,11 @@ func start_game() -> void:
 		if _hud.has_method("reset_move_history"):
 			_hud.call("reset_move_history")
 	await _play_intro_animation()
+	# In online mode, hold the clock until both clients have finished loading.
+	# Server only arms the chess clock once it receives C_CLIENT_READY from both
+	# sides; while we wait for the opponent, reuse the "thinking" progress bar.
+	if _online_mode:
+		await _await_online_ready()
 	_busy = false
 	var initial_camera_color: int = ChessEnums.PieceColor.WHITE
 	if _online_mode and _my_online_color != -1:
@@ -305,6 +310,23 @@ func start_game() -> void:
 		initial_camera_color = _human_player_color()
 	_camera.snap_to_player(initial_camera_color)
 	_start_turn()
+
+func _await_online_ready() -> void:
+	var oc := get_node_or_null("/root/OnlineClient")
+	if oc == null:
+		return
+	oc.send_client_ready()
+	var game_ui = _ui as Control
+	var bar_shown := false
+	if game_ui != null and game_ui.has_method("show_ai_thinking"):
+		game_ui.show_ai_thinking("Waiting for opponent to load...")
+		bar_shown = true
+	while true:
+		var payload: Variant = await oc.ready_state_updated
+		if typeof(payload) == TYPE_DICTIONARY and bool((payload as Dictionary).get("all_ready", false)):
+			break
+	if bar_shown and game_ui != null and game_ui.has_method("hide_ai_thinking"):
+		game_ui.hide_ai_thinking()
 
 # ── Intro animation ────────────────────────────────────────────────────────
 func _play_intro_animation() -> void:

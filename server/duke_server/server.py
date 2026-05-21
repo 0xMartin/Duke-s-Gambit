@@ -271,6 +271,7 @@ class Server:
             P.C_LEAVE_ROOM: self._handle_leave_room,
             P.C_DELETE_ROOM: self._handle_delete_room,
             P.C_START_GAME: self._handle_start_game,
+            P.C_CLIENT_READY: self._handle_client_ready,
             P.C_MOVE: self._handle_move,
             P.C_SURRENDER: self._handle_surrender,
             P.C_OFFER_DRAW: self._handle_offer_draw,
@@ -480,6 +481,44 @@ class Server:
         if not room.can_start():
             raise _ClientError(P.ERR_BAD_STATE, "both players must be present")
         await self._start_game(room)
+
+    async def _handle_client_ready(self, ctx: ClientCtx, _msg: dict) -> None:
+        """Client signals it finished loading/intro and is ready to play.
+
+        Tracks readiness per nickname; the server clock is armed only
+        once both members report ready, which prevents a slow-loading
+        client from bleeding time during the spawn cutscene. Sending
+        this message after the clock has been armed is a no-op.
+        """
+        room = self._require_room(ctx)
+        if room.game is None or room.state != ROOM_STATE_PLAYING:
+            raise _ClientError(P.ERR_BAD_STATE, "game not in progress")
+        if room.member_color(ctx.nickname) is None:
+            raise _ClientError(P.ERR_FORBIDDEN, "not a player")
+        if room.game.started:
+            # Already running — still echo the ready state so a reconnecting
+            # client gets an unblocking signal.
+            await self._broadcast_ready_state(room)
+            return
+        async with room.lock:
+            all_ready = room.mark_ready(ctx.nickname)
+            if all_ready:
+                room.arm_clock()
+            await self._broadcast_ready_state(room)
+
+    async def _broadcast_ready_state(self, room: Room) -> None:
+        """Tell both members which players have finished loading."""
+        ready_colors = []
+        for nick in room.ready_members:
+            c = room.member_color(nick)
+            if c is not None:
+                ready_colors.append(COLOR_NAMES[c])
+        all_ready = bool(room.game and room.game.started)
+        for m in room.members.values():
+            if m.conn is not None:
+                await self._send(m.conn, P.S_READY_STATE,
+                                 ready=ready_colors,
+                                 all_ready=all_ready)
 
     async def _handle_leave_room(self, ctx: ClientCtx, _msg: dict) -> None:
         """Client wants to leave; mid-game this counts as a resignation."""

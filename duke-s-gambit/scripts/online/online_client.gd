@@ -26,6 +26,7 @@ signal room_updated(room: Dictionary)
 signal room_deleted(room_id: String, reason: String)
 
 signal game_starting(payload: Dictionary)
+signal ready_state_updated(payload: Dictionary)
 signal move_applied(payload: Dictionary)
 signal draw_offered(from_color: String)
 signal draw_declined()
@@ -224,6 +225,9 @@ func send_delete_room() -> void:
 func send_start_game() -> void:
 	_send({"type": "start_game"})
 
+func send_client_ready() -> void:
+	_send({"type": "client_ready"})
+
 func send_move(uci: String) -> void:
 	if uci.length() > MOVE_MAX_LEN:
 		return
@@ -337,6 +341,8 @@ func _handle_raw(raw: String) -> void:
 		"game_start":
 			_your_color = str(msg.get("your_color", _your_color))
 			emit_signal("game_starting", msg)
+		"ready_state":
+			emit_signal("ready_state_updated", msg)
 		"move_applied":
 			emit_signal("move_applied", msg)
 		"draw_offer":
