@@ -19,6 +19,8 @@ Environment variables
 ``DUKE_MOVE_MAX_AGE_S``     Reject moves stamped too far in the past.
 ``DUKE_HEARTBEAT_S``        WebSocket ping interval.
 ``DUKE_LOG_LEVEL``          Python logging level (``INFO``, ``DEBUG`` …).
+``DUKE_MIN_CLIENT_VERSION`` Minimum required client game version (e.g. ``1.2.0``).
+                            Empty/unset disables the check.
 """
 
 from __future__ import annotations
@@ -104,6 +106,7 @@ class ServerConfig:
     move_max_age_s: int             # reject moves stamped too far in the past
     heartbeat_interval_s: int
     log_level: str
+    min_client_version: str
 
     @classmethod
     def from_env(cls) -> "ServerConfig":
@@ -132,5 +135,6 @@ class ServerConfig:
             move_max_age_s=_env_int("DUKE_MOVE_MAX_AGE_S", 30),
             heartbeat_interval_s=_env_int("DUKE_HEARTBEAT_S", 20),
             log_level=os.environ.get("DUKE_LOG_LEVEL", "INFO").upper(),
+            min_client_version=os.environ.get("DUKE_MIN_CLIENT_VERSION", "").strip(),
         )
 

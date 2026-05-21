@@ -65,8 +65,32 @@ NICKNAME_RE = re.compile(r"^[A-Za-z0-9_.\- ]{1,15}$")
 MAX_PASSWORD_LEN = 64
 MAX_ROOM_NAME_LEN = 40
 MAX_MACHINE_ID_LEN = 64
+MAX_VERSION_LEN = 32
 PROTOCOL_VERSION = P.PROTOCOL_VERSION
 MAX_MESSAGE_SIZE = 8 * 1024
+
+
+def _parse_version(raw: Any) -> Optional[tuple[int, ...]]:
+    """Parse a dotted version string (e.g. ``"1.2.3"``) into an int tuple.
+
+    Accepts an int (treated as a single component) for backwards compatibility
+    with older clients that sent the protocol version. Returns ``None`` if the
+    value is missing, empty, or contains non-numeric components.
+    """
+    if raw is None:
+        return None
+    if isinstance(raw, int):
+        return (raw,)
+    if not isinstance(raw, str):
+        return None
+    s = raw.strip()
+    if not s or len(s) > MAX_VERSION_LEN:
+        return None
+    parts = s.split(".")
+    try:
+        return tuple(int(p) for p in parts)
+    except ValueError:
+        return None
 
 
 @dataclass
@@ -305,6 +329,16 @@ class Server:
         nickname = str(msg.get("nickname", "")).strip()
         if not NICKNAME_RE.match(nickname):
             raise _ClientError(P.ERR_BAD_REQUEST, "invalid nickname")
+        # Enforce minimum client version if configured.
+        min_ver_str = self.config.min_client_version
+        if min_ver_str:
+            min_ver = _parse_version(min_ver_str)
+            client_ver = _parse_version(msg.get("client_version"))
+            if min_ver is not None and (client_ver is None or client_ver < min_ver):
+                raise _ClientError(
+                    P.ERR_OUTDATED_CLIENT,
+                    f"Client is outdated. Minimum required version: {min_ver_str}",
+                )
         token = msg.get("token")
         # If client supplied a previous token, verify it; nickname must match.
         if token:

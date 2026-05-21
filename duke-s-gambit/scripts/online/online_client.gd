@@ -36,6 +36,7 @@ signal server_error(code: String, message: String)
 
 # ── Configuration / state ──────────────────────────────────────────────────
 const PROTOCOL_VERSION := 1
+const GAME_VERSION := "1.0.0"
 const MOVE_MAX_LEN := 6
 
 var _state: int = State.DISCONNECTED
@@ -258,7 +259,8 @@ func _process(_delta: float) -> void:
 				_set_state(State.HANDSHAKING)
 				_verify_fingerprint_or_disconnect()
 				_send({"type": "hello", "nickname": _nickname,
-					"client_version": PROTOCOL_VERSION,
+					"client_version": GAME_VERSION,
+					"protocol_version": PROTOCOL_VERSION,
 					"machine_id": _machine_id})
 			while _peer != null and _peer.get_available_packet_count() > 0:
 				var raw := _peer.get_packet().get_string_from_utf8()

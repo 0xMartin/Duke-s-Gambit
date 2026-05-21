@@ -20,6 +20,10 @@ services:
       # Max number of rooms and clients (DoS guard).
       DUKE_MAX_ROOMS: "256"
       DUKE_MAX_CLIENTS: "600"
+      # Optional: minimum required client game version (e.g. "1.2.0").
+      # Empty/unset disables the check. Outdated clients receive an
+      # `outdated_client` error during hello.
+      DUKE_MIN_CLIENT_VERSION: ""
     volumes:
       - duke-certs:/data/certs
 
