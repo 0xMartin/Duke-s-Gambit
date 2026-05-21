@@ -20,14 +20,24 @@
 
 ## 📑 Table of contents
 
-- [Download & play](#-download--play)
-- [Controls](#-controls)
-- [Combat in action](#️-combat-in-action)
-- [AI opponent](#-ai-opponent)
-- [Online multiplayer](#-online-multiplayer)
-- [Assets & credits](#-assets--credits)
-- [License](#-license)
-- [Author](#-author)
+- [Duke's Gambit](#dukes-gambit)
+  - [📑 Table of contents](#-table-of-contents)
+  - [📥 Download \& play](#-download--play)
+  - [🎮 Controls](#-controls)
+    - [Desktop (PC)](#desktop-pc)
+    - [Mobile (touch)](#mobile-touch)
+  - [⚔️ Combat in action](#️-combat-in-action)
+  - [🤖 AI opponent](#-ai-opponent)
+    - [Difficulty levels](#difficulty-levels)
+  - [🌐 Online multiplayer](#-online-multiplayer)
+    - [What the server supports](#what-the-server-supports)
+    - [Public server](#public-server)
+    - [Run locally](#run-locally)
+  - [📦 Assets \& credits](#-assets--credits)
+    - [3D models \& art](#3d-models--art)
+    - [Sounds](#sounds)
+  - [📄 License](#-license)
+  - [👤 Author](#-author)
 
 > [!NOTE]
 > **Disclaimer:** This is an open-source, non-commercial fan game made for satirical and educational purposes. `Java` is a trademark of Oracle Corporation. This project is not affiliated with, endorsed, or sponsored by Oracle.
@@ -50,11 +60,18 @@ Duke's Gambit is a fully-featured 3D chess game built in **Godot 4**. The rules 
 
 ## 📥 Download & play
 
-Pre-built binaries are available on the GitHub Releases page — pick the build for your platform and run it:
-
 **➡️ [Download the latest release](https://github.com/0xMartin/Duke-s-Gambit/releases/latest)**
 
-The native C++ AI is built in CI for Windows, macOS, Linux, and Android — see the [Build Native AI workflow](https://github.com/0xMartin/Duke-s-Gambit/actions/workflows/build-native.yml) for the latest artifacts.
+Duke's Gambit is available on the following platforms:
+
+| Platform | Format |
+|---|---|
+| 🪟 **Windows** | `.exe` installer |
+| 🍎 **macOS** | `.dmg` disk image |
+| 🐧 **Linux** | `.x86_64` binary |
+| 📱 **Android** | `.apk` package |
+
+Download the build for your platform from the GitHub Releases page and run it — no installation required on desktop.
 
 ---
 

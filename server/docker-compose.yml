@@ -6,7 +6,6 @@ services:
     image: dukes-gambit-server:latest
     container_name: dukes-gambit-server
     restart: unless-stopped
-    stdin_open: true
     ports:
       - "8765:8765"
     environment:

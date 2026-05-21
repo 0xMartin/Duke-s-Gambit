@@ -55,9 +55,9 @@ from websockets.server import WebSocketServerProtocol
 from . import auth
 from . import protocol as P
 from .banlist import BanList
-from .cli import run_cli
+from .cli import start_cli_server
 from .config import ServerConfig
-from .log_setup import setup_logging, CliLogFilter
+from .log_setup import setup_logging
 from .game import BLACK, COLOR_NAMES, WHITE, IllegalMove, NotYourTurn, BadState, color_from_name
 from .lobby import Lobby
 from .room import Room, ROOM_STATE_PLAYING, ROOM_STATE_WAITING, ROOM_STATE_FINISHED
@@ -151,7 +151,6 @@ class Server:
         self.banlist = BanList(config.ban_file)
         self._start_time = time.monotonic()
         self._stop_event = asyncio.Event()
-        self._cli_log_filter: CliLogFilter | None = None
         # Per-room timeout watcher task.
         self._room_watchers: dict[str, asyncio.Task] = {}
         # Per-room reconnect timers.
@@ -205,15 +204,16 @@ class Server:
             ping_timeout=self.config.heartbeat_interval_s * 2,
             process_request=self._http_process_request,
         ):
-            asyncio.ensure_future(run_cli(
+            asyncio.ensure_future(start_cli_server(
                 self.banlist,
                 self.lobby,
                 self._kick_user,
                 self._kick_by_ip,
+                self._close_room,
                 self.stop,
                 self._start_time,
                 self._stats,
-                self._cli_log_filter,
+                self.config,
             ))
             await self._stop_event.wait()
         logger.info("Server stopped.")
@@ -1060,6 +1060,36 @@ class Server:
                 count += 1
         return count
 
+    async def _close_room(self, room_id: str, reason: str) -> bool:
+        """Force-close a room regardless of its state.
+
+        For rooms with an active game, the game is concluded as a draw
+        (admin action, no winner).  All connected members receive
+        S_ROOM_DELETED.  Reconnect timers are cancelled.
+
+        Returns ``False`` when *room_id* is not found.
+        """
+        room = self.lobby.get(room_id)
+        if room is None:
+            return False
+
+        # Cancel any pending reconnect timers for members of this room.
+        for nick in list(room.members):
+            task = self._reconnect_timers.pop((room_id, nick), None)
+            if task:
+                task.cancel()
+
+        # Conclude an active game as a draw before destroying.
+        if room.state == ROOM_STATE_PLAYING and room.game is not None and not room.game.game_over:
+            async with room.lock:
+                result = room.game.force_draw("room closed by admin")
+                room.finish()
+                await self._broadcast_game_over(room, result)
+
+        logger.info("CLOSE_ROOM room_id=%s reason=%r (via CLI)", room_id, reason)
+        await self._destroy_room(room, reason=reason)
+        return True
+
     # ── Wire I/O ───────────────────────────────────────────────────────────
     @staticmethod
     def _parse(raw) -> dict:
@@ -1155,10 +1185,9 @@ def main() -> None:
     """
     config = ServerConfig.from_env()
     log_dir = os.environ.get("DUKE_LOG_DIR", "logs")
-    cli_filter = setup_logging(config.log_level, log_dir=log_dir)
+    setup_logging(config.log_level, log_dir=log_dir)
 
     server = Server(config)
-    server._cli_log_filter = cli_filter
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
