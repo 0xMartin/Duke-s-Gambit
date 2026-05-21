@@ -152,7 +152,6 @@ theme = ExtResource("9_5dd4i")
 metadata/_edit_use_anchors_ = true
 
 [node name="MainVBox" type="GridContainer" parent="MainPanel" unique_id=1054197032]
-visible = false
 layout_mode = 2
 size_flags_vertical = 4
 theme_override_constants/h_separation = 25
@@ -550,18 +549,18 @@ layout_mode = 2
 theme = ExtResource("22_svtp6")
 button_pressed = true
 
-[node name="VFXRow" type="HBoxContainer" parent="MainPanel/SettingsVBox"]
+[node name="VFXRow" type="HBoxContainer" parent="MainPanel/SettingsVBox" unique_id=1723013363]
 layout_mode = 2
 theme_override_constants/separation = 40
 
-[node name="VFXLabel" type="Label" parent="MainPanel/SettingsVBox/VFXRow"]
+[node name="VFXLabel" type="Label" parent="MainPanel/SettingsVBox/VFXRow" unique_id=548584609]
 custom_minimum_size = Vector2(220, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme = ExtResource("16_a8gd2")
 text = "Visual effects (VFX)"
 
-[node name="VFXCheck" type="CheckButton" parent="MainPanel/SettingsVBox/VFXRow"]
+[node name="VFXCheck" type="CheckButton" parent="MainPanel/SettingsVBox/VFXRow" unique_id=2064261084]
 layout_mode = 2
 theme = ExtResource("22_svtp6")
 button_pressed = true
@@ -626,6 +625,7 @@ theme = ExtResource("12_flqon")
 text = "Back"
 
 [node name="OnlineConnectVBox" type="VBoxContainer" parent="MainPanel" unique_id=2136435936]
+visible = false
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3

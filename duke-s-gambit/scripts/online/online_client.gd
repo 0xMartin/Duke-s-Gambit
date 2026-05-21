@@ -385,7 +385,6 @@ func _handle_raw(raw: String) -> void:
 			var kick_reason: String = str(msg.get("reason", ""))
 			var kick_is_ban: bool = bool(msg.get("is_ban", false))
 			emit_signal("player_kicked", kick_reason, kick_is_ban)
-			emit_signal("connection_error", "Kicked: %s" % kick_reason)
 			disconnect_from_server()
 		_:
 			push_warning("OnlineClient: unknown message type '%s'" % mtype)
