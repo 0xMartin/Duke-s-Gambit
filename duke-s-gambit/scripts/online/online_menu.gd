@@ -27,18 +27,12 @@ var _connect_status:  Label
 
 # Lobby
 var _lobby_count_label: Label
-var _lobby_status:      Label
+
 var _lobby_list:        VBoxContainer
 var _refresh_btn:       Button
 var _create_btn:        Button
 var _lobby_back_btn:    Button
 var _search_input:      LineEdit
-var _page_back_btn:     Button
-var _page_label:        Label
-var _page_next_btn:     Button
-
-const _PAGE_SIZE := 8
-var _current_page: int = 0
 
 # Create
 var _room_name_input:     LineEdit
@@ -71,6 +65,7 @@ var _am_host: bool = false
 var _menu: Node = null               # MainMenu
 var _online_btn: Button = null
 var _current_lobby_rooms: Array = []
+var _max_clients: int = 0
 
 # ──────────────────────────────────────────────────────────────────────────
 func setup(menu: Node) -> void:
@@ -96,14 +91,10 @@ func _bind_nodes() -> void:
 	lobby_panel = _menu.get_node("MainPanel/OnlineLobbyVBox") as VBoxContainer
 	_lobby_count_label = lobby_panel.get_node("CountLabel") as Label
 	_lobby_list        = lobby_panel.get_node("ScrollContainer/RoomList") as VBoxContainer
-	_lobby_status      = lobby_panel.get_node("StatusLabel") as Label
 	_refresh_btn       = lobby_panel.get_node("ActionsRow/RefreshBtn") as Button
 	_create_btn        = lobby_panel.get_node("ActionsRow/CreateBtn") as Button
 	_lobby_back_btn    = lobby_panel.get_node("BackBtn") as Button
 	_search_input      = lobby_panel.get_node("SearchRow/SearchInput") as LineEdit
-	_page_back_btn     = lobby_panel.get_node("PaginationRow/PageBackBtn") as Button
-	_page_label        = lobby_panel.get_node("PaginationRow/PageLabel") as Label
-	_page_next_btn     = lobby_panel.get_node("PaginationRow/PageNextBtn") as Button
 
 	create_panel = _menu.get_node("MainPanel/OnlineCreateRoomVBox") as VBoxContainer
 	_room_name_input     = create_panel.get_node("NameRow/NameInput") as LineEdit
@@ -171,9 +162,7 @@ func _connect_signals() -> void:
 	_refresh_btn.pressed.connect(_on_refresh_pressed)
 	_create_btn.pressed.connect(func(): _show_panel(create_panel))
 	_lobby_back_btn.pressed.connect(_disconnect_and_back)
-	_search_input.text_changed.connect(func(_t: String): _current_page = 0; _rebuild_room_list())
-	_page_back_btn.pressed.connect(func(): _current_page -= 1; _rebuild_room_list())
-	_page_next_btn.pressed.connect(func(): _current_page += 1; _rebuild_room_list())
+	_search_input.text_changed.connect(func(_t: String): _rebuild_room_list())
 	_create_confirm_btn.pressed.connect(_on_create_confirm)
 	_create_back_btn.pressed.connect(func(): _show_panel(lobby_panel))
 	_join_confirm_btn.pressed.connect(_on_join_confirm)
@@ -286,9 +275,10 @@ func _on_connection_error(msg: String) -> void:
 		if _menu.call("is_online_panel_active"):
 			_show_panel(connect_panel)
 
-func _on_welcomed(online_count: int) -> void:
+func _on_welcomed(online_count: int, max_clients: int) -> void:
 	_save_last_connection(_url_input.text.strip_edges(), _nick_input.text.strip_edges())
 	_connect_btn.disabled = false
+	_max_clients = max_clients
 	_show_panel(lobby_panel)
 	_lobby_count_label.text = "%d players online" % online_count
 	var oc := _online_client()
@@ -296,12 +286,11 @@ func _on_welcomed(online_count: int) -> void:
 		oc.send_list_rooms()
 
 func _on_online_count(n: int) -> void:
-	_lobby_count_label.text = "%d players online · %d rooms" % [n, _current_lobby_rooms.size()]
+	_lobby_count_label.text = _fmt_count(n, _current_lobby_rooms.size())
 
 func _on_room_list(rooms: Array, online_count: int) -> void:
 	_current_lobby_rooms = rooms
-	_lobby_count_label.text = "%d players online · %d rooms" % [online_count, rooms.size()]
-	_current_page = 0
+	_lobby_count_label.text = _fmt_count(online_count, rooms.size())
 	_rebuild_room_list()
 
 func _rebuild_room_list() -> void:
@@ -312,30 +301,17 @@ func _rebuild_room_list() -> void:
 		if filter == "" or str(r.get("name", "")).to_lower().contains(filter):
 			filtered.append(r)
 
-	# Clamp page.
-	var total_pages := max(1, ceili(float(filtered.size()) / _PAGE_SIZE))
-	_current_page = clampi(_current_page, 0, total_pages - 1)
-
-	# Update pagination controls.
-	_page_label.text = "Page %d / %d" % [_current_page + 1, total_pages]
-	_page_back_btn.disabled = (_current_page <= 0)
-	_page_next_btn.disabled = (_current_page >= total_pages - 1)
-
-	# Slice.
-	var start := _current_page * _PAGE_SIZE
-	var page_rooms := filtered.slice(start, start + _PAGE_SIZE)
-
 	# Rebuild list.
 	for child in _lobby_list.get_children():
 		child.queue_free()
-	if page_rooms.is_empty():
+	if filtered.is_empty():
 		var empty := Label.new()
 		empty.theme = _LABEL_THEME
-		empty.text = "No rooms — be the first to create one!" if filtered.is_empty() else "No rooms match your search."
+		empty.text = "No rooms — be the first to create one!" if _current_lobby_rooms.is_empty() else "No rooms match your search."
 		empty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		_lobby_list.add_child(empty)
 		return
-	for r in page_rooms:
+	for r in filtered:
 		_lobby_list.add_child(_make_room_row(r))
 
 func _make_room_row(room: Dictionary) -> Control:
@@ -462,6 +438,12 @@ func _on_server_error(code: String, msg: String) -> void:
 			_menu.call("show_online_toast", text)
 
 # ── Helpers ────────────────────────────────────────────────────────────────
+func _fmt_count(online: int, rooms: int) -> String:
+	var base := "%d players online · %d rooms" % [online, rooms]
+	if _max_clients > 0:
+		base += " (max %d)" % _max_clients
+	return base
+
 func _show_panel(panel: Control) -> void:
 	if _menu != null and _menu.has_method("show_online_panel"):
 		_menu.call("show_online_panel", panel)

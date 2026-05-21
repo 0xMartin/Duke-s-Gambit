@@ -17,7 +17,7 @@ enum State {
 signal connection_state_changed(new_state: int)
 signal connection_error(message: String)
 
-signal welcomed(online_count: int)
+signal welcomed(online_count: int, max_clients: int)
 signal online_count_updated(online_count: int)
 signal room_list_updated(rooms: Array, online_count: int)
 signal room_created(room: Dictionary)
@@ -308,7 +308,7 @@ func _handle_raw(raw: String) -> void:
 		"welcome":
 			_session_token = str(msg.get("session_token", ""))
 			_set_state(State.READY)
-			emit_signal("welcomed", int(msg.get("online_count", 0)))
+			emit_signal("welcomed", int(msg.get("online_count", 0)), int(msg.get("max_clients", 0)))
 		"online_count":
 			emit_signal("online_count_updated", int(msg.get("online_count", 0)))
 		"room_list":

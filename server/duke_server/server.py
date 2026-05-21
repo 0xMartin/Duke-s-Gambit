@@ -351,7 +351,8 @@ class Server:
         await self._send(ctx.conn, P.S_WELCOME,
                          protocol=PROTOCOL_VERSION,
                          session_token=ctx.session_token,
-                         online_count=self.lobby.online_count)
+                         online_count=self.lobby.online_count,
+                         max_clients=self.config.max_clients)
 
         if rejoined_room:
             await self._send(ctx.conn, P.S_ROOM_JOINED,

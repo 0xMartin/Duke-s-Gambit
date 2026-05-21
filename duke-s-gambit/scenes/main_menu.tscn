@@ -152,6 +152,7 @@ theme = ExtResource("9_5dd4i")
 metadata/_edit_use_anchors_ = true
 
 [node name="MainVBox" type="GridContainer" parent="MainPanel" unique_id=1054197032]
+visible = false
 layout_mode = 2
 size_flags_vertical = 4
 theme_override_constants/h_separation = 25
@@ -675,7 +676,6 @@ theme = ExtResource("12_flqon")
 text = "Back"
 
 [node name="OnlineLobbyVBox" type="VBoxContainer" parent="MainPanel" unique_id=1578426827]
-visible = false
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -693,11 +693,11 @@ theme = ExtResource("16_a8gd2")
 text = "0 players online · 0 rooms"
 horizontal_alignment = 1
 
-[node name="SearchRow" type="HBoxContainer" parent="MainPanel/OnlineLobbyVBox" unique_id=3101234561]
+[node name="SearchRow" type="HBoxContainer" parent="MainPanel/OnlineLobbyVBox" unique_id=-1193732735]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="SearchInput" type="LineEdit" parent="MainPanel/OnlineLobbyVBox/SearchRow" unique_id=3101234562]
+[node name="SearchInput" type="LineEdit" parent="MainPanel/OnlineLobbyVBox/SearchRow" unique_id=-1193732734]
 layout_mode = 2
 size_flags_horizontal = 3
 theme = ExtResource("25_3wgol")
@@ -715,34 +715,6 @@ theme = ExtResource("21_1dfpl")
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
-
-[node name="PaginationRow" type="HBoxContainer" parent="MainPanel/OnlineLobbyVBox" unique_id=3101234563]
-layout_mode = 2
-alignment = 1
-theme_override_constants/separation = 16
-
-[node name="PageBackBtn" type="Button" parent="MainPanel/OnlineLobbyVBox/PaginationRow" unique_id=3101234564]
-layout_mode = 2
-theme = ExtResource("12_flqon")
-text = "< Back"
-
-[node name="PageLabel" type="Label" parent="MainPanel/OnlineLobbyVBox/PaginationRow" unique_id=3101234565]
-custom_minimum_size = Vector2(120, 0)
-layout_mode = 2
-theme = ExtResource("16_a8gd2")
-text = "Page 1 / 1"
-horizontal_alignment = 1
-
-[node name="PageNextBtn" type="Button" parent="MainPanel/OnlineLobbyVBox/PaginationRow" unique_id=3101234566]
-layout_mode = 2
-theme = ExtResource("12_flqon")
-text = "Next >"
-
-[node name="StatusLabel" type="Label" parent="MainPanel/OnlineLobbyVBox" unique_id=1548367259]
-layout_mode = 2
-theme = ExtResource("16_a8gd2")
-horizontal_alignment = 1
-autowrap_mode = 3
 
 [node name="ActionsRow" type="HBoxContainer" parent="MainPanel/OnlineLobbyVBox" unique_id=1685837826]
 layout_mode = 2
