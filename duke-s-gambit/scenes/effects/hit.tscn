@@ -26,7 +26,7 @@ transparency = 1
 blend_mode = 1
 shading_mode = 0
 vertex_color_use_as_albedo = true
-albedo_color = Color(0.50333726, 0.2766687, 1, 1)
+albedo_color = Color(1.4, 0.8, 2.4, 1)
 disable_receive_shadows = true
 
 [sub_resource type="QuadMesh" id="QuadMesh_x74q3"]
@@ -60,7 +60,7 @@ blend_mode = 1
 no_depth_test = true
 shading_mode = 0
 vertex_color_use_as_albedo = true
-albedo_color = Color(0.6230377, 0.6160982, 1, 1)
+albedo_color = Color(1.6, 1.55, 2.3, 1)
 albedo_texture = ExtResource("2_70lag")
 disable_receive_shadows = true
 
@@ -108,6 +108,7 @@ blend_mode = 1
 no_depth_test = true
 shading_mode = 0
 vertex_color_use_as_albedo = true
+albedo_color = Color(1.6, 1.5, 1.9, 1)
 albedo_texture = ExtResource("2_cx12h")
 disable_receive_shadows = true
 
@@ -115,11 +116,46 @@ disable_receive_shadows = true
 material = SubResource("StandardMaterial3D_x74q3")
 size = Vector2(3, 3)
 
+[sub_resource type="Animation" id="Animation_flash"]
+resource_name = "flash"
+length = 0.35
+step = 0.01
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Flash:light_energy")
+tracks/0/interp = 2
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.04, 0.35),
+"transitions": PackedFloat32Array(1, 0.4, 1),
+"update": 0,
+"values": [0.0, 3.0, 0.0]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Flash:omni_range")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.04, 0.35),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [1.0, 3.2, 2.4]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimLib_flash"]
+_data = {
+&"flash": SubResource("Animation_flash")
+}
+
 [node name="Hit" type="Node3D" unique_id=145099886]
 transform = Transform3D(1.1, 0, 0, 0, 1.1, 0, 0, 0, 1.1, 0, 0, 0)
 script = ExtResource("3_script")
 
 [node name="P3" type="GPUParticles3D" parent="." unique_id=625591074]
+cast_shadow = 0
 emitting = false
 amount = 16
 lifetime = 0.35000000000000003
@@ -130,6 +166,7 @@ process_material = SubResource("ParticleProcessMaterial_cx12h")
 draw_pass_1 = SubResource("QuadMesh_x74q3")
 
 [node name="P2" type="GPUParticles3D" parent="." unique_id=1957522263]
+cast_shadow = 0
 emitting = false
 amount = 1
 lifetime = 0.8
@@ -140,6 +177,7 @@ process_material = SubResource("ParticleProcessMaterial_5e1cd")
 draw_pass_1 = SubResource("QuadMesh_5e1cd")
 
 [node name="P1" type="GPUParticles3D" parent="." unique_id=1992015645]
+cast_shadow = 0
 emitting = false
 amount = 1
 one_shot = true
@@ -153,3 +191,17 @@ draw_pass_1 = SubResource("QuadMesh_dllk2")
 stream = ExtResource("2_3rge5")
 volume_db = 14.0
 autoplay = true
+
+[node name="Flash" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)
+light_color = Color(0.78, 0.7, 1, 1)
+light_energy = 0.0
+light_specular = 0.5
+omni_range = 1.0
+omni_attenuation = 1.6
+
+[node name="FlashAnim" type="AnimationPlayer" parent="."]
+libraries = {
+&"": SubResource("AnimLib_flash")
+}
+autoplay = "flash"
