@@ -34,14 +34,14 @@ material = SubResource("StandardMaterial3D_70lag")
 size = Vector2(0.1, 0.4)
 
 [sub_resource type="Curve" id="Curve_cx12h"]
-_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1e-05, 0.68972063), 0.0, 0.0, 0, 0, Vector2(0.9083602, 0), 0.0, 0.0, 0, 0]
-point_count = 3
+_data = [Vector2(0.0016077161, 0.5839436), 0.0, 0.0, 0, 0, Vector2(0.6205788, 0), 0.0, 0.0, 0, 0]
+point_count = 2
 
 [sub_resource type="CurveTexture" id="CurveTexture_70lag"]
 curve = SubResource("Curve_cx12h")
 
 [sub_resource type="Curve" id="Curve_x74q3"]
-_data = [Vector2(0, 0.35652292), 0.0, 0.0, 0, 0, Vector2(0.13504824, 1), 0.0, 0.0, 0, 0, Vector2(1, 0.71440196), 0.0, 0.0, 0, 0]
+_data = [Vector2(0, 0.35652292), 0.0, 0.0, 0, 0, Vector2(0.13504824, 1), 0.0, 0.0, 0, 0, Vector2(0.59324753, 0.62568086), 0.0, 0.0, 0, 0]
 point_count = 3
 
 [sub_resource type="CurveTexture" id="CurveTexture_dllk2"]
@@ -75,10 +75,16 @@ point_count = 3
 [sub_resource type="CurveTexture" id="CurveTexture_x74q3"]
 curve = SubResource("Curve_70lag")
 
+[sub_resource type="Curve" id="Curve_5e1cd"]
+_limits = [-1.0, 1.0, 0.0, 1.0]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 2
+
 [sub_resource type="CurveTexture" id="CurveTexture_fbm6u"]
+curve = SubResource("Curve_5e1cd")
 
 [sub_resource type="Curve" id="Curve_3rge5"]
-_data = [Vector2(0, 0.73203146), 0.0, 0.0, 0, 0, Vector2(0.065916404, 1), 0.0, 0.0, 0, 0, Vector2(0.57877815, 0), 0.0, 0.0, 0, 0]
+_data = [Vector2(0, 0.73203146), 0.0, 0.0, 0, 0, Vector2(0.065916404, 1), 0.0, 0.0, 0, 0, Vector2(0.31511253, 0), 0.0, 0.0, 0, 0]
 point_count = 3
 
 [sub_resource type="CurveTexture" id="CurveTexture_cx12h"]
@@ -93,6 +99,9 @@ point_count = 2
 curve = SubResource("Curve_dllk2")
 
 [sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_70lag"]
+particle_flag_disable_z = true
+angular_velocity_min = -80.000015
+angular_velocity_max = -20.000015
 gravity = Vector3(0, 0, 0)
 tangential_accel_curve = SubResource("CurveTexture_5e1cd")
 scale_curve = SubResource("CurveTexture_cx12h")
@@ -144,6 +153,7 @@ emitting = false
 amount = 1
 one_shot = true
 explosiveness = 1.0
+local_coords = true
 transform_align = 1
 process_material = SubResource("ParticleProcessMaterial_70lag")
 draw_pass_1 = SubResource("QuadMesh_dllk2")
