@@ -155,7 +155,7 @@ A public server is available — no setup required, just launch the game and con
 
 | | |
 |---|---|
-| **URL** | `duke.sytes.net:8765` |
+| **URL** | `duke.sytes.net` |
 | **Max players** | 50 |
 
 > [!TIP]
