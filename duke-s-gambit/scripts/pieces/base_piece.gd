@@ -54,8 +54,8 @@ const TRAIL_COLOR_SWORD   := Color(0.55, 0.88, 1.0, 1.0)  # light blue for sword
 const TRAIL_COLOR_KNIGHT  := Color(0.90, 0.90, 0.92, 1.0)  # light grey-white for jump
 const TRAIL_LIFETIME      := 0.4   # seconds each trail point lives before fading out
 # ── VFX scenes (preload → resources ready at game start, avoids in-game hitch) ──
-const _VFX_HIT_SCENE:    PackedScene = preload("res://assets/BinbunVFX_Vol2/StylizedHitFX/effects/hit/vfx_hit_02.tscn")
-const _VFX_IMPACT_SCENE: PackedScene = preload("res://assets/BinbunVFX_Vol2/StylizedHitFX/effects/big_impact/vfx_big_impact_02.tscn")
+const _VFX_HIT_SCENE:    PackedScene = preload("res://scenes/effects/hit.tscn")
+const _VFX_IMPACT_SCENE: PackedScene = preload("res://scenes/effects/spell.tscn")
 # One-time flag: first BasePiece spawns both VFX off-screen so shaders compile before combat
 static var _vfx_warmed_up: bool = false
 static var _outline_shader: Shader = null
@@ -64,9 +64,7 @@ const _SFX_STEP1: AudioStream = preload("res://assets/sounds/footstep/footstep_1
 const _SFX_STEP2: AudioStream = preload("res://assets/sounds/footstep/footstep_2.mp3")
 const _SFX_STEP3: AudioStream = preload("res://assets/sounds/footstep/footstep_3.mp3")
 const _SFX_SWORD: AudioStream = preload("res://assets/sounds/sword.mp3")
-const _SFX_HIT:   AudioStream = preload("res://assets/sounds/hit.mp3")
 const _SFX_DEATH: AudioStream = preload("res://assets/sounds/death.mp3")
-const _SFX_SPELL: AudioStream = preload("res://assets/sounds/spell.mp3")
 const FOOTSTEP_FIRST_DELAY := 0.4   # seconds before first step (non-knight)
 const FOOTSTEP_INTERVAL    := 0.6   # seconds between subsequent steps
 # ── Node refs (assigned in _ready by searching children) ───────────────────
@@ -231,15 +229,7 @@ func _on_attack_start() -> void:
 	_trail_active = true
 
 func _on_attack_hit() -> void:
-	# hit.mp3 plays at the exact moment of impact — root-level so it's independent of pieces
-	var hit_tmp := AudioStreamPlayer.new()
-	hit_tmp.bus = "SFX"
-	get_tree().root.add_child(hit_tmp)
-	hit_tmp.stream    = _SFX_HIT
-	hit_tmp.volume_db = 7.5
-	hit_tmp.finished.connect(hit_tmp.queue_free)
-	hit_tmp.play()
-	# Spawn hit flash VFX at the target's position
+	# Spawn hit flash VFX at the target's position (sound embedded in hit.tscn)
 	if _attack_target != null and is_instance_valid(_attack_target):
 		_spawn_vfx(_VFX_HIT_SCENE, _attack_target.global_position + Vector3(0, 0.5, 0))
 	# Brief camera shake on sword impact
@@ -620,14 +610,6 @@ func _set_alpha_recursive(node: Node, alpha: float) -> void:
 func _spawn_death_particles() -> void:
 	var pos := global_position + Vector3(0, 0.5, 0)
 	_spawn_vfx(_VFX_IMPACT_SCENE, pos)
-	# spell.mp3 via root-level player so it survives piece queue_free()
-	var tmp := AudioStreamPlayer.new()
-	tmp.bus = "SFX"
-	get_tree().root.add_child(tmp)
-	tmp.stream = _SFX_SPELL
-	tmp.volume_db = -6.0 
-	tmp.finished.connect(tmp.queue_free)
-	tmp.play()
 
 ## Instantiate a VFX scene into the root scene so its global_transform is unaffected
 ## by any parent node, then auto-free it after 4 seconds.
@@ -636,15 +618,8 @@ func _spawn_vfx(vfx_scene: PackedScene, world_pos: Vector3) -> void:
 	if cam_cfg != null and cam_cfg.get("vfx_enabled") == false:
 		return
 	var vfx: Node3D = vfx_scene.instantiate() as Node3D
+	vfx.position = world_pos   # set before add_child so _ready() emits at correct position
 	get_tree().root.add_child(vfx)
-	vfx.global_position = world_pos
-	# VFXControllerBB.autoplay is false by default — must call play() manually
-	vfx.set("one_shot", true)   # play once, no loop
-	if vfx.has_method("play"):
-		vfx.call("play")
-	get_tree().create_timer(4.0).timeout.connect(func() -> void:
-		if is_instance_valid(vfx):
-			vfx.queue_free())
 
 ## Spawn both VFX far off-screen for 2 frames so the GPU compiles their shaders
 ## before the first combat encounter (eliminates the first-use freeze).
@@ -654,11 +629,8 @@ func _prewarm_vfx() -> void:
 
 func _prewarm_one(scene: PackedScene) -> void:
 	var vfx: Node3D = scene.instantiate() as Node3D
+	vfx.position = Vector3(0.0, -999.0, 0.0)   # set before add_child; below the board, never visible
 	get_tree().root.add_child(vfx)
-	vfx.global_position = Vector3(0.0, -999.0, 0.0)   # below the board, never visible
-	vfx.set("one_shot", true)
-	if vfx.has_method("play"):
-		vfx.call("play")
 	await get_tree().process_frame
 	await get_tree().process_frame
 	if is_instance_valid(vfx):

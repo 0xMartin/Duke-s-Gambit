@@ -11,7 +11,7 @@ var pan_sensitivity:  int  = 5
 var tilt_sensitivity: int  = 5
 var kill_cam_enabled:       bool = true
 var face_player_after_move: bool = true
-# Combat / promotion / spawn impact effects (BinbunVFX). Disable on low-end devices.
+# Combat / promotion / spawn impact effects. Disable on low-end devices.
 var vfx_enabled: bool = true
 # 0–100 %; default: music lower than SFX
 var music_volume: int = 50

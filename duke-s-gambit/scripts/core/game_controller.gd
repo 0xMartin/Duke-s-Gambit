@@ -36,9 +36,8 @@ const OUTLINE_ATTACK   := Color(1.00, 0.05, 0.00, 1.0)
 const OUTLINE_CHECK    := Color(1.00, 0.05, 0.00, 1.0)
 const OUTLINE_WIDTH    := 0.5
 
-# Promotion impact (same assets as BasePiece death effect).
-const _PROMO_VFX_IMPACT_SCENE: PackedScene = preload("res://assets/BinbunVFX_Vol2/StylizedHitFX/effects/big_impact/vfx_big_impact_02.tscn")
-const _PROMO_SFX_SPELL: AudioStream = preload("res://assets/sounds/spell.mp3")
+# Promotion / intro impact effect.
+const _PROMO_VFX_IMPACT_SCENE: PackedScene = preload("res://scenes/effects/spell.tscn")
 
 # Game-over panel icons.
 const _GAMEOVER_KING_ICON: Texture2D = preload("res://assets/textures/pieces/white_king.svg")
@@ -389,10 +388,9 @@ func _intro_spawn_side(color: int) -> void:
 		# VFX fires first
 		_spawn_intro_vfx(_board.sq_to_world(sq) + Vector3(0, 0.5, 0))
 		await get_tree().create_timer(_INTRO_VFX_PIECE_DELAY).timeout
-		# Piece pops into view with spell sound
+		# Piece pops into view
 		if is_instance_valid(piece):
 			piece.visible = true
-		_play_intro_spell_sfx()
 		await get_tree().create_timer(_INTRO_PIECE_INTERVAL - _INTRO_VFX_PIECE_DELAY).timeout
 
 func _spawn_intro_vfx(world_pos: Vector3) -> void:
@@ -400,23 +398,11 @@ func _spawn_intro_vfx(world_pos: Vector3) -> void:
 	if cam_cfg != null and cam_cfg.get("vfx_enabled") == false:
 		return
 	var vfx: Node3D = _PROMO_VFX_IMPACT_SCENE.instantiate() as Node3D
+	vfx.position = world_pos   # set before add_child so _ready() emits at correct position
 	get_tree().root.add_child(vfx)
-	vfx.global_position = world_pos
-	vfx.set("one_shot", true)
-	if vfx.has_method("play"):
-		vfx.call("play")
-	get_tree().create_timer(4.0).timeout.connect(func() -> void:
-		if is_instance_valid(vfx):
-			vfx.queue_free())
 
 func _play_intro_spell_sfx() -> void:
-	var tmp := AudioStreamPlayer.new()
-	tmp.bus = "SFX"
-	get_tree().root.add_child(tmp)
-	tmp.stream = _PROMO_SFX_SPELL
-	tmp.volume_db = -6.0
-	tmp.finished.connect(tmp.queue_free)
-	tmp.play()
+	pass  # sound is embedded in spell.tscn
 
 # ── Intro overlay ──────────────────────────────────────────────────────────
 func _build_intro_overlay() -> void:
@@ -1037,24 +1023,9 @@ func _spawn_promotion_impact(world_pos: Vector3) -> void:
 	var vfx_on: bool = cam_cfg == null or cam_cfg.get("vfx_enabled") != false
 	if vfx_on:
 		var vfx: Node3D = _PROMO_VFX_IMPACT_SCENE.instantiate() as Node3D
-		get_tree().root.add_child(vfx)
-		vfx.global_position = world_pos + Vector3(0, 0.5, 0)
+		vfx.position = world_pos + Vector3(0, 0.5, 0)   # set before add_child so _ready() emits at correct position
 		vfx.scale = vfx.scale * 1.2
-		vfx.set("one_shot", true)
-		if vfx.has_method("play"):
-			vfx.call("play")
-		get_tree().create_timer(4.0).timeout.connect(func() -> void:
-			if is_instance_valid(vfx):
-				vfx.queue_free())
-
-	# Same spell SFX as death impact; root-level so it survives piece swap.
-	var tmp := AudioStreamPlayer.new()
-	tmp.bus = "SFX"
-	get_tree().root.add_child(tmp)
-	tmp.stream = _PROMO_SFX_SPELL
-	tmp.volume_db = -6.0
-	tmp.finished.connect(tmp.queue_free)
-	tmp.play()
+		get_tree().root.add_child(vfx)
 
 # ── Pawn promotion UI ──────────────────────────────────────────────────────
 func _on_promotion_required(sq: Vector2i, color: int) -> void:

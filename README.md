@@ -188,7 +188,6 @@ See [`server/README.md`](server/README.md) for the full configuration reference,
 - **All other 3D models** (board, terrain, weapons, NPC, environment, …) — created by `0xM4R71N`
 - **Duke chess pieces** — [github.com/openjdk/duke](https://github.com/openjdk/duke) — edited in Blender, animated via [mixamo.com](https://www.mixamo.com/)
 - **Chess icons** — [Wikimedia Commons — SVG chess pieces](https://commons.wikimedia.org/wiki/Category:SVG_chess_pieces)
-- **Hit VFX** — [BinbunVFX Vol.2](https://binbun3d.itch.io/hit-fx) — autor: `Binbun`
 - **Skybox** — [Godot Asset Library #579](https://godotengine.org/asset-library/asset/579) — autor: `rpgwhitelock`
 
 ### Sounds
