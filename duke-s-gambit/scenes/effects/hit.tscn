@@ -132,6 +132,7 @@ draw_pass_1 = SubResource("QuadMesh_x74q3")
 [node name="P2" type="GPUParticles3D" parent="." unique_id=1957522263]
 emitting = false
 amount = 1
+lifetime = 0.8
 one_shot = true
 explosiveness = 1.0
 transform_align = 1
