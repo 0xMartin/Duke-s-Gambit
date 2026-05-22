@@ -75,6 +75,8 @@ point_count = 3
 [sub_resource type="CurveTexture" id="CurveTexture_x74q3"]
 curve = SubResource("Curve_70lag")
 
+[sub_resource type="CurveTexture" id="CurveTexture_fbm6u"]
+
 [sub_resource type="Curve" id="Curve_3rge5"]
 _data = [Vector2(0, 0.73203146), 0.0, 0.0, 0, 0, Vector2(0.065916404, 1), 0.0, 0.0, 0, 0, Vector2(0.57877815, 0), 0.0, 0.0, 0, 0]
 point_count = 3
@@ -91,14 +93,12 @@ point_count = 2
 curve = SubResource("Curve_dllk2")
 
 [sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_70lag"]
-particle_flag_rotate_y = true
-particle_flag_disable_z = true
-angular_velocity_min = 19.999983
-angular_velocity_max = 79.999985
 gravity = Vector3(0, 0, 0)
 tangential_accel_curve = SubResource("CurveTexture_5e1cd")
 scale_curve = SubResource("CurveTexture_cx12h")
+color = Color(0.8217887, 0.82178867, 0.82178867, 1)
 alpha_curve = SubResource("CurveTexture_x74q3")
+hue_variation_curve = SubResource("CurveTexture_fbm6u")
 anim_speed_min = 3.0
 anim_speed_max = 3.0
 
@@ -120,10 +120,8 @@ size = Vector2(3, 3)
 script = ExtResource("3_script")
 
 [node name="P3" type="GPUParticles3D" parent="." unique_id=625591074]
-emitting = false
 amount = 22
 lifetime = 0.3
-one_shot = true
 explosiveness = 1.0
 transform_align = 3
 process_material = SubResource("ParticleProcessMaterial_cx12h")
@@ -131,7 +129,6 @@ draw_pass_1 = SubResource("QuadMesh_x74q3")
 
 [node name="P2" type="GPUParticles3D" parent="." unique_id=1957522263]
 amount = 1
-one_shot = true
 explosiveness = 1.0
 transform_align = 1
 process_material = SubResource("ParticleProcessMaterial_5e1cd")
@@ -139,7 +136,6 @@ draw_pass_1 = SubResource("QuadMesh_5e1cd")
 
 [node name="P1" type="GPUParticles3D" parent="." unique_id=1992015645]
 amount = 1
-one_shot = true
 explosiveness = 1.0
 transform_align = 1
 process_material = SubResource("ParticleProcessMaterial_70lag")

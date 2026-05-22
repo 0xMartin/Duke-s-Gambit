@@ -73,9 +73,6 @@ point_count = 2
 curve = SubResource("Curve_tjei6")
 
 [sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_p5ire"]
-particle_flag_disable_z = true
-angular_velocity_min = -70.000015
-angular_velocity_max = -20.000015
 gravity = Vector3(0, 0, 0)
 scale_curve = SubResource("CurveTexture_p8quy")
 anim_speed_min = 4.0
