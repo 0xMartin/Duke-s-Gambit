@@ -35,6 +35,7 @@ extends Control
 @onready var _tilt_sens_slider:   HSlider  = $MainPanel/SettingsVBox/TiltSensRow/TiltSensSlider
 @onready var _tilt_sens_value_label: Label = $MainPanel/SettingsVBox/TiltSensRow/TiltSensValueLabel
 @onready var _kill_cam_check:     CheckButton = $MainPanel/SettingsVBox/KillCamRow/KillCamCheck
+@onready var _vfx_check:          CheckButton = $MainPanel/SettingsVBox/VFXRow/VFXCheck
 @onready var _face_player_check:  CheckButton = $MainPanel/SettingsVBox/FacePlayerRow/FacePlayerCheck
 @onready var _music_vol_slider:   HSlider  = $MainPanel/SettingsVBox/MusicVolRow/MusicVolSlider
 @onready var _music_vol_value_label: Label = $MainPanel/SettingsVBox/MusicVolRow/MusicVolValueLabel
@@ -58,6 +59,7 @@ const _TITLE_VERTICAL_PADDING := 8.0
 func _ready() -> void:
 	_save = get_node("/root/SaveManager")
 	MusicManager.play_menu_music()
+	_apply_version_label()
 	_main_panel.visible = true
 	_setup_signals()
 	_populate_time_options(_pvp_time_opt)
@@ -74,6 +76,15 @@ func _ready() -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_RESIZED:
 		_fit_title_font_size()
+
+## Update the bottom-left credits label with the version from project settings,
+## so it stays in sync with application/config/version.
+func _apply_version_label() -> void:
+	var lbl := get_node_or_null("Version") as Label
+	if lbl == null:
+		return
+	var v := str(ProjectSettings.get_setting("application/config/version", "0.0.0"))
+	lbl.text = "Created by: 0xM4R71N  |  Version: %s" % v
 
 func _fit_title_font_size() -> void:
 	if _title_label == null:
@@ -124,6 +135,7 @@ func _setup_signals() -> void:
 	_pan_sens_slider.value_changed.connect(_on_pan_sens_changed)
 	_tilt_sens_slider.value_changed.connect(_on_tilt_sens_changed)
 	_kill_cam_check.toggled.connect(_on_kill_cam_toggled)
+	_vfx_check.toggled.connect(_on_vfx_toggled)
 	_face_player_check.toggled.connect(_on_face_player_toggled)
 	_music_vol_slider.value_changed.connect(_on_music_vol_changed)
 	_sfx_vol_slider.value_changed.connect(_on_sfx_vol_changed)
@@ -440,6 +452,8 @@ func _show_settings() -> void:
 		_tilt_sens_slider.value = cam_cfg.tilt_sensitivity
 		_tilt_sens_value_label.text = "%d" % cam_cfg.tilt_sensitivity
 		_kill_cam_check.button_pressed = cam_cfg.kill_cam_enabled
+		if _vfx_check:
+			_vfx_check.button_pressed = cam_cfg.get("vfx_enabled") != false
 		if _face_player_check:
 			_face_player_check.button_pressed = cam_cfg.get("face_player_after_move") != false
 		# Populate volume sliders without triggering callbacks
@@ -515,6 +529,12 @@ func _on_kill_cam_toggled(pressed: bool) -> void:
 	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
 	if cam_cfg:
 		cam_cfg.kill_cam_enabled = pressed
+		cam_cfg.save_config()
+
+func _on_vfx_toggled(pressed: bool) -> void:
+	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
+	if cam_cfg:
+		cam_cfg.set("vfx_enabled", pressed)
 		cam_cfg.save_config()
 
 # ── Runtime setup ─────────────────────────────────────────────────────────

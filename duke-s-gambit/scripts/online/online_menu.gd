@@ -11,6 +11,22 @@ const NICKNAME_RE := "^[A-Za-z0-9_.\\- ]{1,15}$"
 const _PREFS_PATH := "user://online_prefs.cfg"
 const _PREFS_SECTION := "connection"
 
+# Status label colors: neutral (in-progress) vs error.
+const _STATUS_COLOR_INFO  := Color(0.85, 0.85, 0.85, 1.0)
+const _STATUS_COLOR_ERROR := Color(0.95, 0.30, 0.30, 1.0)
+
+static func _set_status_info(label: Label, msg: String) -> void:
+	if label == null:
+		return
+	label.add_theme_color_override("font_color", _STATUS_COLOR_INFO)
+	label.text = msg
+
+static func _set_status_error(label: Label, msg: String) -> void:
+	if label == null:
+		return
+	label.add_theme_color_override("font_color", _STATUS_COLOR_ERROR)
+	label.text = msg
+
 # Panels (from scene)
 var connect_panel:  VBoxContainer = null
 var lobby_panel:    VBoxContainer = null
@@ -27,11 +43,12 @@ var _connect_status:  Label
 
 # Lobby
 var _lobby_count_label: Label
-var _lobby_status:      Label
+
 var _lobby_list:        VBoxContainer
 var _refresh_btn:       Button
 var _create_btn:        Button
 var _lobby_back_btn:    Button
+var _search_input:      LineEdit
 
 # Create
 var _room_name_input:     LineEdit
@@ -64,6 +81,7 @@ var _am_host: bool = false
 var _menu: Node = null               # MainMenu
 var _online_btn: Button = null
 var _current_lobby_rooms: Array = []
+var _max_clients: int = 0
 
 # ──────────────────────────────────────────────────────────────────────────
 func setup(menu: Node) -> void:
@@ -89,10 +107,10 @@ func _bind_nodes() -> void:
 	lobby_panel = _menu.get_node("MainPanel/OnlineLobbyVBox") as VBoxContainer
 	_lobby_count_label = lobby_panel.get_node("CountLabel") as Label
 	_lobby_list        = lobby_panel.get_node("ScrollContainer/RoomList") as VBoxContainer
-	_lobby_status      = lobby_panel.get_node("StatusLabel") as Label
 	_refresh_btn       = lobby_panel.get_node("ActionsRow/RefreshBtn") as Button
 	_create_btn        = lobby_panel.get_node("ActionsRow/CreateBtn") as Button
 	_lobby_back_btn    = lobby_panel.get_node("BackBtn") as Button
+	_search_input      = lobby_panel.get_node("SearchRow/SearchInput") as LineEdit
 
 	create_panel = _menu.get_node("MainPanel/OnlineCreateRoomVBox") as VBoxContainer
 	_room_name_input     = create_panel.get_node("NameRow/NameInput") as LineEdit
@@ -160,6 +178,7 @@ func _connect_signals() -> void:
 	_refresh_btn.pressed.connect(_on_refresh_pressed)
 	_create_btn.pressed.connect(func(): _show_panel(create_panel))
 	_lobby_back_btn.pressed.connect(_disconnect_and_back)
+	_search_input.text_changed.connect(func(_t: String): _rebuild_room_list())
 	_create_confirm_btn.pressed.connect(_on_create_confirm)
 	_create_back_btn.pressed.connect(func(): _show_panel(lobby_panel))
 	_join_confirm_btn.pressed.connect(_on_join_confirm)
@@ -181,6 +200,8 @@ func _connect_signals() -> void:
 	oc.room_deleted.connect(_on_room_deleted)
 	oc.game_starting.connect(_on_game_starting)
 	oc.server_error.connect(_on_server_error)
+	if oc.has_signal("player_kicked"):
+		oc.player_kicked.connect(_on_player_kicked)
 
 # ── Button handlers ────────────────────────────────────────────────────────
 func _on_online_pressed() -> void:
@@ -201,17 +222,16 @@ func _on_connect_pressed() -> void:
 	var nick: String = _nick_input.text.strip_edges()
 	var url: String  = _url_input.text.strip_edges()
 	if not _validate_nickname(nick):
-		_connect_status.text = "Nickname must be 1–15 chars (letters, digits, _ . - space)."
+		_set_status_error(_connect_status, "Nickname must be 1–15 chars (letters, digits, _ . - space).")
 		return
 	if url.is_empty():
-		_connect_status.text = "URL must not be empty."
+		_set_status_error(_connect_status, "URL must not be empty.")
 		return
-	_connect_status.add_theme_color_override("font_color", Color(0.85, 0.85, 0.85, 1.0))
-	_connect_status.text = "Connecting..."
+	_set_status_info(_connect_status, "Connecting...")
 	_connect_btn.disabled = true
 	var oc := _online_client()
 	if oc == null:
-		_connect_status.text = "OnlineClient autoload missing."
+		_set_status_error(_connect_status, "OnlineClient autoload missing.")
 		_connect_btn.disabled = false
 		return
 	oc.connect_to_server(url, nick)
@@ -219,7 +239,7 @@ func _on_connect_pressed() -> void:
 func _on_create_confirm() -> void:
 	var nm: String = _room_name_input.text.strip_edges()
 	if nm.length() < 1:
-		_create_status.text = "Room name is required."
+		_set_status_error(_create_status, "Room name is required.")
 		return
 	var sel := _room_color_opt.get_selected_id()
 	var color := "random"
@@ -231,14 +251,14 @@ func _on_create_confirm() -> void:
 	var oc := _online_client()
 	if oc == null:
 		return
-	_create_status.text = "Creating..."
+	_set_status_info(_create_status, "Creating...")
 	oc.send_create_room(nm, color, time_ms, _room_password_input.text)
 
 func _on_join_confirm() -> void:
 	var oc := _online_client()
 	if oc == null or _join_room_id == "":
 		return
-	_join_status.text = "Joining..."
+	_set_status_info(_join_status, "Joining...")
 	oc.send_join_room(_join_room_id, _join_password_input.text)
 
 func _on_leave_room() -> void:
@@ -265,16 +285,16 @@ func _on_state_changed(_new_state: int) -> void:
 	pass
 
 func _on_connection_error(msg: String) -> void:
-	_connect_status.add_theme_color_override("font_color", Color(0.87, 0.0, 0.45, 1.0))
-	_connect_status.text = msg
+	_set_status_error(_connect_status, msg)
 	_connect_btn.disabled = false
 	if _menu != null and _menu.has_method("is_online_panel_active"):
 		if _menu.call("is_online_panel_active"):
 			_show_panel(connect_panel)
 
-func _on_welcomed(online_count: int) -> void:
+func _on_welcomed(online_count: int, max_clients: int) -> void:
 	_save_last_connection(_url_input.text.strip_edges(), _nick_input.text.strip_edges())
 	_connect_btn.disabled = false
+	_max_clients = max_clients
 	_show_panel(lobby_panel)
 	_lobby_count_label.text = "%d players online" % online_count
 	var oc := _online_client()
@@ -282,21 +302,32 @@ func _on_welcomed(online_count: int) -> void:
 		oc.send_list_rooms()
 
 func _on_online_count(n: int) -> void:
-	_lobby_count_label.text = "%d players online · %d rooms" % [n, _current_lobby_rooms.size()]
+	_lobby_count_label.text = _fmt_count(n, _current_lobby_rooms.size())
 
 func _on_room_list(rooms: Array, online_count: int) -> void:
 	_current_lobby_rooms = rooms
-	_lobby_count_label.text = "%d players online · %d rooms" % [online_count, rooms.size()]
+	_lobby_count_label.text = _fmt_count(online_count, rooms.size())
+	_rebuild_room_list()
+
+func _rebuild_room_list() -> void:
+	# Filter by search text (case-insensitive partial match on name).
+	var filter := _search_input.text.strip_edges().to_lower()
+	var filtered: Array = []
+	for r in _current_lobby_rooms:
+		if filter == "" or str(r.get("name", "")).to_lower().contains(filter):
+			filtered.append(r)
+
+	# Rebuild list.
 	for child in _lobby_list.get_children():
 		child.queue_free()
-	if rooms.is_empty():
+	if filtered.is_empty():
 		var empty := Label.new()
 		empty.theme = _LABEL_THEME
-		empty.text = "No rooms — be the first to create one!"
+		empty.text = "No rooms — be the first to create one!" if _current_lobby_rooms.is_empty() else "No rooms match your search."
 		empty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		_lobby_list.add_child(empty)
 		return
-	for r in rooms:
+	for r in filtered:
 		_lobby_list.add_child(_make_room_row(r))
 
 func _make_room_row(room: Dictionary) -> Control:
@@ -380,10 +411,10 @@ func _show_wait_for(room: Dictionary) -> void:
 	if _am_host:
 		_wait_start_btn.visible = true
 		_wait_start_btn.disabled = not both_in
-		_wait_status.text = "Waiting for opponent..." if not both_in else "Both players ready — press Start to begin."
+		_set_status_info(_wait_status, "Waiting for opponent..." if not both_in else "Both players ready — press Start to begin.")
 	else:
 		_wait_start_btn.visible = false
-		_wait_status.text = "Waiting for opponent..." if not both_in else "Waiting for host to start the game..."
+		_set_status_info(_wait_status, "Waiting for opponent..." if not both_in else "Waiting for host to start the game...")
 	_show_panel(wait_panel)
 
 func _on_start_game_pressed() -> void:
@@ -391,7 +422,7 @@ func _on_start_game_pressed() -> void:
 	if oc == null:
 		return
 	_wait_start_btn.disabled = true
-	_wait_status.text = "Starting game..."
+	_set_status_info(_wait_status, "Starting game...")
 	oc.send_start_game()
 
 func _on_room_deleted(_rid: String, reason: String) -> void:
@@ -410,11 +441,19 @@ func _on_game_starting(payload: Dictionary) -> void:
 func _on_server_error(code: String, msg: String) -> void:
 	var text := "[%s] %s" % [code, msg]
 	if create_panel.visible:
-		_create_status.text = text
+		_set_status_error(_create_status, text)
 	elif join_panel.visible:
-		_join_status.text = text
+		_set_status_error(_join_status, text)
 	elif connect_panel.visible:
-		_connect_status.text = text
+		_set_status_error(_connect_status, text)
+		if msg == "nickname already in use":
+			_nick_input.text_changed.connect(
+				func(_t: String): _connect_btn.disabled = false, CONNECT_ONE_SHOT)
+		elif msg == "already connected from this device":
+			_url_input.text_changed.connect(
+				func(_t: String): _connect_btn.disabled = false, CONNECT_ONE_SHOT)
+		else:
+			_connect_btn.disabled = false
 	elif wait_panel.visible:
 		_wait_status.add_theme_color_override("font_color", Color(0.87, 0.0, 0.45, 1.0))
 		_wait_status.text = text
@@ -422,7 +461,21 @@ func _on_server_error(code: String, msg: String) -> void:
 		if _menu != null and _menu.has_method("show_online_toast"):
 			_menu.call("show_online_toast", text)
 
+func _on_player_kicked(reason: String, is_ban: bool) -> void:
+	var title := "You are banned" if is_ban else "You were kicked"
+	var text := "%s: %s" % [title, reason] if reason != "" else title
+	_set_status_error(_connect_status, text)
+	_connect_btn.disabled = false
+	if _menu != null and _menu.has_method("is_online_panel_active"):
+		if _menu.call("is_online_panel_active"):
+			_show_panel(connect_panel)
+
 # ── Helpers ────────────────────────────────────────────────────────────────
+func _fmt_count(online: int, rooms: int) -> String:
+	var players_str := "%d players online" % online if _max_clients <= 0 \
+		else "%d / %d players online" % [online, _max_clients]
+	return "%s · %d rooms" % [players_str, rooms]
+
 func _show_panel(panel: Control) -> void:
 	if _menu != null and _menu.has_method("show_online_panel"):
 		_menu.call("show_online_panel", panel)

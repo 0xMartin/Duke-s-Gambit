@@ -5,6 +5,7 @@
 [ext_resource type="PackedScene" uid="uid://orbitcamera" path="res://scenes/orbit_camera.tscn" id="3"]
 [ext_resource type="Script" uid="uid://c0ovcwq6s7tyi" path="res://scripts/ui/game_ui.gd" id="4"]
 [ext_resource type="Script" uid="uid://bfgfin44nf1d2" path="res://scripts/ui/hud.gd" id="5"]
+[ext_resource type="Theme" uid="uid://bkpc8m4dvqj0y" path="res://themes/player_card_black.tres" id="5_blkcd"]
 [ext_resource type="Theme" uid="uid://b141h52b7443c" path="res://themes/game_panel.tres" id="5_bt5mj"]
 [ext_resource type="Theme" uid="uid://0v4k77luosjx" path="res://themes/player_card.tres" id="5_ir15t"]
 [ext_resource type="Texture2D" uid="uid://bomo6t88iri6d" path="res://assets/textures/skybox.png" id="6"]
@@ -42,6 +43,7 @@ sky = SubResource("Sky1")
 ambient_light_source = 2
 ambient_light_color = Color(0.8673276, 0.8736465, 0.786995, 1)
 ambient_light_energy = 0.55
+glow_intensity = 0.61
 fog_enabled = true
 fog_mode = 1
 fog_light_color = Color(0.5508366, 0.5597339, 0.4666593, 1)
@@ -70,17 +72,6 @@ corner_radius_top_left = 100
 corner_radius_top_right = 100
 corner_radius_bottom_right = 100
 corner_radius_bottom_left = 100
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_37s47"]
-content_margin_left = 20.0
-content_margin_top = 0.0
-content_margin_right = 0.0
-content_margin_bottom = 5.0
-bg_color = Color(0.19076231, 0.19076234, 0.19076231, 0.627451)
-border_width_bottom = 10
-border_color = Color(0.050980393, 0.050980393, 0.050980393, 0.78431374)
-corner_radius_bottom_left = 25
-corner_detail = 5
 
 [sub_resource type="StyleBoxFlat" id="HudCaptureBlack"]
 content_margin_left = 4.0
@@ -512,8 +503,7 @@ mouse_filter = 2
 custom_minimum_size = Vector2(0, 130)
 layout_mode = 2
 mouse_filter = 2
-theme = ExtResource("5_ir15t")
-theme_override_styles/panel = SubResource("StyleBoxFlat_37s47")
+theme = ExtResource("5_blkcd")
 
 [node name="MainHBox" type="HBoxContainer" parent="HUD/TopBar/BlackPanel" unique_id=1050871494]
 layout_mode = 2
@@ -689,6 +679,72 @@ size_flags_horizontal = 3
 theme_override_styles/background = SubResource("StyleBoxFlat_sww3w")
 theme_override_styles/fill = SubResource("StyleBoxFlat_suyxu")
 show_percentage = false
+
+[node name="NETPlayerTurnBox" type="CenterContainer" parent="HUD" unique_id=488112201]
+visible = false
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 12.0
+offset_bottom = 108.0
+grow_horizontal = 2
+mouse_filter = 2
+
+[node name="NETPlayerTurnVBox" type="VBoxContainer" parent="HUD/NETPlayerTurnBox" unique_id=488112202]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="NETPlayerTurnLabel" type="Label" parent="HUD/NETPlayerTurnBox/NETPlayerTurnVBox" unique_id=488112203]
+layout_mode = 2
+theme = ExtResource("14_pl11u")
+text = "Opponent is thinking..."
+horizontal_alignment = 1
+
+[node name="NETPlayerTurnProgress" type="ProgressBar" parent="HUD/NETPlayerTurnBox/NETPlayerTurnVBox" unique_id=488112204]
+custom_minimum_size = Vector2(360, 24)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/background = SubResource("StyleBoxFlat_sww3w")
+theme_override_styles/fill = SubResource("StyleBoxFlat_suyxu")
+show_percentage = false
+
+[node name="NETPlayerJoinBox" type="CenterContainer" parent="HUD" unique_id=488112301]
+visible = false
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 12.0
+offset_bottom = 180.0
+grow_horizontal = 2
+mouse_filter = 2
+
+[node name="NETPlayerJoinVBox" type="VBoxContainer" parent="HUD/NETPlayerJoinBox" unique_id=488112302]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="NETPlayerJoinLabel" type="Label" parent="HUD/NETPlayerJoinBox/NETPlayerJoinVBox" unique_id=488112303]
+layout_mode = 2
+theme = ExtResource("14_pl11u")
+text = "Waiting for opponent to load..."
+horizontal_alignment = 1
+
+[node name="NETPlayerJoinProgress" type="ProgressBar" parent="HUD/NETPlayerJoinBox/NETPlayerJoinVBox" unique_id=488112304]
+custom_minimum_size = Vector2(360, 24)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/background = SubResource("StyleBoxFlat_sww3w")
+theme_override_styles/fill = SubResource("StyleBoxFlat_suyxu")
+show_percentage = false
+
+[node name="DisconnectButton" type="Button" parent="HUD/NETPlayerJoinBox/NETPlayerJoinVBox" unique_id=482116733]
+custom_minimum_size = Vector2(200, 40)
+layout_mode = 2
+size_flags_horizontal = 4
+theme = ExtResource("7_trtic")
+theme_override_font_sizes/font_size = 20
+text = "Disconnect"
 
 [node name="SurrenderButton" type="Button" parent="HUD" unique_id=1889013262]
 layout_mode = 1
@@ -931,6 +987,50 @@ layout_mode = 2
 theme = ExtResource("7_trtic")
 theme_override_font_sizes/font_size = 24
 text = "No"
+
+[node name="KickedBannedPanel" type="PanelContainer" parent="HUD" unique_id=555000001]
+visible = false
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.3
+anchor_top = 0.35
+anchor_right = 0.7
+anchor_bottom = 0.65
+offset_left = 20.0
+offset_right = -20.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("5_bt5mj")
+
+[node name="VBox" type="VBoxContainer" parent="HUD/KickedBannedPanel" unique_id=555000002]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="TitleLabel" type="Label" parent="HUD/KickedBannedPanel/VBox" unique_id=555000003]
+layout_mode = 2
+theme = ExtResource("14_bhx41")
+theme_override_font_sizes/font_size = 32
+text = "You were kicked"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ReasonLabel" type="Label" parent="HUD/KickedBannedPanel/VBox" unique_id=555000004]
+layout_mode = 2
+theme = ExtResource("14_pl11u")
+theme_override_font_sizes/font_size = 22
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="BackButton" type="Button" parent="HUD/KickedBannedPanel/VBox" unique_id=555000005]
+custom_minimum_size = Vector2(180, 50)
+layout_mode = 2
+size_flags_horizontal = 4
+theme = ExtResource("7_trtic")
+theme_override_font_sizes/font_size = 24
+text = "Back to Menu"
 
 [node name="PromotionPanel" type="PanelContainer" parent="HUD" unique_id=1877138672]
 visible = false

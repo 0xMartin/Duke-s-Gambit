@@ -36,9 +36,8 @@ const OUTLINE_ATTACK   := Color(1.00, 0.05, 0.00, 1.0)
 const OUTLINE_CHECK    := Color(1.00, 0.05, 0.00, 1.0)
 const OUTLINE_WIDTH    := 0.5
 
-# Promotion impact (same assets as BasePiece death effect).
-const _PROMO_VFX_IMPACT_SCENE: PackedScene = preload("res://assets/BinbunVFX_Vol2/StylizedHitFX/effects/big_impact/vfx_big_impact_02.tscn")
-const _PROMO_SFX_SPELL: AudioStream = preload("res://assets/sounds/spell.mp3")
+# Promotion / intro impact effect.
+const _PROMO_VFX_IMPACT_SCENE: PackedScene = preload("res://scenes/effects/spell.tscn")
 
 # Game-over panel icons.
 const _GAMEOVER_KING_ICON: Texture2D = preload("res://assets/textures/pieces/white_king.svg")
@@ -117,9 +116,15 @@ var _intro_right_icon: TextureRect = null
 func _process(_delta: float) -> void:
 	if _chess == null or _busy or _move_start_time_ms == 0 or _game_over_shown:
 		return
-	var elapsed: int = Time.get_ticks_msec() - _move_start_time_ms
 	if _hud == null:
 		return
+	if _online_mode:
+		# In online mode the clock is driven entirely by the server
+		# (see `_on_server_clock_update`).  The local _process loop is a
+		# passive display only — it must not run any countdown of its own,
+		# otherwise the HUD will drift away from the authoritative values.
+		return
+	var elapsed: int = Time.get_ticks_msec() - _move_start_time_ms
 	if _time_control_ms > 0:
 		var color := _chess.active_color
 		var inactive := 1 - color
@@ -216,6 +221,8 @@ func setup_online(white_name: String, black_name: String,
 	if oc != null:
 		if not oc.move_applied.is_connected(_on_server_move_applied):
 			oc.move_applied.connect(_on_server_move_applied)
+		if not oc.clock_update_received.is_connected(_on_server_clock_update):
+			oc.clock_update_received.connect(_on_server_clock_update)
 		if not oc.game_over_received.is_connected(_on_server_game_over):
 			oc.game_over_received.connect(_on_server_game_over)
 		if not oc.server_error.is_connected(_on_server_error_online):
@@ -253,11 +260,13 @@ func setup(p1_name: String, p2_name: String,
 		if is_ai:
 			var ai := AIController.new()
 			ai.color = color
-			ai.player_name = _player_names[color]
 			# Set AI difficulty (map 1-3 to difficulty levels)
 			var difficulty := maxi(1, mini(3, ai_strength))
 			ai.difficulty = difficulty
 			ctrl = ai
+			if not ai._native_available:
+				_player_names[color] = "Simple AI"
+			ai.player_name = _player_names[color]
 		else:
 			var human := HumanController.new()
 			human.color = color
@@ -297,6 +306,11 @@ func start_game() -> void:
 		if _hud.has_method("reset_move_history"):
 			_hud.call("reset_move_history")
 	await _play_intro_animation()
+	# In online mode, hold the clock until both clients have finished loading.
+	# Server only arms the chess clock once it receives C_CLIENT_READY from both
+	# sides; while we wait for the opponent, reuse the "thinking" progress bar.
+	if _online_mode:
+		await _await_online_ready()
 	_busy = false
 	var initial_camera_color: int = ChessEnums.PieceColor.WHITE
 	if _online_mode and _my_online_color != -1:
@@ -305,6 +319,23 @@ func start_game() -> void:
 		initial_camera_color = _human_player_color()
 	_camera.snap_to_player(initial_camera_color)
 	_start_turn()
+
+func _await_online_ready() -> void:
+	var oc := get_node_or_null("/root/OnlineClient")
+	if oc == null:
+		return
+	oc.send_client_ready()
+	var game_ui = _ui as Control
+	var bar_shown := false
+	if game_ui != null and game_ui.has_method("show_waiting_for_opponent"):
+		game_ui.show_waiting_for_opponent()
+		bar_shown = true
+	while true:
+		var payload: Variant = await oc.ready_state_updated
+		if typeof(payload) == TYPE_DICTIONARY and bool((payload as Dictionary).get("all_ready", false)):
+			break
+	if bar_shown and game_ui != null and game_ui.has_method("hide_status"):
+		game_ui.hide_status()
 
 # ── Intro animation ────────────────────────────────────────────────────────
 func _play_intro_animation() -> void:
@@ -359,31 +390,21 @@ func _intro_spawn_side(color: int) -> void:
 		# VFX fires first
 		_spawn_intro_vfx(_board.sq_to_world(sq) + Vector3(0, 0.5, 0))
 		await get_tree().create_timer(_INTRO_VFX_PIECE_DELAY).timeout
-		# Piece pops into view with spell sound
+		# Piece pops into view
 		if is_instance_valid(piece):
 			piece.visible = true
-		_play_intro_spell_sfx()
 		await get_tree().create_timer(_INTRO_PIECE_INTERVAL - _INTRO_VFX_PIECE_DELAY).timeout
 
 func _spawn_intro_vfx(world_pos: Vector3) -> void:
+	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
+	if cam_cfg != null and cam_cfg.get("vfx_enabled") == false:
+		return
 	var vfx: Node3D = _PROMO_VFX_IMPACT_SCENE.instantiate() as Node3D
+	vfx.position = world_pos   # set before add_child so _ready() emits at correct position
 	get_tree().root.add_child(vfx)
-	vfx.global_position = world_pos
-	vfx.set("one_shot", true)
-	if vfx.has_method("play"):
-		vfx.call("play")
-	get_tree().create_timer(4.0).timeout.connect(func() -> void:
-		if is_instance_valid(vfx):
-			vfx.queue_free())
 
 func _play_intro_spell_sfx() -> void:
-	var tmp := AudioStreamPlayer.new()
-	tmp.bus = "SFX"
-	get_tree().root.add_child(tmp)
-	tmp.stream = _PROMO_SFX_SPELL
-	tmp.volume_db = -6.0
-	tmp.finished.connect(tmp.queue_free)
-	tmp.play()
+	pass  # sound is embedded in spell.tscn
 
 # ── Intro overlay ──────────────────────────────────────────────────────────
 func _build_intro_overlay() -> void:
@@ -518,6 +539,8 @@ func _start_turn() -> void:
 	var state  := _chess.get_game_state()
 	var legal  := _chess.get_legal_moves(color)
 	_update_surrender_ui()
+	if _hud != null and _hud.has_method("set_active_color"):
+		_hud.set_active_color(color)
 
 	# Check / checkmate / stalemate
 	if state == ChessEnums.GameState.CHECKMATE:
@@ -557,9 +580,12 @@ func _start_turn() -> void:
 	# Show thinking indicator for AI or remote (online) opponent.
 	if ctrl.is_ai and _ui != null:
 		var game_ui = _ui as Control
-		if game_ui.has_method("show_ai_thinking"):
-			var label_text := "Opponent is thinking..." if _online_mode else "AI is thinking..."
-			game_ui.show_ai_thinking(label_text)
+		if _online_mode:
+			if game_ui.has_method("show_opponent_turn"):
+				game_ui.show_opponent_turn()
+		else:
+			if game_ui.has_method("show_ai_thinking"):
+				game_ui.show_ai_thinking()
 	ctrl.request_move(_chess, legal)
 
 func is_human_turn() -> bool:
@@ -852,15 +878,18 @@ func _on_move_chosen(mv: ChessMove) -> void:
 	# Hide AI thinking indicator
 	if _ui != null:
 		var game_ui = _ui as Control
-		if game_ui.has_method("hide_ai_thinking"):
-			game_ui.hide_ai_thinking()
+		if game_ui.has_method("hide_status"):
+			game_ui.hide_status()
 	_busy = true
 	_deselect_piece()   # clear outline before move animation
-	# Track timing + deduct from clock
+	# Track timing + deduct from clock.  In online mode the server is the
+	# authoritative source for the clock (see `_on_server_clock_update`)
+	# so we skip the local deduction — doing it here would subtract the
+	# think-time a second time on top of what the server already deducted.
 	var elapsed: int = Time.get_ticks_msec() - _move_start_time_ms
 	_move_times_ms[mv.piece_color] += elapsed
 	_move_counts[mv.piece_color]   += 1
-	if _time_control_ms > 0:
+	if _time_control_ms > 0 and not _online_mode:
 		_time_remaining_ms[mv.piece_color] = maxi(
 			_time_remaining_ms[mv.piece_color] - elapsed, 0)
 	# Freeze clock updates until the next turn is officially started.
@@ -992,25 +1021,13 @@ func _swap_promoted_piece(old_piece: BasePiece, mv: ChessMove) -> void:
 
 func _spawn_promotion_impact(world_pos: Vector3) -> void:
 	# Same effect as death impact; scaled up by 20% for promotion emphasis.
-	var vfx: Node3D = _PROMO_VFX_IMPACT_SCENE.instantiate() as Node3D
-	get_tree().root.add_child(vfx)
-	vfx.global_position = world_pos + Vector3(0, 0.5, 0)
-	vfx.scale = vfx.scale * 1.2
-	vfx.set("one_shot", true)
-	if vfx.has_method("play"):
-		vfx.call("play")
-	get_tree().create_timer(4.0).timeout.connect(func() -> void:
-		if is_instance_valid(vfx):
-			vfx.queue_free())
-
-	# Same spell SFX as death impact; root-level so it survives piece swap.
-	var tmp := AudioStreamPlayer.new()
-	tmp.bus = "SFX"
-	get_tree().root.add_child(tmp)
-	tmp.stream = _PROMO_SFX_SPELL
-	tmp.volume_db = -6.0
-	tmp.finished.connect(tmp.queue_free)
-	tmp.play()
+	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
+	var vfx_on: bool = cam_cfg == null or cam_cfg.get("vfx_enabled") != false
+	if vfx_on:
+		var vfx: Node3D = _PROMO_VFX_IMPACT_SCENE.instantiate() as Node3D
+		vfx.position = world_pos + Vector3(0, 0.5, 0)   # set before add_child so _ready() emits at correct position
+		vfx.scale = vfx.scale * 1.2
+		get_tree().root.add_child(vfx)
 
 # ── Pawn promotion UI ──────────────────────────────────────────────────────
 func _on_promotion_required(sq: Vector2i, color: int) -> void:
@@ -1059,6 +1076,8 @@ func _start_defeat_sequence(loser_color: int) -> void:
 
 
 func _show_game_over(winner_color: int, reason: String) -> void:
+	if _hud != null and _hud.has_method("set_active_color"):
+		_hud.set_active_color(-1)
 	var panel := _ui.get_node_or_null("GameOverPanel") as Control
 	if panel == null:
 		return
@@ -1256,9 +1275,28 @@ func _apply_server_move(payload: Dictionary) -> void:
 	# Sync server clock values BEFORE applying the move so HUD shows authoritative time.
 	if payload.has("white_ms"):
 		_time_remaining_ms[ChessEnums.PieceColor.WHITE] = int(payload.get("white_ms", 0))
+		if _hud != null:
+			_hud.update_timer(ChessEnums.PieceColor.WHITE, _time_remaining_ms[ChessEnums.PieceColor.WHITE])
 	if payload.has("black_ms"):
 		_time_remaining_ms[ChessEnums.PieceColor.BLACK] = int(payload.get("black_ms", 0))
+		if _hud != null:
+			_hud.update_timer(ChessEnums.PieceColor.BLACK, _time_remaining_ms[ChessEnums.PieceColor.BLACK])
+	# Online clock is server-driven; neutralise the local elapsed so
+	# `_move_times_ms` accumulation below stays a reasonable estimate.
+	_move_start_time_ms = Time.get_ticks_msec()
 	await _on_move_chosen(mv)
+
+func _on_server_clock_update(payload: Dictionary) -> void:
+	# Authoritative periodic clock from the server. Update both timers in
+	# the HUD; we are not running any local countdown in online mode.
+	if not _online_mode or _game_over_shown or _hud == null:
+		return
+	if payload.has("white_ms"):
+		_time_remaining_ms[ChessEnums.PieceColor.WHITE] = int(payload.get("white_ms", 0))
+		_hud.update_timer(ChessEnums.PieceColor.WHITE, _time_remaining_ms[ChessEnums.PieceColor.WHITE])
+	if payload.has("black_ms"):
+		_time_remaining_ms[ChessEnums.PieceColor.BLACK] = int(payload.get("black_ms", 0))
+		_hud.update_timer(ChessEnums.PieceColor.BLACK, _time_remaining_ms[ChessEnums.PieceColor.BLACK])
 
 func _on_server_game_over(payload: Dictionary) -> void:
 	if not _online_mode or _game_over_shown:

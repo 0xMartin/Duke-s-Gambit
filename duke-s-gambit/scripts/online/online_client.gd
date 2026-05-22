@@ -17,7 +17,7 @@ enum State {
 signal connection_state_changed(new_state: int)
 signal connection_error(message: String)
 
-signal welcomed(online_count: int)
+signal welcomed(online_count: int, max_clients: int)
 signal online_count_updated(online_count: int)
 signal room_list_updated(rooms: Array, online_count: int)
 signal room_created(room: Dictionary)
@@ -26,15 +26,19 @@ signal room_updated(room: Dictionary)
 signal room_deleted(room_id: String, reason: String)
 
 signal game_starting(payload: Dictionary)
+signal ready_state_updated(payload: Dictionary)
 signal move_applied(payload: Dictionary)
+signal clock_update_received(payload: Dictionary)
 signal draw_offered(from_color: String)
 signal draw_declined()
 signal game_over_received(payload: Dictionary)
 
 signal server_error(code: String, message: String)
+signal player_kicked(reason: String, is_ban: bool)
 
 # ── Configuration / state ──────────────────────────────────────────────────
 const PROTOCOL_VERSION := 1
+var GAME_VERSION: String = str(ProjectSettings.get_setting("application/config/version", "0.0.0"))
 const MOVE_MAX_LEN := 6
 
 var _state: int = State.DISCONNECTED
@@ -101,9 +105,14 @@ Z1682chR6zNRCseyie4SjyTCdkvsAa+omQSf
 var _le_chain: X509Certificate = null
 var _diag: String = ""  # diagnostic info included in TLS error messages
 var _tls_mode: String = "none"
+var _machine_id: String = ""
+
+const _MACHINE_ID_PATH := "user://machine_id.cfg"
+const _MACHINE_ID_SECTION := "device"
 
 func _ready() -> void:
 	set_process(false)
+	_machine_id = _get_or_create_machine_id()
 	# Write bundled chain to user:// so X509Certificate can load it.
 	var f := FileAccess.open("user://le_chain.pem", FileAccess.WRITE)
 	if f == null:
@@ -118,6 +127,29 @@ func _ready() -> void:
 		_diag = "[cert_loaded]"
 	else:
 		_diag = "[cert_load_failed err=%d]" % load_err
+
+# ── Machine ID ─────────────────────────────────────────────────────────────
+func _get_or_create_machine_id() -> String:
+	var cfg := ConfigFile.new()
+	if cfg.load(_MACHINE_ID_PATH) == OK:
+		var mid: String = str(cfg.get_value(_MACHINE_ID_SECTION, "id", ""))
+		if mid.length() >= 8:
+			return mid
+	var mid := _generate_uuid()
+	cfg.set_value(_MACHINE_ID_SECTION, "id", mid)
+	cfg.save(_MACHINE_ID_PATH)
+	return mid
+
+func _generate_uuid() -> String:
+	var b := PackedByteArray()
+	for _i in 16:
+		b.append(randi() % 256)
+	b[6] = (b[6] & 0x0f) | 0x40  # version 4
+	b[8] = (b[8] & 0x3f) | 0x80  # variant
+	return "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x" % [
+		b[0], b[1], b[2], b[3], b[4], b[5], b[6], b[7],
+		b[8], b[9], b[10], b[11], b[12], b[13], b[14], b[15]
+	]
 
 # ── Public API ─────────────────────────────────────────────────────────────
 func get_state() -> int:
@@ -152,7 +184,7 @@ func connect_to_server(url: String, nickname: String) -> void:
 
 	var ok := _peer.connect_to_url(_url, tls_options)
 	if ok != OK:
-		emit_signal("connection_error", "Connection failed: code %d" % ok)
+		emit_signal("connection_error", "Could not start connection to the server. Please check the server address and try again.")
 		_set_state(State.DISCONNECTED)
 		return
 	_set_state(State.CONNECTING)
@@ -196,6 +228,9 @@ func send_delete_room() -> void:
 func send_start_game() -> void:
 	_send({"type": "start_game"})
 
+func send_client_ready() -> void:
+	_send({"type": "client_ready"})
+
 func send_move(uci: String) -> void:
 	if uci.length() > MOVE_MAX_LEN:
 		return
@@ -226,11 +261,22 @@ func _process(_delta: float) -> void:
 				_set_state(State.HANDSHAKING)
 				_verify_fingerprint_or_disconnect()
 				_send({"type": "hello", "nickname": _nickname,
-					"client_version": PROTOCOL_VERSION})
+					"client_version": GAME_VERSION,
+					"protocol_version": PROTOCOL_VERSION,
+					"machine_id": _machine_id})
 			while _peer != null and _peer.get_available_packet_count() > 0:
 				var raw := _peer.get_packet().get_string_from_utf8()
 				_handle_raw(raw)
 		WebSocketPeer.STATE_CLOSED, WebSocketPeer.STATE_CLOSING:
+			# Drain any buffered messages (e.g. "kicked") before handling the
+			# close, so messages sent just before the server closes the socket
+			# are not silently dropped.
+			while _peer != null and _peer.get_available_packet_count() > 0:
+				var raw := _peer.get_packet().get_string_from_utf8()
+				_handle_raw(raw)
+			# _handle_raw may have called disconnect_from_server() already.
+			if _peer == null:
+				return
 			var was_state := _state
 			set_process(false)
 			var code := _peer.get_close_code() if _peer != null else -1
@@ -238,13 +284,29 @@ func _process(_delta: float) -> void:
 			_peer = null
 			_set_state(State.DISCONNECTED)
 			if was_state != State.DISCONNECTED:
+				# Custom close codes 4000 (kick) / 4001 (ban) carry the reason
+				# in the close frame itself. This is more reliable than sending
+				# a separate JSON message which can be dropped if the server
+				# closes the TCP socket before the frame is flushed.
+				if code == 4000 or code == 4001:
+					emit_signal("player_kicked", reason, code == 4001)
+					return
 				var msg: String
 				if code == -1:
-					msg = "TLS error -1 | %s | %s" % [_tls_mode, _diag]
+					if was_state == State.CONNECTING:
+						msg = "Could not reach the server. Please check your internet connection or try again later."
+					else:
+						msg = "Connection to the server was lost. Please try again."
+				elif code == 1000:
+					msg = "Disconnected from server."
+				elif code == 1006:
+					msg = "Connection to the server was interrupted."
+				elif code == 1008 or code == 1011:
+					msg = "Server refused the connection%s." % (": " + reason if reason != "" else "")
 				elif code >= 0:
-					msg = "Disconnected from server (code %d%s)" % [code, ": " + reason if reason != "" else ""]
+					msg = "Disconnected from server%s." % (" (" + reason + ")" if reason != "" else "")
 				else:
-					msg = "Disconnected from server"
+					msg = "Disconnected from server."
 				emit_signal("connection_error", msg)
 		WebSocketPeer.STATE_CONNECTING:
 			pass
@@ -279,7 +341,7 @@ func _handle_raw(raw: String) -> void:
 		"welcome":
 			_session_token = str(msg.get("session_token", ""))
 			_set_state(State.READY)
-			emit_signal("welcomed", int(msg.get("online_count", 0)))
+			emit_signal("welcomed", int(msg.get("online_count", 0)), int(msg.get("max_clients", 0)))
 		"online_count":
 			emit_signal("online_count_updated", int(msg.get("online_count", 0)))
 		"room_list":
@@ -308,8 +370,12 @@ func _handle_raw(raw: String) -> void:
 		"game_start":
 			_your_color = str(msg.get("your_color", _your_color))
 			emit_signal("game_starting", msg)
+		"ready_state":
+			emit_signal("ready_state_updated", msg)
 		"move_applied":
 			emit_signal("move_applied", msg)
+		"clock_update":
+			emit_signal("clock_update_received", msg)
 		"draw_offer":
 			emit_signal("draw_offered", str(msg.get("from_color", "")))
 		"draw_declined":
@@ -317,12 +383,18 @@ func _handle_raw(raw: String) -> void:
 		"game_over":
 			emit_signal("game_over_received", msg)
 		"error":
-			emit_signal("server_error",
-				str(msg.get("code", "")), str(msg.get("message", "")))
+			var err_code: String = str(msg.get("code", ""))
+			var err_msg: String = str(msg.get("message", ""))
+			emit_signal("server_error", err_code, err_msg)
+			if err_code == "banned":
+				emit_signal("player_kicked", err_msg, true)
+				disconnect_from_server()
 		"pong":
 			pass
 		"kicked":
-			emit_signal("connection_error", "Kicked: %s" % msg.get("reason", ""))
+			var kick_reason: String = str(msg.get("reason", ""))
+			var kick_is_ban: bool = bool(msg.get("is_ban", false))
+			emit_signal("player_kicked", kick_reason, kick_is_ban)
 			disconnect_from_server()
 		_:
 			push_warning("OnlineClient: unknown message type '%s'" % mtype)

@@ -51,6 +51,10 @@ var _touch_rot_start: Vector2 = Vector2.ZERO
 var _touch_rot_azimuth0: float = 0.0
 var _touch_rot_elevation0: float = 0.0
 
+# Touch input is naturally faster than mouse (larger pixel deltas per physical cm).
+# This scale brings touch speed in line with mouse at the same sensitivity setting.
+const TOUCH_SPEED_SCALE := 0.35
+
 # Kill cam state
 const KILL_CAM_ORBIT_SPEED      := 18.0   # deg/s cinematic orbit during regular kill cam
 const CHECKMATE_CAM_ORBIT_SPEED :=  6.0   # deg/s slow mournful orbit around dying king
@@ -175,13 +179,16 @@ func _unhandled_input(event: InputEvent) -> void:
 					_pinch_target_dist0 * (_pinch_dist0 / cur),
 					distance_min, distance_max)
 		elif _touch_points.size() == 1:
-			# Single-finger orbit — read sensitivity live so settings take effect immediately
+			# Single-finger orbit — read sensitivity live so settings take effect immediately.
+			# Pan sensitivity → horizontal (azimuth), tilt sensitivity → vertical (elevation).
+			# TOUCH_SPEED_SCALE compensates for larger pixel deltas on touchscreens vs mouse.
 			var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
-			var rot_spd: float = cam_cfg.tilt_speed() if cam_cfg else rotate_speed
+			var pan_spd: float = cam_cfg.pan_rot_speed() * TOUCH_SPEED_SCALE if cam_cfg else rotate_speed * TOUCH_SPEED_SCALE
+			var tilt_spd: float = cam_cfg.tilt_speed() * TOUCH_SPEED_SCALE if cam_cfg else rotate_speed * TOUCH_SPEED_SCALE
 			var delta := sd.position - _touch_rot_start
-			_azimuth        = _touch_rot_azimuth0 - delta.x * rot_spd
+			_azimuth        = _touch_rot_azimuth0 - delta.x * pan_spd
 			_target_azimuth = _azimuth
-			elevation        = clamp(_touch_rot_elevation0 + delta.y * rot_spd,
+			elevation        = clamp(_touch_rot_elevation0 + delta.y * tilt_spd,
 									elevation_min, elevation_max)
 			_target_elevation = elevation
 

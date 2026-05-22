@@ -12,9 +12,14 @@ config_version=5
 
 config/name="Duke's Gambit"
 config/description="Duke's Gambit is a fully-featured 3D chess game built in Godot 4. The rules are standard chess — what sets it apart is the presentation: all pieces are fully animated 3D characters from the Java world, the environment is stylised and thematic, and captures play out as short combat sequences rather than a simple disappearance. "
+config/version="1.0.1"
 run/main_scene="res://scenes/main_menu.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
+boot_splash/bg_color=Color(0.06666667, 0.34509805, 0.36862746, 1)
+boot_splash/stretch_mode=4
+boot_splash/image="uid://chyo1df168w7s"
 config/icon="uid://db5kvho1lwga8"
+boot_splash/minimum_display_time=2000
 
 [autoload]
 

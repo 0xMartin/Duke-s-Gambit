@@ -549,6 +549,22 @@ layout_mode = 2
 theme = ExtResource("22_svtp6")
 button_pressed = true
 
+[node name="VFXRow" type="HBoxContainer" parent="MainPanel/SettingsVBox" unique_id=1723013363]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="VFXLabel" type="Label" parent="MainPanel/SettingsVBox/VFXRow" unique_id=548584609]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("16_a8gd2")
+text = "Visual effects (VFX)"
+
+[node name="VFXCheck" type="CheckButton" parent="MainPanel/SettingsVBox/VFXRow" unique_id=2064261084]
+layout_mode = 2
+theme = ExtResource("22_svtp6")
+button_pressed = true
+
 [node name="PanSensRow" type="HBoxContainer" parent="MainPanel/SettingsVBox" unique_id=1531540557]
 layout_mode = 2
 theme_override_constants/separation = 40
@@ -693,6 +709,17 @@ theme = ExtResource("16_a8gd2")
 text = "0 players online · 0 rooms"
 horizontal_alignment = 1
 
+[node name="SearchRow" type="HBoxContainer" parent="MainPanel/OnlineLobbyVBox" unique_id=-1193732735]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="SearchInput" type="LineEdit" parent="MainPanel/OnlineLobbyVBox/SearchRow" unique_id=-1193732734]
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("25_3wgol")
+placeholder_text = "Search rooms..."
+max_length = 40
+
 [node name="ScrollContainer" type="ScrollContainer" parent="MainPanel/OnlineLobbyVBox" unique_id=2008308365]
 custom_minimum_size = Vector2(0, 280)
 layout_mode = 2
@@ -704,12 +731,6 @@ theme = ExtResource("21_1dfpl")
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
-
-[node name="StatusLabel" type="Label" parent="MainPanel/OnlineLobbyVBox" unique_id=1548367259]
-layout_mode = 2
-theme = ExtResource("16_a8gd2")
-horizontal_alignment = 1
-autowrap_mode = 3
 
 [node name="ActionsRow" type="HBoxContainer" parent="MainPanel/OnlineLobbyVBox" unique_id=1685837826]
 layout_mode = 2

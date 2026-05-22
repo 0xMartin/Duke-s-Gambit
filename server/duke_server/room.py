@@ -123,6 +123,10 @@ class Room:
     game: Optional[ChessGame] = None
     created_at: float = field(default_factory=time.time)
     draw_offer_by: Optional[int] = None      # color who offered
+    # Nicknames that have signalled C_CLIENT_READY for the current game.
+    # The clock is only armed once both members are present in this set,
+    # so a slow-loading client cannot lose time before its intro finishes.
+    ready_members: set = field(default_factory=set)
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
 
     # ── Factory ────────────────────────────────────────────────────────────
@@ -271,11 +275,27 @@ class Room:
         return WHITE in colors and BLACK in colors
 
     def start_game(self) -> None:
-        """Transition to PLAYING and create the underlying :class:`ChessGame`."""
+        """Transition to PLAYING and create the :class:`ChessGame`.
+
+        The underlying chess clock is **not** armed here — call
+        :meth:`arm_clock` once every member has signalled readiness so
+        slow-loading clients do not lose time during the intro cutscene.
+        """
         self.state = ROOM_STATE_PLAYING
         self.game = ChessGame(time_ms=self.time_ms)
-        self.game.start()
         self.draw_offer_by = None
+        self.ready_members.clear()
+
+    def mark_ready(self, nickname: str) -> bool:
+        """Record that ``nickname`` finished loading; return True iff all members ready."""
+        if nickname in self.members:
+            self.ready_members.add(nickname)
+        return len(self.ready_members) >= len(self.members) >= 2
+
+    def arm_clock(self) -> None:
+        """Start the chess clock. Idempotent — safe to call once both clients ready."""
+        if self.game is not None and not self.game.started:
+            self.game.start()
 
     def finish(self) -> None:
         """Transition to FINISHED. Idempotent; the lobby will GC the room."""

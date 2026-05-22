@@ -9,6 +9,10 @@ const ICON_SIZE  := 36
 const HISTORY_ICON_SIZE := 38
 const CAPTURED_BADGE_FONT := preload("res://assets/fonts/Montserrat-Regular.ttf")
 const HISTORY_LABEL_THEME := preload("res://themes/history_label.tres")
+const PLAYER_CARD_THEME := preload("res://themes/player_card.tres")
+const PLAYER_CARD_ACTIVE_THEME := preload("res://themes/player_card_active.tres")
+const PLAYER_CARD_BLACK_THEME := preload("res://themes/player_card_black.tres")
+const PLAYER_CARD_BLACK_ACTIVE_THEME := preload("res://themes/player_card_black_active.tres")
 const CAPTURED_PAGE_DURATION := 5.0
 const MAX_HUD_NAME_LENGTH := 15
 
@@ -36,6 +40,7 @@ const CAPTURED_BADGE_ORDER: Array[int] = [
 ]
 
 # ── Internal node refs (wired from scene) ──────────────────────────────────
+var _panel:       Array = [null, null]   # [white, black] PanelContainer
 var _name_lbl:    Array = [null, null]   # [white, black] Label
 var _elo_lbl:     Array = [null, null]
 var _timer_lbl:   Array = [null, null]
@@ -65,6 +70,8 @@ var _has_time_limit: bool = false  # true = countdown mode
 # ── Setup ──────────────────────────────────────────────────────────────────
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_panel[ChessEnums.PieceColor.WHITE]     = get_node("WhitePanel") as PanelContainer
+	_panel[ChessEnums.PieceColor.BLACK]     = get_node("BlackPanel") as PanelContainer
 	_name_lbl[ChessEnums.PieceColor.WHITE]  = get_node("WhitePanel/MainHBox/InfoVBox/Row/Name") as Label
 	_name_lbl[ChessEnums.PieceColor.BLACK]  = get_node("BlackPanel/MainHBox/InfoVBox/Row/Name") as Label
 	_elo_lbl[ChessEnums.PieceColor.WHITE]   = get_node("WhitePanel/MainHBox/InfoVBox/Row/Elo") as Label
@@ -506,6 +513,19 @@ func update_timer(color: int, ms: int) -> void:
 		var secs: int = int(ms / 1000.0)
 		var frac: int = int((ms % 1000) / 100.0)
 		lbl.text = "%d.%ds ⏱" % [secs, frac]
+
+## Swap player-card themes so the side on turn pops visually.
+## Pass WHITE/BLACK to highlight that side; any other value clears both.
+func set_active_color(color: int) -> void:
+	for c in [ChessEnums.PieceColor.WHITE, ChessEnums.PieceColor.BLACK]:
+		var panel := _panel[c] as PanelContainer
+		if panel == null:
+			continue
+		var is_active: bool = c == color
+		if c == ChessEnums.PieceColor.WHITE:
+			panel.theme = PLAYER_CARD_ACTIVE_THEME if is_active else PLAYER_CARD_THEME
+		else:
+			panel.theme = PLAYER_CARD_BLACK_ACTIVE_THEME if is_active else PLAYER_CARD_BLACK_THEME
 
 func refresh_captured(capturing_color: int, captured_types: Array) -> void:
 	_clear_captured_page(capturing_color)

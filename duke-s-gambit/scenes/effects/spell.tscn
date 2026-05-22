@@ -1,0 +1,130 @@
+[gd_scene format=3 uid="uid://d1kcjr5hdvvs"]
+
+[ext_resource type="Texture2D" uid="uid://ba88uk8xx33th" path="res://assets/textures/spark_radial_spritesheet_13rice.png" id="1_jt07h"]
+[ext_resource type="AudioStream" uid="uid://bihpkdoe3o2xk" path="res://assets/sounds/spell.mp3" id="2_p8quy"]
+[ext_resource type="Script" uid="uid://diy3kofh8udl5" path="res://scripts/effects/effect_oneshot.gd" id="3_script"]
+
+[sub_resource type="Curve" id="Curve_p5ire"]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.16559486, 0.9982371), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="CurveTexture" id="CurveTexture_qhc1d"]
+curve = SubResource("Curve_p5ire")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_p8quy"]
+lifetime_randomness = 0.12
+inherit_velocity_ratio = 0.473
+direction = Vector3(0, 1, 0)
+spread = 99.759
+initial_velocity_min = 6.0
+initial_velocity_max = 9.0
+gravity = Vector3(0, -4, 0)
+scale_curve = SubResource("CurveTexture_qhc1d")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_p8quy"]
+transparency = 1
+blend_mode = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+albedo_color = Color(0.8163452, 0.61244446, 7.70092e-07, 1)
+disable_receive_shadows = true
+
+[sub_resource type="QuadMesh" id="QuadMesh_p5ire"]
+material = SubResource("StandardMaterial3D_p8quy")
+size = Vector2(0.1, 0.35)
+
+[sub_resource type="Curve" id="Curve_p8quy"]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.07877815, 0.67737997), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="CurveTexture" id="CurveTexture_p5ire"]
+curve = SubResource("Curve_p8quy")
+
+[sub_resource type="Curve" id="Curve_qhc1d"]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.09485531, 0.5980472), 0.0, 0.0, 0, 0, Vector2(0.53054667, 0), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="CurveTexture" id="CurveTexture_tjei6"]
+curve = SubResource("Curve_qhc1d")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_qhc1d"]
+gravity = Vector3(0, 0, 0)
+scale_curve = SubResource("CurveTexture_tjei6")
+alpha_curve = SubResource("CurveTexture_p5ire")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_wslct"]
+transparency = 1
+blend_mode = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+albedo_color = Color(1, 1, 0.33333334, 0.9607843)
+disable_receive_shadows = true
+
+[sub_resource type="SphereMesh" id="SphereMesh_p8quy"]
+material = SubResource("StandardMaterial3D_wslct")
+radius = 1.0
+height = 2.0
+
+[sub_resource type="Curve" id="Curve_tjei6"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="CurveTexture_p8quy"]
+curve = SubResource("Curve_tjei6")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_p5ire"]
+gravity = Vector3(0, 0, 0)
+scale_curve = SubResource("CurveTexture_p8quy")
+anim_speed_min = 4.0
+anim_speed_max = 4.0
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_70lag"]
+transparency = 1
+blend_mode = 1
+shading_mode = 0
+albedo_color = Color(1, 0.91833335, 0.3, 1)
+albedo_texture = ExtResource("1_jt07h")
+albedo_texture_force_srgb = true
+disable_receive_shadows = true
+billboard_mode = 3
+particles_anim_h_frames = 4
+particles_anim_v_frames = 2
+particles_anim_loop = false
+grow_amount = 0.5
+
+[sub_resource type="QuadMesh" id="QuadMesh_qhc1d"]
+material = SubResource("StandardMaterial3D_70lag")
+size = Vector2(1.9, 1.9)
+
+[node name="Spell" type="Node3D" unique_id=323680456]
+transform = Transform3D(1.1, 0, 0, 0, 1.1, 0, 0, 0, 1.1, 0, 0, 0)
+script = ExtResource("3_script")
+
+[node name="P3" type="GPUParticles3D" parent="." unique_id=109662873]
+emitting = false
+amount = 30
+lifetime = 0.3
+one_shot = true
+explosiveness = 0.7
+transform_align = 3
+process_material = SubResource("ParticleProcessMaterial_p8quy")
+draw_pass_1 = SubResource("QuadMesh_p5ire")
+
+[node name="P2" type="GPUParticles3D" parent="." unique_id=1675218216]
+emitting = false
+amount = 1
+one_shot = true
+process_material = SubResource("ParticleProcessMaterial_qhc1d")
+draw_pass_1 = SubResource("SphereMesh_p8quy")
+
+[node name="P1" type="GPUParticles3D" parent="." unique_id=515381652]
+emitting = false
+amount = 1
+one_shot = true
+process_material = SubResource("ParticleProcessMaterial_p5ire")
+draw_pass_1 = SubResource("QuadMesh_qhc1d")
+
+[node name="AudioStreamPlayer3D" type="AudioStreamPlayer3D" parent="." unique_id=696443953]
+stream = ExtResource("2_p8quy")
+volume_db = 10.0
+autoplay = true

@@ -38,9 +38,11 @@ Connection drops always go through :meth:`Server._on_disconnect`.
 from __future__ import annotations
 
 import asyncio
+import datetime
 import http
 import json
 import logging
+import os
 import re
 import signal
 import time
@@ -52,7 +54,10 @@ from websockets.server import WebSocketServerProtocol
 
 from . import auth
 from . import protocol as P
+from .banlist import BanList
+from .cli import start_cli_server
 from .config import ServerConfig
+from .log_setup import setup_logging
 from .game import BLACK, COLOR_NAMES, WHITE, IllegalMove, NotYourTurn, BadState, color_from_name
 from .lobby import Lobby
 from .room import Room, ROOM_STATE_PLAYING, ROOM_STATE_WAITING, ROOM_STATE_FINISHED
@@ -61,11 +66,36 @@ from .tls import ensure_cert, make_ssl_context
 
 logger = logging.getLogger("duke_server")
 
-NICKNAME_RE = re.compile(r"^[A-Za-z0-9_.\- ]{1,15}$")
+NICKNAME_RE = re.compile(r"^[A-Za-z0-9_\- ]{1,15}$")
 MAX_PASSWORD_LEN = 64
 MAX_ROOM_NAME_LEN = 40
+MAX_MACHINE_ID_LEN = 64
+MAX_VERSION_LEN = 32
 PROTOCOL_VERSION = P.PROTOCOL_VERSION
 MAX_MESSAGE_SIZE = 8 * 1024
+
+
+def _parse_version(raw: Any) -> Optional[tuple[int, ...]]:
+    """Parse a dotted version string (e.g. ``"1.2.3"``) into an int tuple.
+
+    Accepts an int (treated as a single component) for backwards compatibility
+    with older clients that sent the protocol version. Returns ``None`` if the
+    value is missing, empty, or contains non-numeric components.
+    """
+    if raw is None:
+        return None
+    if isinstance(raw, int):
+        return (raw,)
+    if not isinstance(raw, str):
+        return None
+    s = raw.strip()
+    if not s or len(s) > MAX_VERSION_LEN:
+        return None
+    parts = s.split(".")
+    try:
+        return tuple(int(p) for p in parts)
+    except ValueError:
+        return None
 
 
 @dataclass
@@ -98,7 +128,9 @@ class ClientCtx:
     nickname: Optional[str] = None
     session_token: Optional[str] = None
     room_id: Optional[str] = None
+    machine_id: Optional[str] = None
     in_lobby: bool = False
+    kicked: bool = False
     last_msg_ts: float = field(default_factory=time.monotonic)
     msg_count_window: int = 0
     window_start: float = field(default_factory=time.monotonic)
@@ -116,14 +148,26 @@ class Server:
         """Build a server bound to ``config`` (does not start listening)."""
         self.config = config
         self.lobby = Lobby(max_rooms=config.max_rooms)
+        self.banlist = BanList(config.ban_file)
+        self._start_time = time.monotonic()
         self._stop_event = asyncio.Event()
         # Per-room timeout watcher task.
         self._room_watchers: dict[str, asyncio.Task] = {}
         # Per-room reconnect timers.
         self._reconnect_timers: dict[tuple[str, str], asyncio.Task] = {}
+        # Per-IP open-connection counter (DoS guard, max 10 per IP).
+        self._conn_per_ip: dict[str, int] = {}
+        _MAX_CONNS_PER_IP = 10
+        self._MAX_CONNS_PER_IP = _MAX_CONNS_PER_IP
         # TLS bootstrap data served via HTTP for TOFU certificate pinning.
         self._cert_pem: Optional[bytes] = None
         self._fingerprint: Optional[str] = None
+        # Live stats exposed to the admin CLI.
+        self._stats: dict = {
+            "peak_players": 0,
+            "connects_today": 0,
+            "today_date": datetime.date.today(),
+        }
 
     # ── Lifecycle ──────────────────────────────────────────────────────────
     async def run(self) -> None:
@@ -136,6 +180,7 @@ class Server:
         """
         ssl_context = None
         scheme = "ws"
+        self.banlist.load()
         if self.config.tls_enabled:
             cert_path, key_path, fingerprint = ensure_cert(self.config.cert_dir)
             ssl_context = make_ssl_context(cert_path, key_path)
@@ -163,6 +208,17 @@ class Server:
             ping_timeout=self.config.heartbeat_interval_s * 2,
             process_request=self._http_process_request,
         ):
+            asyncio.ensure_future(start_cli_server(
+                self.banlist,
+                self.lobby,
+                self._kick_user,
+                self._kick_by_ip,
+                self._close_room,
+                self.stop,
+                self._start_time,
+                self._stats,
+                self.config,
+            ))
             await self._stop_event.wait()
         logger.info("Server stopped.")
 
@@ -213,16 +269,34 @@ class Server:
         crashes.
         """
         ctx = ClientCtx(conn=conn)
+        ip = conn.remote_address[0] if conn.remote_address else None
+        if ip and self.banlist.is_banned(ip):
+            logger.info("BANNED     ip=%s (connection refused)", ip)
+            ban_msg = "You are banned from this server."
+            await self._send(conn, P.S_ERROR, code=P.ERR_BANNED, message=ban_msg)
+            await _close_conn(conn, code=4001, reason=ban_msg)
+            return
         if len(self.lobby.all_clients()) >= self.config.max_clients:
             await self._send(conn, P.S_ERROR, code=P.ERR_FULL, message="server full")
             await conn.close()
             return
+        if ip and self._conn_per_ip.get(ip, 0) >= self._MAX_CONNS_PER_IP:
+            logger.warning("CONN_LIMIT ip=%s (too many open connections)", ip)
+            await self._send(conn, P.S_ERROR, code=P.ERR_FULL, message="too many connections from your IP")
+            await conn.close()
+            return
+        if ip:
+            self._conn_per_ip[ip] = self._conn_per_ip.get(ip, 0) + 1
         await self.lobby.add_client(conn)
         try:
             async for raw in conn:
                 if not await self._rate_limit_ok(ctx):
                     await self._send(conn, P.S_ERROR, code=P.ERR_RATE_LIMITED,
                                      message="too many messages")
+                    if ctx.msg_count_window > 60:
+                        logger.warning("RATE_ABUSE nick=%r ip=%s — disconnecting", ctx.nickname, ip)
+                        await _close_conn(conn, code=4000, reason="rate limit exceeded")
+                        break
                     continue
                 try:
                     msg = self._parse(raw)
@@ -240,6 +314,12 @@ class Server:
         except websockets.ConnectionClosed:
             pass
         finally:
+            if ip:
+                count = self._conn_per_ip.get(ip, 1) - 1
+                if count <= 0:
+                    self._conn_per_ip.pop(ip, None)
+                else:
+                    self._conn_per_ip[ip] = count
             await self._on_disconnect(ctx)
 
     # ── Dispatch ───────────────────────────────────────────────────────────
@@ -269,6 +349,7 @@ class Server:
             P.C_LEAVE_ROOM: self._handle_leave_room,
             P.C_DELETE_ROOM: self._handle_delete_room,
             P.C_START_GAME: self._handle_start_game,
+            P.C_CLIENT_READY: self._handle_client_ready,
             P.C_MOVE: self._handle_move,
             P.C_SURRENDER: self._handle_surrender,
             P.C_OFFER_DRAW: self._handle_offer_draw,
@@ -302,6 +383,16 @@ class Server:
         nickname = str(msg.get("nickname", "")).strip()
         if not NICKNAME_RE.match(nickname):
             raise _ClientError(P.ERR_BAD_REQUEST, "invalid nickname")
+        # Enforce minimum client version if configured.
+        min_ver_str = self.config.min_client_version
+        if min_ver_str:
+            min_ver = _parse_version(min_ver_str)
+            client_ver = _parse_version(msg.get("client_version"))
+            if min_ver is not None and (client_ver is None or client_ver < min_ver):
+                raise _ClientError(
+                    P.ERR_OUTDATED_CLIENT,
+                    f"Client is outdated. Minimum required version: {min_ver_str}",
+                )
         token = msg.get("token")
         # If client supplied a previous token, verify it; nickname must match.
         if token:
@@ -315,7 +406,17 @@ class Server:
             other_ctx = getattr(other, "_duke_ctx", None)
             if other_ctx and other_ctx.nickname == nickname:
                 raise _ClientError(P.ERR_FORBIDDEN, "nickname already in use")
+        # Reject duplicate device connections (one connection per machine).
+        machine_id = str(msg.get("machine_id", "")).strip()[:MAX_MACHINE_ID_LEN]
+        if machine_id:
+            for other in list(self.lobby.all_clients()):
+                if other is ctx.conn:
+                    continue
+                other_ctx = getattr(other, "_duke_ctx", None)
+                if other_ctx and other_ctx.machine_id == machine_id:
+                    raise _ClientError(P.ERR_FORBIDDEN, "already connected from this device")
         ctx.nickname = nickname
+        ctx.machine_id = machine_id or None
         ctx.session_token = auth.issue_token(nickname, self.config.session_secret)
         ctx.conn._duke_ctx = ctx  # type: ignore[attr-defined]
 
@@ -339,9 +440,14 @@ class Server:
         await self._send(ctx.conn, P.S_WELCOME,
                          protocol=PROTOCOL_VERSION,
                          session_token=ctx.session_token,
-                         online_count=self.lobby.online_count)
+                         online_count=self.lobby.online_count,
+                         max_clients=self.config.max_clients)
 
         if rejoined_room:
+            logger.info(
+                "RECONNECT  nick=%r ip=%s room_id=%s",
+                nickname, _peer_ip(ctx), rejoined_room.room_id,
+            )
             await self._send(ctx.conn, P.S_ROOM_JOINED,
                              room=rejoined_room.public_detail(nickname),
                              role="host" if rejoined_room.is_host(nickname) else "guest")
@@ -360,6 +466,9 @@ class Server:
                                  white_ms=rejoined_room.game.remaining_ms()[0],
                                  black_ms=rejoined_room.game.remaining_ms()[1],
                                  ply=rejoined_room.game.ply)
+        else:
+            logger.info("CONNECT    nick=%r ip=%s", nickname, _peer_ip(ctx))
+            self._record_connect()
 
         await self._broadcast_online_count()
 
@@ -410,6 +519,10 @@ class Server:
         ctx.in_lobby = False
         self.lobby.remove_listener(ctx.conn)
 
+        logger.info(
+            "ROOM_CREATE nick=%r ip=%s room_id=%s room=%r",
+            ctx.nickname, _peer_ip(ctx), room.room_id, room.name,
+        )
         await self._send(ctx.conn, P.S_ROOM_CREATED,
                          room=room.public_detail(ctx.nickname), role="host")
         await self._broadcast_lobby()
@@ -446,6 +559,10 @@ class Server:
         self.lobby.remove_listener(ctx.conn)
 
         role = "host" if room.is_host(ctx.nickname) else "guest"
+        logger.info(
+            "ROOM_JOIN   nick=%r ip=%s room_id=%s room=%r",
+            ctx.nickname, _peer_ip(ctx), room.room_id, room.name,
+        )
         await self._send(ctx.conn, P.S_ROOM_JOINED,
                          room=room.public_detail(ctx.nickname), role=role)
         await self._broadcast_room(room)
@@ -468,6 +585,44 @@ class Server:
             raise _ClientError(P.ERR_BAD_STATE, "both players must be present")
         await self._start_game(room)
 
+    async def _handle_client_ready(self, ctx: ClientCtx, _msg: dict) -> None:
+        """Client signals it finished loading/intro and is ready to play.
+
+        Tracks readiness per nickname; the server clock is armed only
+        once both members report ready, which prevents a slow-loading
+        client from bleeding time during the spawn cutscene. Sending
+        this message after the clock has been armed is a no-op.
+        """
+        room = self._require_room(ctx)
+        if room.game is None or room.state != ROOM_STATE_PLAYING:
+            raise _ClientError(P.ERR_BAD_STATE, "game not in progress")
+        if room.member_color(ctx.nickname) is None:
+            raise _ClientError(P.ERR_FORBIDDEN, "not a player")
+        if room.game.started:
+            # Already running — still echo the ready state so a reconnecting
+            # client gets an unblocking signal.
+            await self._broadcast_ready_state(room)
+            return
+        async with room.lock:
+            all_ready = room.mark_ready(ctx.nickname)
+            if all_ready:
+                room.arm_clock()
+            await self._broadcast_ready_state(room)
+
+    async def _broadcast_ready_state(self, room: Room) -> None:
+        """Tell both members which players have finished loading."""
+        ready_colors = []
+        for nick in room.ready_members:
+            c = room.member_color(nick)
+            if c is not None:
+                ready_colors.append(COLOR_NAMES[c])
+        all_ready = bool(room.game and room.game.started)
+        for m in room.members.values():
+            if m.conn is not None:
+                await self._send(m.conn, P.S_READY_STATE,
+                                 ready=ready_colors,
+                                 all_ready=all_ready)
+
     async def _handle_leave_room(self, ctx: ClientCtx, _msg: dict) -> None:
         """Client wants to leave; mid-game this counts as a resignation."""
         await self._leave_room(ctx, reason="left")
@@ -483,6 +638,10 @@ class Server:
             raise _ClientError(P.ERR_FORBIDDEN, "only the host can delete the room")
         if room.state == ROOM_STATE_PLAYING:
             raise _ClientError(P.ERR_BAD_STATE, "game in progress")
+        logger.info(
+            "ROOM_DELETE nick=%r ip=%s room_id=%s room=%r",
+            ctx.nickname, _peer_ip(ctx), room.room_id, room.name,
+        )
         await self._destroy_room(room, reason="closed by host")
 
     async def _handle_move(self, ctx: ClientCtx, msg: dict) -> None:
@@ -620,6 +779,10 @@ class Server:
         white = _get_member_by_color(room, WHITE)
         black = _get_member_by_color(room, BLACK)
         white_ms, black_ms = room.game.remaining_ms() if room.game else (0, 0)
+        logger.info(
+            "GAME_START  room_id=%s room=%r white=%r black=%r time_ms=%d",
+            room.room_id, room.name, white, black, room.time_ms,
+        )
         for m in room.members.values():
             if m.conn is None:
                 continue
@@ -641,16 +804,22 @@ class Server:
         await self._broadcast_lobby()
 
     async def _watch_room_clock(self, room_id: str) -> None:
-        """Background loop that detects time-loss in a playing room.
+        """Background loop that drives the authoritative clock for a room.
 
-        Polls every 500 ms. When :meth:`ChessGame.check_timeout` reports
-        a loser, the room is finished and :data:`S_GAME_OVER` is
-        broadcast. The task exits when the room disappears, the game
-        ends, or it is cancelled (e.g. by :meth:`_broadcast_game_over`).
+        Every second this task:
+
+        * polls :meth:`ChessGame.check_timeout` and finishes the game on
+          flag-fall (broadcasting :data:`S_GAME_OVER`);
+        * broadcasts the current clock state to both members via
+          :data:`S_CLOCK_UPDATE` so the client UI is purely a mirror of
+          the server-side clock (no local countdown).
+
+        The task exits when the room disappears, the game ends, or it is
+        cancelled (e.g. by :meth:`_broadcast_game_over`).
         """
         try:
             while True:
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(1.0)
                 room = self.lobby.get(room_id)
                 if room is None or room.game is None:
                     return
@@ -663,8 +832,22 @@ class Server:
                         room.finish()
                         await self._broadcast_game_over(room, result)
                         return
+                    white_ms, black_ms = room.game.remaining_ms()
+                    active = room.game.active
+                await self._broadcast_clock(room, white_ms, black_ms, active)
         except asyncio.CancelledError:
             return
+
+    async def _broadcast_clock(
+        self, room: Room, white_ms: int, black_ms: int, active: str
+    ) -> None:
+        """Send :data:`S_CLOCK_UPDATE` to both members of ``room``."""
+        for m in room.members.values():
+            if m.conn is not None:
+                await self._send(
+                    m.conn, P.S_CLOCK_UPDATE,
+                    white_ms=white_ms, black_ms=black_ms, active=active,
+                )
 
     async def _broadcast_move(self, room: Room, result) -> None:
         """Send :data:`S_MOVE_APPLIED` with the new position to both members."""
@@ -692,6 +875,12 @@ class Server:
             "black_ms": result.black_ms,
             "fen": result.fen,
         }
+        logger.info(
+            "GAME_OVER   room_id=%s room=%r winner=%s reason=%s",
+            room.room_id, room.name,
+            result.winner if result.winner else "draw",
+            result.reason,
+        )
         for m in room.members.values():
             if m.conn is not None:
                 await self._send(m.conn, P.S_GAME_OVER, **payload)
@@ -808,6 +997,8 @@ class Server:
         """
         await self.lobby.remove_client(ctx.conn)
         await self._broadcast_online_count()
+        if ctx.nickname:
+            logger.info("DISCONNECT  nick=%r ip=%s", ctx.nickname, _peer_ip(ctx))
         if not ctx.room_id:
             return
         room = self.lobby.get(ctx.room_id)
@@ -817,13 +1008,17 @@ class Server:
         if member is None:
             return
         if room.state == ROOM_STATE_PLAYING and room.game is not None and not room.game.game_over:
-            # Mark disconnected and start grace timer.
-            member.conn = None
-            member.disconnected_at = time.monotonic()
-            await self._broadcast_room(room)
-            key = (room.room_id, ctx.nickname or "")
-            self._reconnect_timers[key] = asyncio.create_task(
-                self._reconnect_timeout(room.room_id, ctx.nickname or ""))
+            if ctx.kicked:
+                # Kicked players resign immediately — no reconnect grace.
+                await self._leave_room(ctx, reason="kicked")
+            else:
+                # Mark disconnected and start grace timer.
+                member.conn = None
+                member.disconnected_at = time.monotonic()
+                await self._broadcast_room(room)
+                key = (room.room_id, ctx.nickname or "")
+                self._reconnect_timers[key] = asyncio.create_task(
+                    self._reconnect_timeout(room.room_id, ctx.nickname or ""))
         else:
             # Pre-game / finished: treat as leave.
             await self._leave_room(ctx, reason="disconnect")
@@ -858,6 +1053,83 @@ class Server:
         if len(room.members) == 0:
             await self.lobby.remove_room(room_id)
             await self._broadcast_lobby()
+
+    def _record_connect(self) -> None:
+        """Increment today's connection counter and refresh peak player count."""
+        today = datetime.date.today()
+        if today != self._stats["today_date"]:
+            self._stats["connects_today"] = 0
+            self._stats["today_date"] = today
+        self._stats["connects_today"] += 1
+        online = self.lobby.online_count
+        if online > self._stats["peak_players"]:
+            self._stats["peak_players"] = online
+
+    async def _kick_user(self, nickname: str, reason: str) -> bool:
+        """Disconnect a player by nickname, sending S_KICKED first.
+
+        Used by the admin CLI. Returns ``True`` if the player was found
+        and the kick was sent, ``False`` if no matching connected client
+        exists.
+        """
+        for conn in list(self.lobby.all_clients()):
+            ctx = getattr(conn, "_duke_ctx", None)
+            if ctx and ctx.nickname == nickname:
+                ctx.kicked = True
+                await self._send(conn, P.S_KICKED, reason=reason)
+                await _close_conn(conn, code=4000, reason=reason)
+                return True
+        return False
+
+    async def _kick_by_ip(self, ip: str, reason: str, is_ban: bool = False) -> int:
+        """Disconnect all connections from *ip*, sending S_KICKED first.
+
+        Pass ``ip="*"`` to kick every connected client (used by shutdown).
+        Returns the number of connections closed.
+        """
+        count = 0
+        for conn in list(self.lobby.all_clients()):
+            addr = getattr(conn, "remote_address", None)
+            conn_ip = addr[0] if addr else None
+            if ip == "*" or conn_ip == ip:
+                ctx = getattr(conn, "_duke_ctx", None)
+                if ctx is not None:
+                    ctx.kicked = True
+                await self._send(conn, P.S_KICKED, reason=reason, is_ban=is_ban)
+                close_code = 4001 if is_ban else 4000
+                await _close_conn(conn, code=close_code, reason=reason)
+                count += 1
+        return count
+
+    async def _close_room(self, room_id: str, reason: str) -> bool:
+        """Force-close a room regardless of its state.
+
+        For rooms with an active game, the game is concluded as a draw
+        (admin action, no winner).  All connected members receive
+        S_ROOM_DELETED.  Reconnect timers are cancelled.
+
+        Returns ``False`` when *room_id* is not found.
+        """
+        room = self.lobby.get(room_id)
+        if room is None:
+            return False
+
+        # Cancel any pending reconnect timers for members of this room.
+        for nick in list(room.members):
+            task = self._reconnect_timers.pop((room_id, nick), None)
+            if task:
+                task.cancel()
+
+        # Conclude an active game as a draw before destroying.
+        if room.state == ROOM_STATE_PLAYING and room.game is not None and not room.game.game_over:
+            async with room.lock:
+                result = room.game.force_draw("room closed by admin")
+                room.finish()
+                await self._broadcast_game_over(room, result)
+
+        logger.info("CLOSE_ROOM room_id=%s reason=%r (via CLI)", room_id, reason)
+        await self._destroy_room(room, reason=reason)
+        return True
 
     # ── Wire I/O ───────────────────────────────────────────────────────────
     @staticmethod
@@ -924,6 +1196,25 @@ def _get_member_by_color(room: Room, color: int) -> Optional[str]:
     return m.nickname if m else None
 
 
+def _peer_ip(ctx: ClientCtx) -> str:
+    """Return the remote IP address string of *ctx*'s connection."""
+    addr = getattr(ctx.conn, "remote_address", None)
+    return addr[0] if addr else "?"
+
+
+async def _close_conn(conn, code: int = 1000, reason: str = "") -> None:
+    """Close a WebSocket connection, ignoring already-closed errors.
+
+    WebSocket close ``reason`` is limited to 123 bytes by RFC 6455;
+    we truncate to be safe.
+    """
+    try:
+        truncated = reason.encode("utf-8")[:120].decode("utf-8", errors="ignore")
+        await conn.close(code=code, reason=truncated)
+    except Exception:
+        pass
+
+
 # ── Entry point ─────────────────────────────────────────────────────────────────────
 
 def main() -> None:
@@ -934,10 +1225,8 @@ def main() -> None:
     and runs the asyncio loop until :meth:`Server.run` returns.
     """
     config = ServerConfig.from_env()
-    logging.basicConfig(
-        level=config.log_level,
-        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    )
+    log_dir = os.environ.get("DUKE_LOG_DIR", "logs")
+    setup_logging(config.log_level, log_dir=log_dir)
 
     server = Server(config)
 

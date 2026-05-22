@@ -49,3 +49,4 @@ duke-s-gambit/native/dukes_ai/build/
 
 export/*
 .DS_Store
+server/duke_server/__pycache__

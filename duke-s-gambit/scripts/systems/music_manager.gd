@@ -146,6 +146,7 @@ func _load_tracks() -> void:
 		"res://assets/sounds/music/music8.mp3",
 		"res://assets/sounds/music/music9.mp3",
 		"res://assets/sounds/music/music10.mp3",
+		"res://assets/sounds/music/music11.mp3",
 	]
 	for path in GAME_TRACKS:
 		var s := load(path) as AudioStream

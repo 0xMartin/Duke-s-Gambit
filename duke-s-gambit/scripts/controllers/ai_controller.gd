@@ -32,11 +32,11 @@ func request_move(board: ChessBoardState, legal_moves: Array) -> void:
 	if legal_moves.is_empty() or _search_in_progress:
 		return
 
-	var fallback_move: ChessMove = legal_moves[0]
 	if not _native_available:
-		push_warning("AIController: native AI class '%s' not found. Using fallback move." % _NATIVE_CLASS)
-		emit_signal("move_chosen", fallback_move)
+		var chosen := SimpleAIFallback.choose_move(board, legal_moves)
+		emit_signal("move_chosen", chosen if chosen != null else legal_moves[0])
 		return
+	var fallback_move: ChessMove = legal_moves[0]
 
 	var search_depth := 4
 	var time_limit_ms := 2000

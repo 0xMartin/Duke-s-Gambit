@@ -2,17 +2,42 @@
 
 <div align="center">
 
-# Duke's Gambit: Battle for Java Code
+# Duke's Gambit
 
+[![Version](https://img.shields.io/badge/version-1.0.1-success)](duke-s-gambit/project.godot)
 [![Godot 4](https://img.shields.io/badge/Godot-4.6-478CBF?logo=godotengine&logoColor=white)](https://godotengine.org/)
-[![Language](https://img.shields.io/badge/language-GDScript%20%2B%20C%2B%2B-blue)](dukes_ai/)
+[![Language](https://img.shields.io/badge/language-GDScript%20%7C%20C%2B%2B-blue)](dukes_ai/)
 [![Server](https://img.shields.io/badge/server-Python%203.12-3776AB?logo=python&logoColor=white)](server/)
 [![Docker](https://img.shields.io/badge/docker-ready-2496ED?logo=docker&logoColor=white)](server/docker-compose.yml)
 [![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-lightgrey?logo=creativecommons&logoColor=white)](LICENSE)
 
-**A satirical 3D chess game where chess pieces are characters from the Java world — and they don't just move, they fight.**
+[![Build Native AI](https://github.com/0xMartin/Duke-s-Gambit/actions/workflows/build-native.yml/badge.svg)](https://github.com/0xMartin/Duke-s-Gambit/actions/workflows/build-native.yml)
+[![Lint](https://github.com/0xMartin/Duke-s-Gambit/actions/workflows/ci.yml/badge.svg)](https://github.com/0xMartin/Duke-s-Gambit/actions/workflows/ci.yml)
+
+**A 3D chess game with animated piece duels, a native C++ AI, and online multiplayer — built in Godot 4.**
 
 </div>
+
+## 📑 Table of contents
+
+- [Duke's Gambit](#dukes-gambit)
+  - [📑 Table of contents](#-table-of-contents)
+  - [📥 Download \& play](#-download--play)
+  - [🎮 Controls](#-controls)
+    - [Desktop (PC)](#desktop-pc)
+    - [Mobile (touch)](#mobile-touch)
+  - [⚔️ Combat in action](#️-combat-in-action)
+  - [🤖 AI opponent](#-ai-opponent)
+    - [Difficulty levels](#difficulty-levels)
+  - [🌐 Online multiplayer](#-online-multiplayer)
+    - [What the server supports](#what-the-server-supports)
+    - [Public server](#public-server)
+    - [Run locally](#run-locally)
+  - [📦 Assets \& credits](#-assets--credits)
+    - [3D models \& art](#3d-models--art)
+    - [Sounds](#sounds)
+  - [📄 License](#-license)
+  - [👤 Author](#-author)
 
 > [!NOTE]
 > **Disclaimer:** This is an open-source, non-commercial fan game made for satirical and educational purposes. `Java` is a trademark of Oracle Corporation. This project is not affiliated with, endorsed, or sponsored by Oracle.
@@ -23,6 +48,8 @@
 
 Duke's Gambit is a fully-featured 3D chess game built in **Godot 4**. The rules are standard chess — what sets it apart is the presentation: all pieces are fully animated 3D characters from the Java world, the environment is stylised and thematic, and captures play out as short combat sequences rather than a simple disappearance. ♟️
 
+**🎬 Gameplay preview (YouTube):** [Link](https://youtu.be/LBlBCHfjq64)
+
 **Features at a glance:**
 
 - Full chess rule set — en passant, castling, promotion, threefold repetition, 50-move rule
@@ -30,6 +57,47 @@ Duke's Gambit is a fully-featured 3D chess game built in **Godot 4**. The rules 
 - Local PvP, single-player vs AI, and online multiplayer
 - Stylised visuals with custom shaders, VFX, and a dynamic skybox
 - Fully themed UI with custom fonts, panels, and sound design
+
+---
+
+## 📥 Download & play
+
+**➡️ [Download the latest release](https://github.com/0xMartin/Duke-s-Gambit/releases/latest)**
+
+Duke's Gambit is available on the following platforms:
+
+| Platform | Format |
+|---|---|
+| 🪟 **Windows** | `.exe` installer |
+| 🍎 **macOS** | `.dmg` disk image |
+| 🐧 **Linux** | `.x86_64` binary |
+| 📱 **Android** | `.apk` package |
+
+Download the build for your platform from the GitHub Releases page and run it — no installation required on desktop.
+
+---
+
+## 🎮 Controls
+
+### Desktop (PC)
+
+| Action | Input |
+|---|---|
+| Select piece / tile | **Left mouse click** |
+| Rotate camera (orbit) | **Right mouse drag** |
+| Zoom in / out | **Mouse wheel** |
+| Pan camera pivot | **Middle mouse drag** |
+
+### Mobile (touch)
+
+| Action | Input |
+|---|---|
+| Select piece / tile | **Tap** |
+| Rotate camera (orbit) | **One-finger drag** |
+| Zoom in / out | **Two-finger pinch** |
+
+> [!TIP]
+> Camera pan & tilt sensitivity can be adjusted in **Settings → Camera**.
 
 ---
 
@@ -81,6 +149,18 @@ You can play Duke's Gambit against other players over the network. The game ship
 > [!NOTE]
 > The server is written in **Python 3.12** using `asyncio` + `websockets` and validates every move with `python-chess`. No database, no login — players just pick a nickname and get a signed session token.
 
+### Public server
+
+A public server is available — no setup required, just launch the game and connect:
+
+| | |
+|---|---|
+| **URL** | `duke.sytes.net` |
+| **Max players** | 50 |
+
+> [!TIP]
+> In the game, go to **Online → Connect**, enter your nickname and paste the URL above.
+
 ### Run locally
 
 ```bash
@@ -108,8 +188,8 @@ See [`server/README.md`](server/README.md) for the full configuration reference,
 - **All other 3D models** (board, terrain, weapons, NPC, environment, …) — created by `0xM4R71N`
 - **Duke chess pieces** — [github.com/openjdk/duke](https://github.com/openjdk/duke) — edited in Blender, animated via [mixamo.com](https://www.mixamo.com/)
 - **Chess icons** — [Wikimedia Commons — SVG chess pieces](https://commons.wikimedia.org/wiki/Category:SVG_chess_pieces)
-- **Hit VFX** — [BinbunVFX Vol.2](https://binbun3d.itch.io/hit-fx) — autor: `Binbun`
 - **Skybox** — [Godot Asset Library #579](https://godotengine.org/asset-library/asset/579) — autor: `rpgwhitelock`
+- **Piece spawn texture** - [Radial lightning effect](https://opengameart.org/content/radial-lightning-effect) — autor: `13rice`
 
 ### Sounds
 
