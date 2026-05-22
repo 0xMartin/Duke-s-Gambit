@@ -60,7 +60,7 @@ blend_mode = 1
 no_depth_test = true
 shading_mode = 0
 vertex_color_use_as_albedo = true
-albedo_color = Color(0.4959457, 0.43730757, 0.99998456, 1)
+albedo_color = Color(0.6230377, 0.6160982, 1, 1)
 albedo_texture = ExtResource("2_70lag")
 disable_receive_shadows = true
 
@@ -108,7 +108,6 @@ blend_mode = 1
 no_depth_test = true
 shading_mode = 0
 vertex_color_use_as_albedo = true
-albedo_color = Color(0.4959457, 0.43730757, 0.99998456, 1)
 albedo_texture = ExtResource("2_cx12h")
 disable_receive_shadows = true
 
@@ -122,8 +121,8 @@ script = ExtResource("3_script")
 
 [node name="P3" type="GPUParticles3D" parent="." unique_id=625591074]
 emitting = false
-amount = 22
-lifetime = 0.3
+amount = 16
+lifetime = 0.35000000000000003
 one_shot = true
 explosiveness = 1.0
 transform_align = 3
@@ -131,7 +130,6 @@ process_material = SubResource("ParticleProcessMaterial_cx12h")
 draw_pass_1 = SubResource("QuadMesh_x74q3")
 
 [node name="P2" type="GPUParticles3D" parent="." unique_id=1957522263]
-emitting = false
 amount = 1
 lifetime = 0.8
 one_shot = true
