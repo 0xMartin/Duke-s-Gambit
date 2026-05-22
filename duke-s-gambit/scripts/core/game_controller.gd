@@ -260,11 +260,13 @@ func setup(p1_name: String, p2_name: String,
 		if is_ai:
 			var ai := AIController.new()
 			ai.color = color
-			ai.player_name = _player_names[color]
 			# Set AI difficulty (map 1-3 to difficulty levels)
 			var difficulty := maxi(1, mini(3, ai_strength))
 			ai.difficulty = difficulty
 			ctrl = ai
+			if not ai._native_available:
+				_player_names[color] = "Simple AI"
+			ai.player_name = _player_names[color]
 		else:
 			var human := HumanController.new()
 			human.color = color
