@@ -23,11 +23,11 @@ scale_curve = SubResource("CurveTexture_qhc1d")
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_p8quy"]
 transparency = 1
+blend_mode = 1
+shading_mode = 0
 vertex_color_use_as_albedo = true
 albedo_color = Color(0.8163452, 0.61244446, 7.70092e-07, 1)
-emission_enabled = true
-emission = Color(1, 0.42012882, 0.43783075, 1)
-emission_energy_multiplier = 4.28
+disable_receive_shadows = true
 
 [sub_resource type="QuadMesh" id="QuadMesh_p5ire"]
 material = SubResource("StandardMaterial3D_p8quy")
@@ -54,11 +54,11 @@ alpha_curve = SubResource("CurveTexture_p5ire")
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_wslct"]
 transparency = 1
+blend_mode = 1
+shading_mode = 0
 vertex_color_use_as_albedo = true
-albedo_color = Color(1, 1, 0.33333334, 0.85882354)
-emission_enabled = true
-emission = Color(0.86062306, 0.71487045, 1.540184e-06, 1)
-emission_energy_multiplier = 5.0
+albedo_color = Color(1, 1, 0.33333334, 0.9607843)
+disable_receive_shadows = true
 
 [sub_resource type="SphereMesh" id="SphereMesh_p8quy"]
 material = SubResource("StandardMaterial3D_wslct")
@@ -80,12 +80,12 @@ anim_speed_max = 4.0
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_70lag"]
 transparency = 1
+blend_mode = 1
+shading_mode = 0
 albedo_color = Color(1, 0.91833335, 0.3, 1)
 albedo_texture = ExtResource("1_jt07h")
 albedo_texture_force_srgb = true
-emission_enabled = true
-emission = Color(1, 0.93068594, 0.5607138, 1)
-emission_energy_multiplier = 3.3
+disable_receive_shadows = true
 billboard_mode = 3
 particles_anim_h_frames = 4
 particles_anim_v_frames = 2

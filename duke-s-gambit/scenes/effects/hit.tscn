@@ -23,11 +23,11 @@ scale_curve = SubResource("CurveTexture_3rge5")
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_70lag"]
 transparency = 1
+blend_mode = 1
+shading_mode = 0
 vertex_color_use_as_albedo = true
 albedo_color = Color(0.50333726, 0.2766687, 1, 1)
-emission_enabled = true
-emission = Color(0.29858583, 0.42807317, 0.8666118, 1)
-emission_energy_multiplier = 5.52
+disable_receive_shadows = true
 
 [sub_resource type="QuadMesh" id="QuadMesh_x74q3"]
 material = SubResource("StandardMaterial3D_70lag")
@@ -56,24 +56,17 @@ anim_speed_max = 3.0
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_dllk2"]
 transparency = 1
+blend_mode = 1
 no_depth_test = true
+shading_mode = 0
 vertex_color_use_as_albedo = true
 albedo_color = Color(0.4959457, 0.43730757, 0.99998456, 1)
 albedo_texture = ExtResource("2_70lag")
-emission_enabled = true
-emission = Color(0.46862906, 0.5300095, 1, 1)
-emission_energy_multiplier = 2.09
+disable_receive_shadows = true
 
 [sub_resource type="QuadMesh" id="QuadMesh_5e1cd"]
 material = SubResource("StandardMaterial3D_dllk2")
 size = Vector2(1.5, 1.5)
-
-[sub_resource type="Curve" id="Curve_70lag"]
-_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1e-05, 1), 0.0, 0.0, 0, 0, Vector2(0.6125402, 0), 0.0, 0.0, 0, 0]
-point_count = 3
-
-[sub_resource type="CurveTexture" id="CurveTexture_x74q3"]
-curve = SubResource("Curve_70lag")
 
 [sub_resource type="Curve" id="Curve_5e1cd"]
 _limits = [-1.0, 1.0, 0.0, 1.0]
@@ -105,21 +98,19 @@ angular_velocity_max = -20.000015
 gravity = Vector3(0, 0, 0)
 tangential_accel_curve = SubResource("CurveTexture_5e1cd")
 scale_curve = SubResource("CurveTexture_cx12h")
-color = Color(0.8217887, 0.82178867, 0.82178867, 1)
-alpha_curve = SubResource("CurveTexture_x74q3")
 hue_variation_curve = SubResource("CurveTexture_fbm6u")
 anim_speed_min = 3.0
 anim_speed_max = 3.0
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_x74q3"]
 transparency = 1
+blend_mode = 1
 no_depth_test = true
+shading_mode = 0
 vertex_color_use_as_albedo = true
 albedo_color = Color(0.4959457, 0.43730757, 0.99998456, 1)
 albedo_texture = ExtResource("2_cx12h")
-emission_enabled = true
-emission = Color(0.46862906, 0.5300095, 1, 1)
-emission_energy_multiplier = 5.45
+disable_receive_shadows = true
 
 [sub_resource type="QuadMesh" id="QuadMesh_dllk2"]
 material = SubResource("StandardMaterial3D_x74q3")
@@ -150,7 +141,6 @@ process_material = SubResource("ParticleProcessMaterial_5e1cd")
 draw_pass_1 = SubResource("QuadMesh_5e1cd")
 
 [node name="P1" type="GPUParticles3D" parent="." unique_id=1992015645]
-emitting = false
 amount = 1
 one_shot = true
 explosiveness = 1.0
