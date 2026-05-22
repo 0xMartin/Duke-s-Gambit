@@ -59,6 +59,7 @@ S_ROOM_DELETED = "room_deleted"  # {room_id, reason}
 S_GAME_START = "game_start"      # {room_id, white, black, time_ms, fen, your_color}
 S_READY_STATE = "ready_state"    # {ready: ["white", ...], all_ready: bool} — emitted while clients load
 S_MOVE_APPLIED = "move_applied"  # {uci, from, to, promotion, fen, active, white_ms, black_ms, ply}
+S_CLOCK_UPDATE = "clock_update"  # {white_ms, black_ms, active} — periodic authoritative clock
 S_DRAW_OFFER = "draw_offer"      # {from_color}
 S_DRAW_DECLINED = "draw_declined"
 S_GAME_OVER = "game_over"        # {winner: "white"|"black"|"draw", reason, white_ms, black_ms}

@@ -117,9 +117,15 @@ var _intro_right_icon: TextureRect = null
 func _process(_delta: float) -> void:
 	if _chess == null or _busy or _move_start_time_ms == 0 or _game_over_shown:
 		return
-	var elapsed: int = Time.get_ticks_msec() - _move_start_time_ms
 	if _hud == null:
 		return
+	if _online_mode:
+		# In online mode the clock is driven entirely by the server
+		# (see `_on_server_clock_update`).  The local _process loop is a
+		# passive display only — it must not run any countdown of its own,
+		# otherwise the HUD will drift away from the authoritative values.
+		return
+	var elapsed: int = Time.get_ticks_msec() - _move_start_time_ms
 	if _time_control_ms > 0:
 		var color := _chess.active_color
 		var inactive := 1 - color
@@ -216,6 +222,8 @@ func setup_online(white_name: String, black_name: String,
 	if oc != null:
 		if not oc.move_applied.is_connected(_on_server_move_applied):
 			oc.move_applied.connect(_on_server_move_applied)
+		if not oc.clock_update_received.is_connected(_on_server_clock_update):
+			oc.clock_update_received.connect(_on_server_clock_update)
 		if not oc.game_over_received.is_connected(_on_server_game_over):
 			oc.game_over_received.connect(_on_server_game_over)
 		if not oc.server_error.is_connected(_on_server_error_online):
@@ -886,11 +894,14 @@ func _on_move_chosen(mv: ChessMove) -> void:
 			game_ui.hide_status()
 	_busy = true
 	_deselect_piece()   # clear outline before move animation
-	# Track timing + deduct from clock
+	# Track timing + deduct from clock.  In online mode the server is the
+	# authoritative source for the clock (see `_on_server_clock_update`)
+	# so we skip the local deduction — doing it here would subtract the
+	# think-time a second time on top of what the server already deducted.
 	var elapsed: int = Time.get_ticks_msec() - _move_start_time_ms
 	_move_times_ms[mv.piece_color] += elapsed
 	_move_counts[mv.piece_color]   += 1
-	if _time_control_ms > 0:
+	if _time_control_ms > 0 and not _online_mode:
 		_time_remaining_ms[mv.piece_color] = maxi(
 			_time_remaining_ms[mv.piece_color] - elapsed, 0)
 	# Freeze clock updates until the next turn is officially started.
@@ -1291,9 +1302,28 @@ func _apply_server_move(payload: Dictionary) -> void:
 	# Sync server clock values BEFORE applying the move so HUD shows authoritative time.
 	if payload.has("white_ms"):
 		_time_remaining_ms[ChessEnums.PieceColor.WHITE] = int(payload.get("white_ms", 0))
+		if _hud != null:
+			_hud.update_timer(ChessEnums.PieceColor.WHITE, _time_remaining_ms[ChessEnums.PieceColor.WHITE])
 	if payload.has("black_ms"):
 		_time_remaining_ms[ChessEnums.PieceColor.BLACK] = int(payload.get("black_ms", 0))
+		if _hud != null:
+			_hud.update_timer(ChessEnums.PieceColor.BLACK, _time_remaining_ms[ChessEnums.PieceColor.BLACK])
+	# Online clock is server-driven; neutralise the local elapsed so
+	# `_move_times_ms` accumulation below stays a reasonable estimate.
+	_move_start_time_ms = Time.get_ticks_msec()
 	await _on_move_chosen(mv)
+
+func _on_server_clock_update(payload: Dictionary) -> void:
+	# Authoritative periodic clock from the server. Update both timers in
+	# the HUD; we are not running any local countdown in online mode.
+	if not _online_mode or _game_over_shown or _hud == null:
+		return
+	if payload.has("white_ms"):
+		_time_remaining_ms[ChessEnums.PieceColor.WHITE] = int(payload.get("white_ms", 0))
+		_hud.update_timer(ChessEnums.PieceColor.WHITE, _time_remaining_ms[ChessEnums.PieceColor.WHITE])
+	if payload.has("black_ms"):
+		_time_remaining_ms[ChessEnums.PieceColor.BLACK] = int(payload.get("black_ms", 0))
+		_hud.update_timer(ChessEnums.PieceColor.BLACK, _time_remaining_ms[ChessEnums.PieceColor.BLACK])
 
 func _on_server_game_over(payload: Dictionary) -> void:
 	if not _online_mode or _game_over_shown:

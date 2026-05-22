@@ -48,6 +48,8 @@
 
 Duke's Gambit is a fully-featured 3D chess game built in **Godot 4**. The rules are standard chess — what sets it apart is the presentation: all pieces are fully animated 3D characters from the Java world, the environment is stylised and thematic, and captures play out as short combat sequences rather than a simple disappearance. ♟️
 
+**🎬 Gameplay preview (YouTube):** [Link](https://youtu.be/LBlBCHfjq64)
+
 **Features at a glance:**
 
 - Full chess rule set — en passant, castling, promotion, threefold repetition, 50-move rule
@@ -104,8 +106,6 @@ Download the build for your platform from the GitHub Releases page and run it �
 <img src="./doc/attack.gif" alt="Combat animation — pieces fight and fall" width="100%">
 
 When a piece is captured, it doesn't just disappear. Pieces engage in a brief duel — attack animations play out, the loser staggers and falls to the ground. Every capture tells a story.
-
-**🎬 Gameplay preview (YouTube):** [Link](https://youtu.be/LBlBCHfjq64)
 
 ---
 

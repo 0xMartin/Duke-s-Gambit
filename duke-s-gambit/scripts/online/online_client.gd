@@ -28,6 +28,7 @@ signal room_deleted(room_id: String, reason: String)
 signal game_starting(payload: Dictionary)
 signal ready_state_updated(payload: Dictionary)
 signal move_applied(payload: Dictionary)
+signal clock_update_received(payload: Dictionary)
 signal draw_offered(from_color: String)
 signal draw_declined()
 signal game_over_received(payload: Dictionary)
@@ -373,6 +374,8 @@ func _handle_raw(raw: String) -> void:
 			emit_signal("ready_state_updated", msg)
 		"move_applied":
 			emit_signal("move_applied", msg)
+		"clock_update":
+			emit_signal("clock_update_received", msg)
 		"draw_offer":
 			emit_signal("draw_offered", str(msg.get("from_color", "")))
 		"draw_declined":

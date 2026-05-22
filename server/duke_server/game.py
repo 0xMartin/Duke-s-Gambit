@@ -53,6 +53,47 @@ def color_from_name(name: str) -> int:
     raise ValueError("color must be 'white' or 'black'")
 
 
+def _estimate_animation_ms(board: chess.Board, move: chess.Move) -> int:
+    """Estimate how long the client takes to animate ``move``.
+
+    The new active player's clock must not start ticking on the server
+    while the *opposing* client is still playing the move animation,
+    otherwise the player sees a time jump the moment they click (server
+    has already silently deducted the animation duration).  These
+    numbers are deliberate over-estimates aligned with the client-side
+    piece movement / FX timings (see ``base_piece.gd`` MOVE_SPEED=1 tile/s
+    plus attack trails ~1\u20131.5 s).
+    """
+    fx, fy = chess.square_file(move.from_square), chess.square_rank(move.from_square)
+    tx, ty = chess.square_file(move.to_square), chess.square_rank(move.to_square)
+    # Chebyshev distance \u2248 number of tiles the piece walks (one tile / s).
+    distance = max(abs(fx - tx), abs(fy - ty))
+
+    piece = board.piece_at(move.from_square)
+    is_knight = piece is not None and piece.piece_type == chess.KNIGHT
+    is_capture = board.is_capture(move)
+    is_castle = board.is_castling(move)
+    is_promotion = move.promotion is not None
+
+    if is_castle:
+        # Castling animates king + rook; queenside is the slow case.
+        return 3500
+
+    if is_knight:
+        # Knight jump animation is fixed ~0.92\u202fs regardless of distance.
+        grace = 1100
+    else:
+        grace = distance * 1000
+
+    if is_capture:
+        grace += 1500   # attack trail + hit FX
+    if is_promotion:
+        grace += 500    # promotion transform
+
+    grace += 400        # safety buffer for network / FX tail
+    return grace
+
+
 @dataclass
 class MoveResult:
     """Result of applying a move (or forcing a terminal event).
@@ -82,6 +123,10 @@ class MoveResult:
     game_over: bool
     winner: Optional[str]     # "white"/"black"/"draw"/None
     reason: Optional[str]
+    # Estimated client-side animation duration after which the next player's
+    # clock actually begins ticking on the server.  Clients can use this for
+    # display sync; the server enforces it independently.
+    clock_starts_in_ms: int = 0
 
 
 @dataclass
@@ -108,6 +153,7 @@ class ChessGame:
     _white_ms: int = 0
     _black_ms: int = 0
     _turn_started_monotonic: float = 0.0
+    _last_grace_ms: int = 0
     _started: bool = False
     _game_over: bool = False
     _winner: Optional[str] = None
@@ -123,10 +169,13 @@ class ChessGame:
 
         Must be called exactly once, before any :meth:`apply_move` call.
         Sets ``_turn_started_monotonic`` so that the elapsed-time
-        calculation in :meth:`remaining_ms` has a defined origin.
+        calculation in :meth:`remaining_ms` has a defined origin.  A small
+        initial grace (1 s) lets the client finish its kickoff intro before
+        the white clock starts ticking.
         """
         self._started = True
-        self._turn_started_monotonic = time.monotonic()
+        self._last_grace_ms = 1000
+        self._turn_started_monotonic = time.monotonic() + self._last_grace_ms / 1000.0
 
     @property
     def started(self) -> bool:
@@ -174,7 +223,10 @@ class ChessGame:
         """
         if not self._started or self._game_over or not self.has_time_limit:
             return self._white_ms, self._black_ms
-        elapsed_ms = int((time.monotonic() - self._turn_started_monotonic) * 1000)
+        # Clamp at 0 — during the post-move grace period (animation),
+        # ``_turn_started_monotonic`` is in the future, so elapsed is negative
+        # and must be treated as zero (no deduction yet).
+        elapsed_ms = max(0, int((time.monotonic() - self._turn_started_monotonic) * 1000))
         if self._board.turn == chess.WHITE:
             return max(0, self._white_ms - elapsed_ms), self._black_ms
         else:
@@ -247,7 +299,7 @@ class ChessGame:
 
         # Deduct elapsed time from active side before applying.
         if self.has_time_limit:
-            elapsed_ms = int((time.monotonic() - self._turn_started_monotonic) * 1000)
+            elapsed_ms = max(0, int((time.monotonic() - self._turn_started_monotonic) * 1000))
             if self._board.turn == chess.WHITE:
                 self._white_ms = max(0, self._white_ms - elapsed_ms)
                 if self._white_ms == 0:
@@ -270,8 +322,13 @@ class ChessGame:
         to_sq = chess.square_name(move.to_square)
         promotion = chess.piece_symbol(move.promotion).lower() if move.promotion else None
 
+        # Estimate the client-side animation duration so the next player's
+        # clock doesn't tick while their opponent's move is still animating.
+        grace_ms = _estimate_animation_ms(self._board, move)
+
         self._board.push(move)
-        self._turn_started_monotonic = time.monotonic()
+        self._last_grace_ms = grace_ms
+        self._turn_started_monotonic = time.monotonic() + grace_ms / 1000.0
 
         self._detect_terminal()
 
@@ -289,6 +346,7 @@ class ChessGame:
             game_over=self._game_over,
             winner=self._winner,
             reason=self._reason,
+            clock_starts_in_ms=grace_ms if not self._game_over else 0,
         )
 
     def force_resign(self, color: int) -> MoveResult:

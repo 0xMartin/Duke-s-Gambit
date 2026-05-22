@@ -804,16 +804,22 @@ class Server:
         await self._broadcast_lobby()
 
     async def _watch_room_clock(self, room_id: str) -> None:
-        """Background loop that detects time-loss in a playing room.
+        """Background loop that drives the authoritative clock for a room.
 
-        Polls every 500 ms. When :meth:`ChessGame.check_timeout` reports
-        a loser, the room is finished and :data:`S_GAME_OVER` is
-        broadcast. The task exits when the room disappears, the game
-        ends, or it is cancelled (e.g. by :meth:`_broadcast_game_over`).
+        Every second this task:
+
+        * polls :meth:`ChessGame.check_timeout` and finishes the game on
+          flag-fall (broadcasting :data:`S_GAME_OVER`);
+        * broadcasts the current clock state to both members via
+          :data:`S_CLOCK_UPDATE` so the client UI is purely a mirror of
+          the server-side clock (no local countdown).
+
+        The task exits when the room disappears, the game ends, or it is
+        cancelled (e.g. by :meth:`_broadcast_game_over`).
         """
         try:
             while True:
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(1.0)
                 room = self.lobby.get(room_id)
                 if room is None or room.game is None:
                     return
@@ -826,8 +832,22 @@ class Server:
                         room.finish()
                         await self._broadcast_game_over(room, result)
                         return
+                    white_ms, black_ms = room.game.remaining_ms()
+                    active = room.game.active
+                await self._broadcast_clock(room, white_ms, black_ms, active)
         except asyncio.CancelledError:
             return
+
+    async def _broadcast_clock(
+        self, room: Room, white_ms: int, black_ms: int, active: str
+    ) -> None:
+        """Send :data:`S_CLOCK_UPDATE` to both members of ``room``."""
+        for m in room.members.values():
+            if m.conn is not None:
+                await self._send(
+                    m.conn, P.S_CLOCK_UPDATE,
+                    white_ms=white_ms, black_ms=black_ms, active=active,
+                )
 
     async def _broadcast_move(self, room: Room, result) -> None:
         """Send :data:`S_MOVE_APPLIED` with the new position to both members."""

@@ -229,7 +229,7 @@ JSON messages over WebSocket, one object per frame, mandatory `type` field.
 | `room_updated`  | `{room}`                                                                             |
 | `room_deleted`  | `{room_id, reason}`                                                                  |
 | `game_start`    | `{room_id, white, black, time_ms, fen, active, your_color, white_ms, black_ms, ply}` |
-| `move_applied`  | `{uci, from, to, promotion, fen, active, white_ms, black_ms, ply}`                   |
+| `move_applied`  | `{uci, from, to, promotion, fen, active, white_ms, black_ms, ply, clock_starts_in_ms}`                   |
 | `draw_offer`    | `{from_color}`                                                                       |
 | `draw_declined` | `{}`                                                                                 |
 | `game_over`     | `{winner, reason, white_ms, black_ms, fen}`                                          |
