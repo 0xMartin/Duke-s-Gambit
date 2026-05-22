@@ -528,6 +528,8 @@ func _start_attack() -> void:
 	# Wait for target to fully leave the scene tree
 	if _attack_target != null and is_instance_valid(_attack_target):
 		await _attack_target.tree_exited
+	if not is_inside_tree():
+		return   # attacker was freed while waiting (e.g. game ended mid-attack)
 	_hide_weapon()
 	_attack_target = null
 	# Walk to final square
@@ -701,12 +703,16 @@ func _run_footstep_loop(token: int) -> void:
 		_play_footstep()
 		return
 	# Non-knight: first step after 0.4 s, then every 0.6 s while still walking
+	if not is_inside_tree():
+		return
 	await get_tree().create_timer(FOOTSTEP_FIRST_DELAY).timeout
-	if token != _footstep_token or not _footstep_active:
+	if token != _footstep_token or not _footstep_active or not is_inside_tree():
 		return
 	_play_footstep()
 	while token == _footstep_token and _footstep_active:
+		if not is_inside_tree():
+			return
 		await get_tree().create_timer(FOOTSTEP_INTERVAL).timeout
-		if token != _footstep_token or not _footstep_active:
+		if token != _footstep_token or not _footstep_active or not is_inside_tree():
 			return
 		_play_footstep()
