@@ -26,7 +26,7 @@ transparency = 1
 blend_mode = 1
 shading_mode = 0
 vertex_color_use_as_albedo = true
-albedo_color = Color(0.8163452, 0.61244446, 7.70092e-07, 1)
+albedo_color = Color(0.8855557, 0.6652703, 0, 1)
 disable_receive_shadows = true
 
 [sub_resource type="QuadMesh" id="QuadMesh_p5ire"]
@@ -34,7 +34,7 @@ material = SubResource("StandardMaterial3D_p8quy")
 size = Vector2(0.1, 0.35)
 
 [sub_resource type="Curve" id="Curve_p8quy"]
-_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.07877815, 0.67737997), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.09807074, 0.94182265), 0.0, 0.0, 0, 0, Vector2(1, 0.10089499), 0.0, 0.0, 0, 0]
 point_count = 3
 
 [sub_resource type="CurveTexture" id="CurveTexture_p5ire"]
@@ -57,7 +57,7 @@ transparency = 1
 blend_mode = 1
 shading_mode = 0
 vertex_color_use_as_albedo = true
-albedo_color = Color(1, 1, 0.33333334, 0.9607843)
+albedo_color = Color(1, 1, 0.33333334, 1)
 disable_receive_shadows = true
 
 [sub_resource type="SphereMesh" id="SphereMesh_p8quy"]
@@ -82,7 +82,7 @@ anim_speed_max = 4.0
 transparency = 1
 blend_mode = 1
 shading_mode = 0
-albedo_color = Color(1, 0.91833335, 0.3, 1)
+albedo_color = Color(0.90024877, 0.7213376, 7.315874e-06, 1)
 albedo_texture = ExtResource("1_jt07h")
 albedo_texture_force_srgb = true
 disable_receive_shadows = true
