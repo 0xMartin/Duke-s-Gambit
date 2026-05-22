@@ -120,22 +120,28 @@ size = Vector2(3, 3)
 script = ExtResource("3_script")
 
 [node name="P3" type="GPUParticles3D" parent="." unique_id=625591074]
+emitting = false
 amount = 22
 lifetime = 0.3
+one_shot = true
 explosiveness = 1.0
 transform_align = 3
 process_material = SubResource("ParticleProcessMaterial_cx12h")
 draw_pass_1 = SubResource("QuadMesh_x74q3")
 
 [node name="P2" type="GPUParticles3D" parent="." unique_id=1957522263]
+emitting = false
 amount = 1
+one_shot = true
 explosiveness = 1.0
 transform_align = 1
 process_material = SubResource("ParticleProcessMaterial_5e1cd")
 draw_pass_1 = SubResource("QuadMesh_5e1cd")
 
 [node name="P1" type="GPUParticles3D" parent="." unique_id=1992015645]
+emitting = false
 amount = 1
+one_shot = true
 explosiveness = 1.0
 transform_align = 1
 process_material = SubResource("ParticleProcessMaterial_70lag")
