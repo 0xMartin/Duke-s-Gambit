@@ -189,6 +189,7 @@ See [`server/README.md`](server/README.md) for the full configuration reference,
 - **Duke chess pieces** — [github.com/openjdk/duke](https://github.com/openjdk/duke) — edited in Blender, animated via [mixamo.com](https://www.mixamo.com/)
 - **Chess icons** — [Wikimedia Commons — SVG chess pieces](https://commons.wikimedia.org/wiki/Category:SVG_chess_pieces)
 - **Skybox** — [Godot Asset Library #579](https://godotengine.org/asset-library/asset/579) — autor: `rpgwhitelock`
+- **Hit texture** - [Radial lightning effect](https://opengameart.org/content/radial-lightning-effect) — autor: `13rice`
 
 ### Sounds
 

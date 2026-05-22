@@ -41,8 +41,8 @@ curve = SubResource("Curve_3rge5")
 [sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_70lag"]
 gravity = Vector3(0, 0, 0)
 scale_curve = SubResource("CurveTexture_cx12h")
-anim_speed_min = 4.0
-anim_speed_max = 4.0
+anim_speed_min = 3.0
+anim_speed_max = 3.0
 
 [sub_resource type="CompressedTexture2D" id="CompressedTexture2D_x74q3"]
 load_path = "res://.godot/imported/spark_radial_spritesheet_13rice.png-25352ae551173ad1ce7095b51ea11b62.s3tc.ctex"
@@ -64,7 +64,7 @@ grow_amount = 0.5
 
 [sub_resource type="QuadMesh" id="QuadMesh_5e1cd"]
 material = SubResource("StandardMaterial3D_dllk2")
-size = Vector2(1.4, 1.4)
+size = Vector2(1.1, 1.1)
 
 [node name="Hit" type="Node3D" unique_id=145099886]
 script = ExtResource("3_script")
