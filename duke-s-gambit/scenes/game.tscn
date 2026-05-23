@@ -30,6 +30,7 @@
 [ext_resource type="Theme" uid="uid://bywhcekfwqmcu" path="res://themes/table.tres" id="17_history_scroll"]
 [ext_resource type="Script" uid="uid://cuqi5v5jmrsq2" path="res://scripts/npc/bug_spawner.gd" id="20_bugspawn"]
 [ext_resource type="PackedScene" uid="uid://bugscene" path="res://scenes/npc/bug.tscn" id="21_bugscene"]
+[ext_resource type="Script" path="res://scripts/ui/game_over_panel.gd" id="22_gameoverpanel"]
 
 [sub_resource type="PanoramaSkyMaterial" id="SkyMat1"]
 panorama = ExtResource("6")
@@ -816,6 +817,7 @@ anchor_bottom = 0.7351852
 grow_horizontal = 2
 grow_vertical = 2
 theme = ExtResource("5_bt5mj")
+script = ExtResource("22_gameoverpanel")
 metadata/_edit_use_anchors_ = true
 
 [node name="VBox" type="VBoxContainer" parent="HUD/GameOverPanel" unique_id=1923570882]

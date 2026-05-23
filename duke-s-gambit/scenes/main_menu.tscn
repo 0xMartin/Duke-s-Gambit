@@ -36,7 +36,6 @@ shader = ExtResource("6_bgscroll")
 shader_parameter/scroll_speed = Vector2(-0.015, 0.0225)
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_settings_pad"]
-content_margin_right = 18.0
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1dfpl"]
 content_margin_left = 0.0
@@ -155,6 +154,7 @@ theme = ExtResource("9_5dd4i")
 metadata/_edit_use_anchors_ = true
 
 [node name="MainVBox" type="GridContainer" parent="MainPanel" unique_id=1054197032]
+visible = false
 layout_mode = 2
 size_flags_vertical = 4
 theme_override_constants/h_separation = 25
@@ -457,7 +457,6 @@ theme = ExtResource("12_flqon")
 text = "Back"
 
 [node name="SettingsVBox" type="VBoxContainer" parent="MainPanel" unique_id=1103937944]
-visible = false
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -508,6 +507,9 @@ theme = ExtResource("16_a8gd2")
 text = "50%"
 horizontal_alignment = 2
 
+[node name="Empty" type="Control" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/MusicVolRow" unique_id=1429870846]
+layout_mode = 2
+
 [node name="SFXVolRow" type="HBoxContainer" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent" unique_id=1838517052]
 layout_mode = 2
 theme_override_constants/separation = 40
@@ -534,6 +536,9 @@ theme = ExtResource("16_a8gd2")
 text = "100%"
 horizontal_alignment = 2
 
+[node name="Empty" type="Control" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/SFXVolRow" unique_id=1289860108]
+layout_mode = 2
+
 [node name="FacePlayerRow" type="HBoxContainer" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent" unique_id=2050643938]
 layout_mode = 2
 theme_override_constants/separation = 40
@@ -548,6 +553,9 @@ text = "Auto-rotate camera after move"
 [node name="FacePlayerCheck" type="CheckButton" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/FacePlayerRow" unique_id=847821193]
 layout_mode = 2
 theme = ExtResource("22_svtp6")
+
+[node name="Empty" type="Control" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/FacePlayerRow" unique_id=295043992]
+layout_mode = 2
 
 [node name="KillCamRow" type="HBoxContainer" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent" unique_id=2124416438]
 layout_mode = 2
@@ -565,6 +573,9 @@ layout_mode = 2
 theme = ExtResource("22_svtp6")
 button_pressed = true
 
+[node name="Empty" type="Control" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/KillCamRow" unique_id=480240536]
+layout_mode = 2
+
 [node name="VFXRow" type="HBoxContainer" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent" unique_id=1723013363]
 layout_mode = 2
 theme_override_constants/separation = 40
@@ -580,6 +591,9 @@ text = "Visual effects (VFX)"
 layout_mode = 2
 theme = ExtResource("22_svtp6")
 button_pressed = true
+
+[node name="Empty" type="Control" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/VFXRow" unique_id=1723364239]
+layout_mode = 2
 
 [node name="PanSensRow" type="HBoxContainer" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent" unique_id=1531540557]
 layout_mode = 2
@@ -608,6 +622,9 @@ theme = ExtResource("16_a8gd2")
 text = "5"
 horizontal_alignment = 2
 
+[node name="Empty" type="Control" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/PanSensRow" unique_id=1508002174]
+layout_mode = 2
+
 [node name="TiltSensRow" type="HBoxContainer" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent" unique_id=1367002245]
 layout_mode = 2
 theme_override_constants/separation = 40
@@ -634,6 +651,9 @@ layout_mode = 2
 theme = ExtResource("16_a8gd2")
 text = "5"
 horizontal_alignment = 2
+
+[node name="Empty" type="Control" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/TiltSensRow" unique_id=1934791741]
+layout_mode = 2
 
 [node name="BackBtn" type="Button" parent="MainPanel/SettingsVBox" unique_id=775881788]
 layout_mode = 2
