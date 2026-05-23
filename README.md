@@ -18,6 +18,9 @@
 
 </div>
 
+> [!NOTE]
+> **Disclaimer:** This is an open-source, non-commercial fan game made for satirical and educational purposes. `Java` is a trademark of Oracle Corporation. This project is not affiliated with, endorsed, or sponsored by Oracle.
+
 ## 📑 Table of contents
 
 - [Duke's Gambit](#dukes-gambit)
@@ -39,9 +42,6 @@
     - [Sounds](#sounds)
   - [📄 License](#-license)
   - [👤 Author](#-author)
-
-> [!NOTE]
-> **Disclaimer:** This is an open-source, non-commercial fan game made for satirical and educational purposes. `Java` is a trademark of Oracle Corporation. This project is not affiliated with, endorsed, or sponsored by Oracle.
 
 ---
 
