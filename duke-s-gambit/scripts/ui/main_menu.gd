@@ -30,7 +30,6 @@ extends Control
 @onready var _pvai_validation_label: Label = $MainPanel/PvAIVBox/ValidationLabel
 
 # Settings
-@onready var _settings_content: VBoxContainer = $MainPanel/SettingsVBox/SettingsScroll/SettingsContent
 @onready var _pan_sens_slider:    HSlider  = $MainPanel/SettingsVBox/SettingsScroll/SettingsContent/PanSensRow/PanSensSlider
 @onready var _pan_sens_value_label: Label  = $MainPanel/SettingsVBox/SettingsScroll/SettingsContent/PanSensRow/PanSensValueLabel
 @onready var _tilt_sens_slider:   HSlider  = $MainPanel/SettingsVBox/SettingsScroll/SettingsContent/TiltSensRow/TiltSensSlider
@@ -42,6 +41,7 @@ extends Control
 @onready var _music_vol_value_label: Label = $MainPanel/SettingsVBox/SettingsScroll/SettingsContent/MusicVolRow/MusicVolValueLabel
 @onready var _sfx_vol_slider:     HSlider  = $MainPanel/SettingsVBox/SettingsScroll/SettingsContent/SFXVolRow/SFXVolSlider
 @onready var _sfx_vol_value_label: Label   = $MainPanel/SettingsVBox/SettingsScroll/SettingsContent/SFXVolRow/SFXVolValueLabel
+@onready var _load_replay_btn:    Button   = $MainPanel/SettingsVBox/SettingsScroll/SettingsContent/ReplayRow/LoadReplayBtn
 
 var _save: Node = null
 var _stats_table:       GridContainer = null
@@ -549,7 +549,9 @@ func _setup_settings_extra() -> void:
 	_sfx_vol_slider.set_value_no_signal(init_sv)
 	_music_vol_value_label.text = "%d%%" % init_mv
 	_sfx_vol_value_label.text = "%d%%" % init_sv
-	_add_replay_row_to_settings()
+	if _load_replay_btn != null:
+		_load_replay_btn.pressed.connect(_on_load_replay_pressed)
+		_load_replay_btn.pressed.connect(_play_menu_click)
 
 func _on_face_player_toggled(pressed: bool) -> void:
 	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
@@ -609,37 +611,6 @@ func _play_menu_click() -> void:
 	tmp.play()
 
 # ── Game Replay ────────────────────────────────────────────────────────────
-
-## Adds a "Load Replay" row to the bottom of the Settings scroll content (before BackBtn).
-func _add_replay_row_to_settings() -> void:
-	if _settings_panel == null or _settings_content == null:
-		return
-	var back_btn := _settings_panel.get_node_or_null("BackBtn") as Button
-	if back_btn == null:
-		return
-
-	var sep := HSeparator.new()
-	_settings_content.add_child(sep)
-
-	var row := HBoxContainer.new()
-	row.name = "ReplayRow"
-	row.add_theme_constant_override("separation", 40)
-	_settings_content.add_child(row)
-
-	var lbl := Label.new()
-	lbl.custom_minimum_size = Vector2(220, 0)
-	lbl.theme = _MENU_LABEL_THEME
-	lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	lbl.text = "Game Replay"
-	row.add_child(lbl)
-
-	var btn := Button.new()
-	btn.name = "LoadReplayBtn"
-	btn.theme = _BUTTON_THEME
-	btn.text = "Load CSV…"
-	btn.pressed.connect(_on_load_replay_pressed)
-	btn.pressed.connect(_play_menu_click)
-	row.add_child(btn)
 
 ## Opens a native file-picker to select a CSV history file.
 func _on_load_replay_pressed() -> void:
