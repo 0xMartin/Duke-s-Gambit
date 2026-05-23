@@ -420,9 +420,9 @@ func _on_captured_page_timeout(color: int) -> void:
 func _move_notation(mv: ChessMove) -> String:
 	match mv.move_type:
 		ChessEnums.MoveType.CASTLING_KINGSIDE:
-			return "O-O"
+			return "O-O" + mv.check_annotation
 		ChessEnums.MoveType.CASTLING_QUEENSIDE:
-			return "O-O-O"
+			return "O-O-O" + mv.check_annotation
 		_:
 			pass
 
@@ -434,11 +434,15 @@ func _move_notation(mv: ChessMove) -> String:
 	if mv.piece_type == ChessEnums.PieceType.PAWN and mv.is_capture():
 		piece_letter = from_file
 
-	var notation := "%s%s%s" % [piece_letter, capture_mark, to_sq]
+	# Disambiguation prefix (e.g. "R" → "Ra" or "R" → "R1").
+	var disambig := mv.disambiguation if not mv.disambiguation.is_empty() else ""
+
+	var notation := "%s%s%s%s" % [piece_letter, disambig, capture_mark, to_sq]
 	if mv.move_type == ChessEnums.MoveType.PROMOTION or mv.move_type == ChessEnums.MoveType.PROMOTION_CAPTURE:
 		notation += "=" + String(PIECE_LETTERS.get(mv.promotion_type, "Q"))
 	if mv.move_type == ChessEnums.MoveType.EN_PASSANT:
 		notation += " e.p."
+	notation += mv.check_annotation
 	return notation
 
 func _sq_to_notation(sq: Vector2i) -> String:

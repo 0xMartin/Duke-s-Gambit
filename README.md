@@ -4,7 +4,7 @@
 
 # Duke's Gambit
 
-[![Version](https://img.shields.io/badge/version-1.0.1-success)](duke-s-gambit/project.godot)
+[![Version](https://img.shields.io/badge/version-1.0.2-success)](duke-s-gambit/project.godot)
 [![Godot 4](https://img.shields.io/badge/Godot-4.6-478CBF?logo=godotengine&logoColor=white)](https://godotengine.org/)
 [![Language](https://img.shields.io/badge/language-GDScript%20%7C%20C%2B%2B-blue)](dukes_ai/)
 [![Server](https://img.shields.io/badge/server-Python%203.12-3776AB?logo=python&logoColor=white)](server/)
@@ -27,6 +27,7 @@
     - [Desktop (PC)](#desktop-pc)
     - [Mobile (touch)](#mobile-touch)
   - [⚔️ Combat in action](#️-combat-in-action)
+  - [💾 Match history \& replays](#-match-history--replays)
   - [🤖 AI opponent](#-ai-opponent)
     - [Difficulty levels](#difficulty-levels)
   - [🌐 Online multiplayer](#-online-multiplayer)
@@ -48,7 +49,7 @@
 
 Duke's Gambit is a fully-featured 3D chess game built in **Godot 4**. The rules are standard chess — what sets it apart is the presentation: all pieces are fully animated 3D characters from the Java world, the environment is stylised and thematic, and captures play out as short combat sequences rather than a simple disappearance. ♟️
 
-**🎬 Gameplay preview (YouTube):** [Link](https://youtu.be/LBlBCHfjq64)
+**🎬 Gameplay preview (YouTube):** [Link](https://youtu.be/cmqPYEu6alU)
 
 **Features at a glance:**
 
@@ -57,6 +58,7 @@ Duke's Gambit is a fully-featured 3D chess game built in **Godot 4**. The rules 
 - Local PvP, single-player vs AI, and online multiplayer
 - Stylised visuals with custom shaders, VFX, and a dynamic skybox
 - Fully themed UI with custom fonts, panels, and sound design
+- Game-history export to CSV and full match replay (**Settings → Game Replay**)
 
 ---
 
@@ -106,6 +108,18 @@ Download the build for your platform from the GitHub Releases page and run it �
 <img src="./doc/attack.gif" alt="Combat animation — pieces fight and fall" width="100%">
 
 When a piece is captured, it doesn't just disappear. Pieces engage in a brief duel — attack animations play out, the loser staggers and falls to the ground. Every capture tells a story.
+
+---
+
+## 💾 Match history & replays
+
+Every finished game can be exported as a **CSV history file** containing the full move list, capture data, promotions, and per-move timings. You can load that CSV back later and watch the whole match replay in 3D — with all original combat animations, kill cams, and timing preserved.
+
+- **Export** — at the end of a match, use the export option in the game-over panel.
+- **Replay** — open **Settings → Game Replay → Load CSV…** and pick the file. The match plays back move-by-move, faithfully reproducing the original pacing.
+
+> [!TIP]
+> Replays are great for sharing memorable games — the CSV is portable and the on-disk format stays human-readable.
 
 ---
 
