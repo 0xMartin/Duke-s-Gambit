@@ -118,7 +118,7 @@ size = Vector2(3, 3)
 
 [sub_resource type="Animation" id="Animation_flash"]
 resource_name = "flash"
-length = 0.35
+length = 0.001
 step = 0.01
 tracks/0/type = "value"
 tracks/0/imported = false
@@ -130,7 +130,7 @@ tracks/0/keys = {
 "times": PackedFloat32Array(0, 0.04, 0.35),
 "transitions": PackedFloat32Array(1, 0.4, 1),
 "update": 0,
-"values": [0.0, 3.0, 0.0]
+"values": [0.0, 2.0, 0.0]
 }
 tracks/1/type = "value"
 tracks/1/imported = false
@@ -192,16 +192,13 @@ stream = ExtResource("2_3rge5")
 volume_db = 14.0
 autoplay = true
 
-[node name="Flash" type="OmniLight3D" parent="."]
+[node name="Flash" type="OmniLight3D" parent="." unique_id=1024676145]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)
 light_color = Color(0.78, 0.7, 1, 1)
 light_energy = 0.0
-light_specular = 0.5
 omni_range = 1.0
 omni_attenuation = 1.6
 
-[node name="FlashAnim" type="AnimationPlayer" parent="."]
-libraries = {
-&"": SubResource("AnimLib_flash")
-}
-autoplay = "flash"
+[node name="FlashAnim" type="AnimationPlayer" parent="." unique_id=1026798878]
+libraries/ = SubResource("AnimLib_flash")
+autoplay = &"flash"

@@ -94,7 +94,7 @@ grow_amount = 0.5
 
 [sub_resource type="QuadMesh" id="QuadMesh_qhc1d"]
 material = SubResource("StandardMaterial3D_70lag")
-size = Vector2(1.9, 1.9)
+size = Vector2(2, 2)
 
 [sub_resource type="Animation" id="Animation_flash"]
 resource_name = "flash"
@@ -140,7 +140,7 @@ emitting = false
 amount = 30
 lifetime = 0.3
 one_shot = true
-explosiveness = 0.7
+explosiveness = 0.8
 transform_align = 3
 process_material = SubResource("ParticleProcessMaterial_p8quy")
 draw_pass_1 = SubResource("QuadMesh_p5ire")
