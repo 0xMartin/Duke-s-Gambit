@@ -124,6 +124,10 @@ func _hide_status_boxes() -> void:
 		_net_turn_box.visible = false
 	if _net_join_box != null:
 		_net_join_box.visible = false
+	# Restore surrender button to its normal top-centre position.
+	if _surrender_btn != null:
+		_surrender_btn.offset_top    = 16.0
+		_surrender_btn.offset_bottom = 73.0
 
 func show_ai_thinking() -> void:
 	_hide_status_boxes()
@@ -135,10 +139,13 @@ func show_ai_thinking() -> void:
 
 func show_opponent_turn() -> void:
 	_hide_status_boxes()
-	if _surrender_btn != null:
-		_surrender_btn.visible = false
 	if _net_turn_box != null:
 		_net_turn_box.visible = true
+	# In online mode the surrender button stays visible the whole game.
+	# Move it below the NETPlayerTurnBox (offset_bottom = 108) so they don't overlap.
+	if _surrender_btn != null and _surrender_btn.visible:
+		_surrender_btn.offset_top    = 116.0
+		_surrender_btn.offset_bottom = 173.0
 	_animate_progress_bar(_net_turn_bar)
 
 func show_waiting_for_opponent() -> void:

@@ -32,7 +32,7 @@
 [ext_resource type="Script" uid="uid://cuqi5v5jmrsq2" path="res://scripts/npc/bug_spawner.gd" id="20_bugspawn"]
 [ext_resource type="PackedScene" uid="uid://bugscene" path="res://scenes/npc/bug.tscn" id="21_bugscene"]
 [ext_resource type="Script" uid="uid://ddsaxbyx2y3lc" path="res://scripts/ui/game_over_panel.gd" id="22_gameoverpanel"]
-[ext_resource type="Script" path="res://scripts/ui/board_notation_highlighter.gd" id="23_notationhl"]
+[ext_resource type="Script" uid="uid://bw3hlf4apj4ur" path="res://scripts/ui/board_notation_highlighter.gd" id="23_notationhl"]
 
 [sub_resource type="PanoramaSkyMaterial" id="SkyMat1"]
 panorama = ExtResource("6")

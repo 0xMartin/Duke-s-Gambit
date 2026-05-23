@@ -530,7 +530,7 @@ func can_surrender() -> bool:
 	if _game_over_shown or _chess == null:
 		return false
 	if _online_mode:
-		return _chess.active_color == _my_online_color
+		return true  # can resign at any point in an online game
 	if _is_player_vs_ai:
 		return is_human_turn()
 	return true
