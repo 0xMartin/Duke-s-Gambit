@@ -1150,6 +1150,152 @@ theme_override_font_sizes/font_size = 36
 text = "Knight"
 icon = ExtResource("15_promo_wn")
 
+[node name="BoardNotation" type="Node3D" parent="." unique_id=1027925524]
+
+[node name="Label1" type="Label3D" parent="BoardNotation" unique_id=996059614]
+transform = Transform3D(-1, 8.742278e-08, 3.821371e-15, 0, -4.371139e-08, 1, 8.742278e-08, 1, 4.371139e-08, 0, -0.1, 0)
+offset = Vector2(-860, -718)
+modulate = Color(0.8070999, 0.7424972, 0.6773413, 1)
+text = "1"
+font = ExtResource("12_wljb1")
+font_size = 80
+outline_size = 15
+
+[node name="Label2" type="Label3D" parent="BoardNotation" unique_id=191922007]
+transform = Transform3D(-1, 8.742278e-08, 3.821371e-15, 0, -4.371139e-08, 1, 8.742278e-08, 1, 4.371139e-08, 0, -0.1, 0)
+offset = Vector2(-860, -513)
+modulate = Color(0.8070999, 0.7424972, 0.6773413, 1)
+text = "2"
+font = ExtResource("12_wljb1")
+font_size = 80
+outline_size = 15
+
+[node name="Label3" type="Label3D" parent="BoardNotation" unique_id=76172775]
+transform = Transform3D(-1, 8.742278e-08, 3.821371e-15, 0, -4.371139e-08, 1, 8.742278e-08, 1, 4.371139e-08, 0, -0.1, 0)
+offset = Vector2(-860, -308)
+modulate = Color(0.8070999, 0.7424972, 0.6773413, 1)
+text = "3"
+font = ExtResource("12_wljb1")
+font_size = 80
+outline_size = 15
+
+[node name="Label4" type="Label3D" parent="BoardNotation" unique_id=2000201637]
+transform = Transform3D(-1, 8.742278e-08, 3.821371e-15, 0, -4.371139e-08, 1, 8.742278e-08, 1, 4.371139e-08, 0, -0.1, 0)
+offset = Vector2(-860, -103)
+modulate = Color(0.8070999, 0.7424972, 0.6773413, 1)
+text = "4"
+font = ExtResource("12_wljb1")
+font_size = 80
+outline_size = 15
+
+[node name="Label5" type="Label3D" parent="BoardNotation" unique_id=1216792195]
+transform = Transform3D(-1, 8.742278e-08, 3.821371e-15, 0, -4.371139e-08, 1, 8.742278e-08, 1, 4.371139e-08, 0, -0.1, 0)
+offset = Vector2(-860, 102)
+modulate = Color(0.8070999, 0.7424972, 0.6773413, 1)
+text = "5"
+font = ExtResource("12_wljb1")
+font_size = 80
+outline_size = 15
+
+[node name="Label6" type="Label3D" parent="BoardNotation" unique_id=166848390]
+transform = Transform3D(-1, 8.742278e-08, 3.821371e-15, 0, -4.371139e-08, 1, 8.742278e-08, 1, 4.371139e-08, 0, -0.1, 0)
+offset = Vector2(-860, 307)
+modulate = Color(0.8070999, 0.7424972, 0.6773413, 1)
+text = "6"
+font = ExtResource("12_wljb1")
+font_size = 80
+outline_size = 15
+
+[node name="Label7" type="Label3D" parent="BoardNotation" unique_id=1848749426]
+transform = Transform3D(-1, 8.742278e-08, 3.821371e-15, 0, -4.371139e-08, 1, 8.742278e-08, 1, 4.371139e-08, 0, -0.1, 0)
+offset = Vector2(-860, 512)
+modulate = Color(0.8070999, 0.7424972, 0.6773413, 1)
+text = "7"
+font = ExtResource("12_wljb1")
+font_size = 80
+outline_size = 15
+
+[node name="Label8" type="Label3D" parent="BoardNotation" unique_id=517958413]
+transform = Transform3D(-1, 8.742278e-08, 3.821371e-15, 0, -4.371139e-08, 1, 8.742278e-08, 1, 4.371139e-08, 0, -0.1, 0)
+offset = Vector2(-860, 717)
+modulate = Color(0.8070999, 0.7424972, 0.6773413, 1)
+text = "8"
+font = ExtResource("12_wljb1")
+font_size = 80
+outline_size = 15
+
+[node name="LabelA" type="Label3D" parent="BoardNotation" unique_id=853578541]
+transform = Transform3D(-1, 8.742278e-08, 3.821371e-15, 0, -4.371139e-08, 1, 8.742278e-08, 1, 4.371139e-08, 0, -0.1, 0)
+offset = Vector2(-718, -865)
+modulate = Color(0.8070999, 0.7424972, 0.6773413, 1)
+text = "A"
+font = ExtResource("12_wljb1")
+font_size = 80
+outline_size = 15
+
+[node name="LabelB" type="Label3D" parent="BoardNotation" unique_id=630256661]
+transform = Transform3D(-1, 8.742278e-08, 3.821371e-15, 0, -4.371139e-08, 1, 8.742278e-08, 1, 4.371139e-08, 0, -0.1, 0)
+offset = Vector2(-513, -865)
+modulate = Color(0.8070999, 0.7424972, 0.6773413, 1)
+text = "B"
+font = ExtResource("12_wljb1")
+font_size = 80
+outline_size = 15
+
+[node name="LabelC" type="Label3D" parent="BoardNotation" unique_id=1031990842]
+transform = Transform3D(-1, 8.742278e-08, 3.821371e-15, 0, -4.371139e-08, 1, 8.742278e-08, 1, 4.371139e-08, 0, -0.1, 0)
+offset = Vector2(-308, -865)
+modulate = Color(0.8070999, 0.7424972, 0.6773413, 1)
+text = "C"
+font = ExtResource("12_wljb1")
+font_size = 80
+outline_size = 15
+
+[node name="LabelD" type="Label3D" parent="BoardNotation" unique_id=553559477]
+transform = Transform3D(-1, 8.742278e-08, 3.821371e-15, 0, -4.371139e-08, 1, 8.742278e-08, 1, 4.371139e-08, 0, -0.1, 0)
+offset = Vector2(-103, -865)
+modulate = Color(0.8070999, 0.7424972, 0.6773413, 1)
+text = "D"
+font = ExtResource("12_wljb1")
+font_size = 80
+outline_size = 15
+
+[node name="LabelE" type="Label3D" parent="BoardNotation" unique_id=1068599137]
+transform = Transform3D(-1, 8.742278e-08, 3.821371e-15, 0, -4.371139e-08, 1, 8.742278e-08, 1, 4.371139e-08, 0, -0.1, 0)
+offset = Vector2(102, -865)
+modulate = Color(0.8070999, 0.7424972, 0.6773413, 1)
+text = "E"
+font = ExtResource("12_wljb1")
+font_size = 80
+outline_size = 15
+
+[node name="LabelF" type="Label3D" parent="BoardNotation" unique_id=257521421]
+transform = Transform3D(-1, 8.742278e-08, 3.821371e-15, 0, -4.371139e-08, 1, 8.742278e-08, 1, 4.371139e-08, 0, -0.1, 0)
+offset = Vector2(307, -865)
+modulate = Color(0.8070999, 0.7424972, 0.6773413, 1)
+text = "F"
+font = ExtResource("12_wljb1")
+font_size = 80
+outline_size = 15
+
+[node name="LabelG" type="Label3D" parent="BoardNotation" unique_id=1074508962]
+transform = Transform3D(-1, 8.742278e-08, 3.821371e-15, 0, -4.371139e-08, 1, 8.742278e-08, 1, 4.371139e-08, 0, -0.1, 0)
+offset = Vector2(512, -865)
+modulate = Color(0.8070999, 0.7424972, 0.6773413, 1)
+text = "G"
+font = ExtResource("12_wljb1")
+font_size = 80
+outline_size = 15
+
+[node name="LabelH" type="Label3D" parent="BoardNotation" unique_id=1801498033]
+transform = Transform3D(-1, 8.742278e-08, 3.821371e-15, 0, -4.371139e-08, 1, 8.742278e-08, 1, 4.371139e-08, 0, -0.1, 0)
+offset = Vector2(717, -865)
+modulate = Color(0.8070999, 0.7424972, 0.6773413, 1)
+text = "H"
+font = ExtResource("12_wljb1")
+font_size = 80
+outline_size = 15
+
 [node name="Board" parent="." unique_id=1969348578 instance=ExtResource("2")]
 
 [node name="Pieces" type="Node3D" parent="." unique_id=1526320121]
