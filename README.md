@@ -4,7 +4,7 @@
 
 # Duke's Gambit
 
-[![Version](https://img.shields.io/badge/version-1.0.2-success)](duke-s-gambit/project.godot)
+[![Version](https://img.shields.io/badge/version-1.0.3-success)](duke-s-gambit/project.godot)
 [![Godot 4](https://img.shields.io/badge/Godot-4.6-478CBF?logo=godotengine&logoColor=white)](https://godotengine.org/)
 [![Language](https://img.shields.io/badge/language-GDScript%20%7C%20C%2B%2B-blue)](dukes_ai/)
 [![Server](https://img.shields.io/badge/server-Python%203.12-3776AB?logo=python&logoColor=white)](server/)
