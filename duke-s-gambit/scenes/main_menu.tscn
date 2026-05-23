@@ -547,6 +547,19 @@ horizontal_alignment = 2
 [node name="Empty" type="Control" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/SFXVolRow" unique_id=1289860108]
 layout_mode = 2
 
+[node name="Sep4" type="HBoxContainer" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent" unique_id=1529840965]
+layout_mode = 2
+theme_override_constants/separation = 40
+alignment = 1
+
+[node name="Sep" type="HSeparator" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/Sep4" unique_id=840266260]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/separator = SubResource("StyleBoxLine_3wgol")
+
+[node name="Empty" type="Control" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/Sep4" unique_id=1887427563]
+layout_mode = 2
+
 [node name="FacePlayerRow" type="HBoxContainer" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent" unique_id=2050643938]
 layout_mode = 2
 theme_override_constants/separation = 40
@@ -601,6 +614,19 @@ theme = ExtResource("22_svtp6")
 button_pressed = true
 
 [node name="Empty" type="Control" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/VFXRow" unique_id=1723364239]
+layout_mode = 2
+
+[node name="Sep3" type="HBoxContainer" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent" unique_id=526641962]
+layout_mode = 2
+theme_override_constants/separation = 40
+alignment = 1
+
+[node name="Sep" type="HSeparator" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/Sep3" unique_id=1037027411]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/separator = SubResource("StyleBoxLine_3wgol")
+
+[node name="Empty" type="Control" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/Sep3" unique_id=1289795602]
 layout_mode = 2
 
 [node name="PanSensRow" type="HBoxContainer" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent" unique_id=1531540557]
@@ -663,17 +689,68 @@ horizontal_alignment = 2
 [node name="Empty" type="Control" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/TiltSensRow" unique_id=1934791741]
 layout_mode = 2
 
-[node name="ReplaySep" type="HBoxContainer" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent" unique_id=1080128526]
+[node name="Sep1" type="HBoxContainer" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent" unique_id=1080128526]
 layout_mode = 2
 theme_override_constants/separation = 40
 alignment = 1
 
-[node name="ReplaySep" type="HSeparator" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/ReplaySep" unique_id=511969499]
+[node name="Sep" type="HSeparator" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/Sep1" unique_id=511969499]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_styles/separator = SubResource("StyleBoxLine_3wgol")
 
-[node name="Empty" type="Control" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/ReplaySep" unique_id=1090841540]
+[node name="Empty" type="Control" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/Sep1" unique_id=1090841540]
+layout_mode = 2
+
+[node name="NotationVisibleRow" type="HBoxContainer" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent" unique_id=2122780973]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="NotationVisibleLabel" type="Label" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/NotationVisibleRow" unique_id=573167093]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("16_a8gd2")
+text = "Board notation"
+
+[node name="NotationVisibleCheck" type="CheckButton" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/NotationVisibleRow" unique_id=600134901]
+layout_mode = 2
+theme = ExtResource("22_svtp6")
+button_pressed = true
+
+[node name="Empty" type="Control" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/NotationVisibleRow" unique_id=459746904]
+layout_mode = 2
+
+[node name="NotationHighlightRow" type="HBoxContainer" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent" unique_id=2097523379]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="NotationHighlightLabel" type="Label" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/NotationHighlightRow" unique_id=1132359667]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("16_a8gd2")
+text = "Highlight last move"
+
+[node name="NotationHighlightCheck" type="CheckButton" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/NotationHighlightRow" unique_id=1304872017]
+layout_mode = 2
+theme = ExtResource("22_svtp6")
+button_pressed = true
+
+[node name="Empty" type="Control" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/NotationHighlightRow" unique_id=1132628122]
+layout_mode = 2
+
+[node name="Sep2" type="HBoxContainer" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent" unique_id=1551440443]
+layout_mode = 2
+theme_override_constants/separation = 40
+alignment = 1
+
+[node name="Sep" type="HSeparator" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/Sep2" unique_id=1590465482]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/separator = SubResource("StyleBoxLine_3wgol")
+
+[node name="Empty" type="Control" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/Sep2" unique_id=475367806]
 layout_mode = 2
 
 [node name="ReplayRow" type="HBoxContainer" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent" unique_id=1509689885]

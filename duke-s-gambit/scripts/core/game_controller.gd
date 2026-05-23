@@ -19,6 +19,7 @@ extends Node3D
 @onready var _pieces:  Node3D      = get_node(pieces_root)
 @onready var _ui:      Control     = get_node(ui_root)
 @onready var _terrain: Node3D      = get_node_or_null("Terrain")
+@onready var _board_notation: Node3D = get_node_or_null("BoardNotation")
 @onready var _world_env: WorldEnvironment = get_node_or_null("WorldEnvironment")
 @onready var _material_pressure_fx: Node = get_node_or_null("MaterialPressureFX")
 @onready var _white_base: Node3D   = get_node_or_null("WhiteBase")
@@ -141,6 +142,10 @@ func _ready() -> void:
 		MusicManager.dynamic_preset_changed.connect(_on_dynamic_music_preset_changed)
 	MusicManager.play_game_music()
 	_on_dynamic_music_preset_changed("normal")
+	# Apply notation visibility setting.
+	if _board_notation != null:
+		var cam_cfg := get_node_or_null("/root/CameraConfig")
+		_board_notation.visible = cam_cfg == null or cam_cfg.get("notation_visible") != false
 	_intro_animator = GameIntroAnimator.new()
 	add_child(_intro_animator)
 	_input = GameBoardInput.new()
@@ -338,6 +343,8 @@ func start_game() -> void:
 		_material_pressure_fx.call("reset_effects")
 	_clear_pieces()
 	_board.clear_last_move()
+	if _board_notation != null:
+		_board_notation.call("reset_highlight")
 	# Setup HUD data now (it will be hidden during the intro).
 	if _hud != null:
 		var white_elo_override := _ai_difficulty_label if _ai_color == ChessEnums.PieceColor.WHITE else ""
@@ -690,6 +697,10 @@ func _on_move_chosen(mv: ChessMove) -> void:
 
 	await _animate_move(mv)
 	_board.highlight_last_move(mv.from_sq, mv.to_sq)
+	if _board_notation != null:
+		var _cam_cfg := get_node_or_null("/root/CameraConfig")
+		if _cam_cfg == null or _cam_cfg.get("notation_highlight") != false:
+			_board_notation.call("highlight", mv.to_sq)
 	if _hud != null and _hud.has_method("append_move_to_history"):
 		_hud.call("append_move_to_history", mv)
 

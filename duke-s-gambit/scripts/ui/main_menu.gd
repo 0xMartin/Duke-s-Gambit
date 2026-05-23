@@ -37,6 +37,8 @@ extends Control
 @onready var _kill_cam_check:     CheckButton = $MainPanel/SettingsVBox/SettingsScroll/SettingsContent/KillCamRow/KillCamCheck
 @onready var _vfx_check:          CheckButton = $MainPanel/SettingsVBox/SettingsScroll/SettingsContent/VFXRow/VFXCheck
 @onready var _face_player_check:  CheckButton = $MainPanel/SettingsVBox/SettingsScroll/SettingsContent/FacePlayerRow/FacePlayerCheck
+@onready var _notation_visible_check:    CheckButton = $MainPanel/SettingsVBox/SettingsScroll/SettingsContent/NotationVisibleRow/NotationVisibleCheck
+@onready var _notation_highlight_check:  CheckButton = $MainPanel/SettingsVBox/SettingsScroll/SettingsContent/NotationHighlightRow/NotationHighlightCheck
 @onready var _music_vol_slider:   HSlider  = $MainPanel/SettingsVBox/SettingsScroll/SettingsContent/MusicVolRow/MusicVolSlider
 @onready var _music_vol_value_label: Label = $MainPanel/SettingsVBox/SettingsScroll/SettingsContent/MusicVolRow/MusicVolValueLabel
 @onready var _sfx_vol_slider:     HSlider  = $MainPanel/SettingsVBox/SettingsScroll/SettingsContent/SFXVolRow/SFXVolSlider
@@ -140,6 +142,8 @@ func _setup_signals() -> void:
 	_kill_cam_check.toggled.connect(_on_kill_cam_toggled)
 	_vfx_check.toggled.connect(_on_vfx_toggled)
 	_face_player_check.toggled.connect(_on_face_player_toggled)
+	_notation_visible_check.toggled.connect(_on_notation_visible_toggled)
+	_notation_highlight_check.toggled.connect(_on_notation_highlight_toggled)
 	_music_vol_slider.value_changed.connect(_on_music_vol_changed)
 	_sfx_vol_slider.value_changed.connect(_on_sfx_vol_changed)
 	_pvai_ai_option.item_selected.connect(_on_ai_difficulty_selected)
@@ -459,6 +463,10 @@ func _show_settings() -> void:
 			_vfx_check.button_pressed = cam_cfg.get("vfx_enabled") != false
 		if _face_player_check:
 			_face_player_check.button_pressed = cam_cfg.get("face_player_after_move") != false
+		if _notation_visible_check:
+			_notation_visible_check.button_pressed = cam_cfg.get("notation_visible") != false
+		if _notation_highlight_check:
+			_notation_highlight_check.button_pressed = cam_cfg.get("notation_highlight") != false
 		# Populate volume sliders without triggering callbacks
 		var mv: int = int(cam_cfg.get("music_volume"))
 		var sv: int = int(cam_cfg.get("sfx_volume"))
@@ -557,6 +565,18 @@ func _on_face_player_toggled(pressed: bool) -> void:
 	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
 	if cam_cfg:
 		cam_cfg.set("face_player_after_move", pressed)
+		cam_cfg.save_config()
+
+func _on_notation_visible_toggled(pressed: bool) -> void:
+	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
+	if cam_cfg:
+		cam_cfg.set("notation_visible", pressed)
+		cam_cfg.save_config()
+
+func _on_notation_highlight_toggled(pressed: bool) -> void:
+	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
+	if cam_cfg:
+		cam_cfg.set("notation_highlight", pressed)
 		cam_cfg.save_config()
 
 

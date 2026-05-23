@@ -32,6 +32,7 @@
 [ext_resource type="Script" uid="uid://cuqi5v5jmrsq2" path="res://scripts/npc/bug_spawner.gd" id="20_bugspawn"]
 [ext_resource type="PackedScene" uid="uid://bugscene" path="res://scenes/npc/bug.tscn" id="21_bugscene"]
 [ext_resource type="Script" uid="uid://ddsaxbyx2y3lc" path="res://scripts/ui/game_over_panel.gd" id="22_gameoverpanel"]
+[ext_resource type="Script" path="res://scripts/ui/board_notation_highlighter.gd" id="23_notationhl"]
 
 [sub_resource type="PanoramaSkyMaterial" id="SkyMat1"]
 panorama = ExtResource("6")
@@ -1151,6 +1152,7 @@ text = "Knight"
 icon = ExtResource("15_promo_wn")
 
 [node name="BoardNotation" type="Node3D" parent="." unique_id=1027925524]
+script = ExtResource("23_notationhl")
 
 [node name="Label1" type="Label3D" parent="BoardNotation" unique_id=996059614]
 transform = Transform3D(-1, 8.742278e-08, 3.821371e-15, 0, -4.371139e-08, 1, 8.742278e-08, 1, 4.371139e-08, 0, -0.1, 0)
