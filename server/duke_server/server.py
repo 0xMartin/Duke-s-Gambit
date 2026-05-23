@@ -499,8 +499,8 @@ class Server:
         name = str(msg.get("name", "")).strip()[:MAX_ROOM_NAME_LEN]
         password = str(msg.get("password", ""))[:MAX_PASSWORD_LEN]
         host_color = str(msg.get("host_color", "white")).lower()
-        if host_color not in ("white", "black"):
-            raise _ClientError(P.ERR_BAD_REQUEST, "host_color must be white/black")
+        if host_color not in ("white", "black", "random"):
+            raise _ClientError(P.ERR_BAD_REQUEST, "host_color must be white/black/random")
         try:
             time_ms = int(msg.get("time_ms", 0))
         except (TypeError, ValueError):

@@ -315,6 +315,8 @@ func _on_pvai_start_pressed() -> void:
 	var strength := int(_pvai_ai_option.get_selected_id())
 	var time_ms: int = _pvai_time_opt.get_item_id(_pvai_time_opt.selected)
 	var player_color: int = int(_pvai_color_opt.get_selected_id())
+	if player_color == 2:  # Random
+		player_color = randi() % 2
 	if player_color == ChessEnums.PieceColor.WHITE:
 		_start_game(player_name, ai_name, false, true, strength, time_ms)
 	else:
@@ -501,8 +503,9 @@ func _setup_pvai_controls() -> void:
 	_on_ai_difficulty_selected(init_ai - 1)
 
 	_pvai_color_opt.clear()
-	_pvai_color_opt.add_item("White", ChessEnums.PieceColor.WHITE)
-	_pvai_color_opt.add_item("Black", ChessEnums.PieceColor.BLACK)
+	_pvai_color_opt.add_item("White",  ChessEnums.PieceColor.WHITE)
+	_pvai_color_opt.add_item("Black",  ChessEnums.PieceColor.BLACK)
+	_pvai_color_opt.add_item("Random", 2)
 
 	var stored_color: int = ChessEnums.PieceColor.WHITE
 	if cam_cfg:
@@ -511,6 +514,8 @@ func _setup_pvai_controls() -> void:
 			stored_color = int(c)
 	if stored_color == ChessEnums.PieceColor.BLACK:
 		_pvai_color_opt.select(1)
+	elif stored_color == 2:
+		_pvai_color_opt.select(2)
 	else:
 		_pvai_color_opt.select(0)
 

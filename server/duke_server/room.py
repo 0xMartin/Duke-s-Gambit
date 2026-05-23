@@ -159,7 +159,10 @@ class Room:
             Optional plaintext password; stored only as a salted hash.
         """
         room_id = secrets.token_urlsafe(10)
-        host_color = color_from_name(host_color_name)
+        if host_color_name.lower() == "random":
+            host_color = secrets.choice((WHITE, BLACK))
+        else:
+            host_color = color_from_name(host_color_name)
         room = cls(
             room_id=room_id,
             name=name.strip() or f"{host_nickname}'s room",
