@@ -21,6 +21,7 @@
 [ext_resource type="PackedScene" uid="uid://blackflag" path="res://scenes/effects/black_flag.tscn" id="10_vtaks"]
 [ext_resource type="PackedScene" uid="uid://whiteflag" path="res://scenes/effects/white_flag.tscn" id="11_kvpfn"]
 [ext_resource type="Texture2D" uid="uid://creg7doi502rt" path="res://assets/textures/pieces/white_queen.svg" id="12_promo_wq"]
+[ext_resource type="FontFile" uid="uid://b5wwdlpmaoo1t" path="res://assets/fonts/Montserrat-Bold.ttf" id="12_wljb1"]
 [ext_resource type="Texture2D" uid="uid://d1dl1lcyflqnp" path="res://assets/textures/pieces/white_rook.svg" id="13_promo_wr"]
 [ext_resource type="Theme" uid="uid://df6j2xpf5nywx" path="res://themes/game_dialog_title.tres" id="14_bhx41"]
 [ext_resource type="Theme" uid="uid://cufxac8hjayal" path="res://themes/game_label.tres" id="14_pl11u"]
@@ -30,7 +31,7 @@
 [ext_resource type="Theme" uid="uid://bywhcekfwqmcu" path="res://themes/table.tres" id="17_history_scroll"]
 [ext_resource type="Script" uid="uid://cuqi5v5jmrsq2" path="res://scripts/npc/bug_spawner.gd" id="20_bugspawn"]
 [ext_resource type="PackedScene" uid="uid://bugscene" path="res://scenes/npc/bug.tscn" id="21_bugscene"]
-[ext_resource type="Script" path="res://scripts/ui/game_over_panel.gd" id="22_gameoverpanel"]
+[ext_resource type="Script" uid="uid://ddsaxbyx2y3lc" path="res://scripts/ui/game_over_panel.gd" id="22_gameoverpanel"]
 
 [sub_resource type="PanoramaSkyMaterial" id="SkyMat1"]
 panorama = ExtResource("6")
@@ -587,12 +588,16 @@ offset_right = 34.0
 offset_bottom = -117.0
 grow_vertical = 0
 theme_override_constants/outline_size = 10
+theme_override_fonts/font = ExtResource("12_wljb1")
 theme_override_font_sizes/font_size = 22
 theme_override_styles/normal = SubResource("StyleBoxFlat_trtic")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_ir15t")
 theme_override_styles/hover = SubResource("StyleBoxFlat_ca42v")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_rysoc")
-text = "▶"
+text = "►
+"
+icon_alignment = 1
+expand_icon = true
 
 [node name="MoveHistoryPanel" type="PanelContainer" parent="HUD" unique_id=1426172844]
 visible = false
@@ -633,13 +638,14 @@ text = "Move History"
 custom_minimum_size = Vector2(30, 24)
 layout_mode = 2
 theme = ExtResource("7_trtic")
-theme_override_constants/outline_size = 10
+theme_override_constants/outline_size = 15
 theme_override_font_sizes/font_size = 20
 theme_override_styles/normal = SubResource("StyleBoxFlat_e1j6l")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_pl11u")
 theme_override_styles/hover = SubResource("StyleBoxFlat_bhx41")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_qnb83")
-text = "◀"
+text = "<"
+icon_alignment = 1
 
 [node name="HistoryScroll" type="ScrollContainer" parent="HUD/MoveHistoryPanel/Margin/VBox" unique_id=651528752]
 custom_minimum_size = Vector2(0, 120)
