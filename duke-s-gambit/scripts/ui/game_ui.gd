@@ -271,6 +271,13 @@ func _configure_promotion_dialog(color: int) -> void:
 
 func _on_back_pressed() -> void:
 	MusicManager.play_menu_music()
+	# In online mode the server still has ctx.room_id set even after the game
+	# finishes. Send leave_room so the server clears it; otherwise the next
+	# attempt to create/join a room is rejected with "already in a room".
+	if _game != null and _game._online_mode:
+		var oc := get_node_or_null("/root/OnlineClient")
+		if oc != null:
+			oc.send_leave_room()
 	# Add menu first, then free game scene so root is never empty for a frame
 	var menu: Node = load("res://scenes/main_menu.tscn").instantiate()
 	get_tree().root.add_child(menu)
