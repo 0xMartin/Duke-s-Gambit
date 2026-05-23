@@ -430,12 +430,12 @@ func _populate_stats() -> void:
 		var avg_ms: float = _save.average_move_time_ms(key)
 		var avg_s: String = "%.1fs" % (avg_ms / 1000.0) if avg_ms > 0 else "-"
 		_stats_table.add_child(_make_stats_cell(str(p["name"]), HORIZONTAL_ALIGNMENT_LEFT))
-		_stats_table.add_child(_make_stats_cell(str(p["elo"])))
-		_stats_table.add_child(_make_stats_cell(str(p["wins"])))
-		_stats_table.add_child(_make_stats_cell(str(p["losses"])))
-		_stats_table.add_child(_make_stats_cell(str(p["draws"])))
+		_stats_table.add_child(_make_stats_cell(str(int(p["elo"]))))
+		_stats_table.add_child(_make_stats_cell(str(int(p["wins"]))))
+		_stats_table.add_child(_make_stats_cell(str(int(p["losses"]))))
+		_stats_table.add_child(_make_stats_cell(str(int(p["draws"]))))
 		_stats_table.add_child(_make_stats_cell(avg_s))
-		_stats_table.add_child(_make_stats_cell(str(p["games_played"])))
+		_stats_table.add_child(_make_stats_cell(str(int(p["games_played"]))))
 
 func _make_stats_cell(text: String,
 		align: HorizontalAlignment = HORIZONTAL_ALIGNMENT_CENTER) -> Label:
