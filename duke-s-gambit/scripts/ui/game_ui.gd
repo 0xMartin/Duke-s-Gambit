@@ -19,10 +19,14 @@ extends Control
 @onready var _kicked_panel: Control = $KickedBannedPanel
 @onready var _kicked_title: Label = $KickedBannedPanel/VBox/TitleLabel
 @onready var _kicked_reason: Label = $KickedBannedPanel/VBox/ReasonLabel
+@onready var _replay_box: CenterContainer = $ReplayBox
+@onready var _replay_progress_label: Label = $ReplayBox/ReplayVBox/ReplayTopRow/ReplayProgressLabel
+@onready var _replay_progress_bar: ProgressBar = $ReplayBox/ReplayVBox/ReplayProgressBar
 
 var _pending_promo_sq: Vector2i = Vector2i(-1, -1)
 var _pending_promo_color: int = 0
 var _status_tween: Tween = null
+var _is_replay_mode: bool = false
 
 # Full-screen overlay that absorbs mouse/touch input while a modal dialog is
 # open. Game board picking and camera orbit both use _unhandled_input, so a
@@ -38,6 +42,7 @@ func _ready() -> void:
 	$PromotionPanel/VBox/ContentCenter/HBox/BishopBtn.pressed.connect(func(): _choose(ChessEnums.PieceType.BISHOP))
 	$PromotionPanel/VBox/ContentCenter/HBox/KnightBtn.pressed.connect(func(): _choose(ChessEnums.PieceType.KNIGHT))
 	$SurrenderButton.pressed.connect(_on_surrender_pressed)
+	$ReplayBox/ReplayVBox/ReplayTopRow/ReplayBackButton.pressed.connect(_on_back_pressed)
 
 	$SurrenderConfirmPanel/VBox/ButtonHBox/YesButton.pressed.connect(_on_surrender_confirmed)
 	$SurrenderConfirmPanel/VBox/ButtonHBox/NoButton.pressed.connect(func(): _surrender_panel.visible = false)
@@ -151,6 +156,10 @@ func hide_status() -> void:
 	_hide_status_boxes()
 
 func _on_surrender_pressed() -> void:
+	if _is_replay_mode:
+		# In replay mode the button acts as "Stop Replay" — go directly to menu.
+		_on_back_pressed()
+		return
 	if _game == null or not _game.can_surrender():
 		return
 	_surrender_panel.visible = true
@@ -185,6 +194,11 @@ func _on_surrender_confirmed() -> void:
 func set_surrender_available(available: bool) -> void:
 	if _surrender_btn == null:
 		return
+	# In replay mode the surrender button is hidden; ReplayBox has the back button.
+	if _is_replay_mode:
+		_surrender_btn.visible = false
+		_surrender_btn.disabled = true
+		return
 	if available:
 		# Player's local turn — ensure no status box steals the spot.
 		hide_status()
@@ -192,6 +206,22 @@ func set_surrender_available(available: bool) -> void:
 	_surrender_btn.disabled = not available
 	if not available and _surrender_panel != null:
 		_surrender_panel.visible = false
+
+## Called from GameController.setup_replay() to switch to replay-mode UI.
+func set_replay_mode(enabled: bool) -> void:
+	_is_replay_mode = enabled
+	if _replay_box != null:
+		_replay_box.visible = enabled
+	# Keep SurrenderButton hidden in replay mode (ReplayBox has the back button).
+	if _surrender_btn != null:
+		_surrender_btn.visible = not enabled
+
+func update_replay_progress(current: int, total: int) -> void:
+	if _replay_progress_label != null:
+		_replay_progress_label.text = "%d / %d" % [current, total]
+	if _replay_progress_bar != null:
+		_replay_progress_bar.max_value = maxf(1, total)
+		_replay_progress_bar.value = current
 
 func _on_promotion_needed(sq: Vector2i, color: int) -> void:
 	_pending_promo_sq    = sq
@@ -257,17 +287,13 @@ func _on_export_pressed() -> void:
 	var black_name: String = _sanitize_filename(_game._player_names[ChessEnums.PieceColor.BLACK])
 	var dt: String = Time.get_datetime_string_from_system(false, true) \
 			.replace(":", "-").replace("T", "_")
-	var filename: String = "%s_%s_%s.csv" % [white_name, black_name, dt]
+	var suggested: String = "%s_%s_%s.csv" % [white_name, black_name, dt]
 
-	var base_dir: String
-	if OS.has_feature("editor"):
-		base_dir = ProjectSettings.globalize_path("res://")
-	else:
-		base_dir = OS.get_executable_path().get_base_dir()
-	var path: String = base_dir.path_join(filename)
-
+	# Build CSV content up front so the lambda can capture it.
 	var lines: PackedStringArray = PackedStringArray()
-	lines.append("Move,Color,Piece,From,To,Type,Captured,Promotion,Notation")
+	lines.append("White,%s" % _game._player_names[ChessEnums.PieceColor.WHITE])
+	lines.append("Black,%s" % _game._player_names[ChessEnums.PieceColor.BLACK])
+	lines.append("Move,Color,Piece,From,To,Type,Captured,Promotion,Notation,GameTime_ms")
 	var ply := 0
 	for mv_variant in history:
 		var mv: ChessMove = mv_variant as ChessMove
@@ -285,20 +311,34 @@ func _on_export_pressed() -> void:
 				if mv.move_type == ChessEnums.MoveType.PROMOTION \
 				or mv.move_type == ChessEnums.MoveType.PROMOTION_CAPTURE else ""
 		var notation   := _export_notation(mv)
-		lines.append("%d,%s,%s,%s,%s,%s,%s,%s,%s" % [
+		lines.append("%d,%s,%s,%s,%s,%s,%s,%s,%s,%d" % [
 			move_no, color_str, piece_str, from_str, to_str,
-			type_str, cap_str, prom_str, notation
+			type_str, cap_str, prom_str, notation, mv.game_time_ms
 		])
 
-	var file := FileAccess.open(path, FileAccess.WRITE)
-	if file == null:
-		push_error("ExportButton: cannot write to %s (error %d)" % [path, FileAccess.get_open_error()])
-		return
-	for line in lines:
-		file.store_line(line)
-	file.close()
-	_export_btn.disabled = true
-	_export_btn.text = "Exported!"
+	# Open a save-file dialog so the player can choose the destination.
+	var dialog := FileDialog.new()
+	dialog.file_mode = FileDialog.FILE_MODE_SAVE_FILE
+	dialog.access = FileDialog.ACCESS_FILESYSTEM
+	dialog.filters = PackedStringArray(["*.csv ; CSV Files"])
+	dialog.current_file = suggested
+	get_tree().root.add_child(dialog)
+	dialog.popup_centered(Vector2i(900, 600))
+
+	dialog.file_selected.connect(func(path: String) -> void:
+		var file := FileAccess.open(path, FileAccess.WRITE)
+		if file == null:
+			push_error("ExportButton: cannot write to %s (error %d)" % [path, FileAccess.get_open_error()])
+			dialog.queue_free()
+			return
+		for line in lines:
+			file.store_line(line)
+		file.close()
+		dialog.queue_free()
+		_export_btn.disabled = true
+		_export_btn.text = "Exported!"
+	)
+	dialog.canceled.connect(dialog.queue_free)
 
 func _sanitize_filename(s: String) -> String:
 	var out := ""
@@ -335,8 +375,8 @@ func _export_move_type(mt: int) -> String:
 
 func _export_notation(mv: ChessMove) -> String:
 	match mv.move_type:
-		ChessEnums.MoveType.CASTLING_KINGSIDE:  return "O-O"
-		ChessEnums.MoveType.CASTLING_QUEENSIDE: return "O-O-O"
+		ChessEnums.MoveType.CASTLING_KINGSIDE:  return "O-O" + mv.check_annotation
+		ChessEnums.MoveType.CASTLING_QUEENSIDE: return "O-O-O" + mv.check_annotation
 
 	const LETTERS := {
 		ChessEnums.PieceType.PAWN: "", ChessEnums.PieceType.ROOK: "R",
@@ -348,10 +388,11 @@ func _export_notation(mv: ChessMove) -> String:
 		piece_letter = String.chr(97 + (7 - mv.from_sq.x))
 	var cap := "x" if mv.is_capture() else ""
 	var to := _export_sq(mv.to_sq)
-	var notation := "%s%s%s" % [piece_letter, cap, to]
+	var notation := "%s%s%s%s" % [piece_letter, mv.disambiguation, cap, to]
 	if mv.move_type == ChessEnums.MoveType.PROMOTION \
 			or mv.move_type == ChessEnums.MoveType.PROMOTION_CAPTURE:
 		notation += "=" + String(LETTERS.get(mv.promotion_type, "Q"))
 	if mv.move_type == ChessEnums.MoveType.EN_PASSANT:
 		notation += " e.p."
+	notation += mv.check_annotation
 	return notation

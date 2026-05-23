@@ -30,17 +30,18 @@ extends Control
 @onready var _pvai_validation_label: Label = $MainPanel/PvAIVBox/ValidationLabel
 
 # Settings
-@onready var _pan_sens_slider:    HSlider  = $MainPanel/SettingsVBox/PanSensRow/PanSensSlider
-@onready var _pan_sens_value_label: Label  = $MainPanel/SettingsVBox/PanSensRow/PanSensValueLabel
-@onready var _tilt_sens_slider:   HSlider  = $MainPanel/SettingsVBox/TiltSensRow/TiltSensSlider
-@onready var _tilt_sens_value_label: Label = $MainPanel/SettingsVBox/TiltSensRow/TiltSensValueLabel
-@onready var _kill_cam_check:     CheckButton = $MainPanel/SettingsVBox/KillCamRow/KillCamCheck
-@onready var _vfx_check:          CheckButton = $MainPanel/SettingsVBox/VFXRow/VFXCheck
-@onready var _face_player_check:  CheckButton = $MainPanel/SettingsVBox/FacePlayerRow/FacePlayerCheck
-@onready var _music_vol_slider:   HSlider  = $MainPanel/SettingsVBox/MusicVolRow/MusicVolSlider
-@onready var _music_vol_value_label: Label = $MainPanel/SettingsVBox/MusicVolRow/MusicVolValueLabel
-@onready var _sfx_vol_slider:     HSlider  = $MainPanel/SettingsVBox/SFXVolRow/SFXVolSlider
-@onready var _sfx_vol_value_label: Label   = $MainPanel/SettingsVBox/SFXVolRow/SFXVolValueLabel
+@onready var _settings_content: VBoxContainer = $MainPanel/SettingsVBox/SettingsScroll/SettingsContent
+@onready var _pan_sens_slider:    HSlider  = $MainPanel/SettingsVBox/SettingsScroll/SettingsContent/PanSensRow/PanSensSlider
+@onready var _pan_sens_value_label: Label  = $MainPanel/SettingsVBox/SettingsScroll/SettingsContent/PanSensRow/PanSensValueLabel
+@onready var _tilt_sens_slider:   HSlider  = $MainPanel/SettingsVBox/SettingsScroll/SettingsContent/TiltSensRow/TiltSensSlider
+@onready var _tilt_sens_value_label: Label = $MainPanel/SettingsVBox/SettingsScroll/SettingsContent/TiltSensRow/TiltSensValueLabel
+@onready var _kill_cam_check:     CheckButton = $MainPanel/SettingsVBox/SettingsScroll/SettingsContent/KillCamRow/KillCamCheck
+@onready var _vfx_check:          CheckButton = $MainPanel/SettingsVBox/SettingsScroll/SettingsContent/VFXRow/VFXCheck
+@onready var _face_player_check:  CheckButton = $MainPanel/SettingsVBox/SettingsScroll/SettingsContent/FacePlayerRow/FacePlayerCheck
+@onready var _music_vol_slider:   HSlider  = $MainPanel/SettingsVBox/SettingsScroll/SettingsContent/MusicVolRow/MusicVolSlider
+@onready var _music_vol_value_label: Label = $MainPanel/SettingsVBox/SettingsScroll/SettingsContent/MusicVolRow/MusicVolValueLabel
+@onready var _sfx_vol_slider:     HSlider  = $MainPanel/SettingsVBox/SettingsScroll/SettingsContent/SFXVolRow/SFXVolSlider
+@onready var _sfx_vol_value_label: Label   = $MainPanel/SettingsVBox/SettingsScroll/SettingsContent/SFXVolRow/SFXVolValueLabel
 
 var _save: Node = null
 var _stats_table:       GridContainer = null
@@ -48,6 +49,8 @@ var _profiles_sorted:   Array[Dictionary] = []
 var _online_menu: RefCounted = null   # OnlineMenu helper (lazy-built)
 const _ONLINE_MENU_SCRIPT := preload("res://scripts/online/online_menu.gd")
 const _STATS_HEADER_CELLS := 7
+const _MENU_LABEL_THEME  := preload("res://themes/menu_label.tres")
+const _BUTTON_THEME      := preload("res://themes/button.tres")
 const _TABLE_VALUE_THEME := preload("res://themes/table_value.tres")
 const _STATS_SCROLLBAR_THICKNESS := 24.0
 const _TITLE_FONT_MIN_SIZE := 44
@@ -546,6 +549,7 @@ func _setup_settings_extra() -> void:
 	_sfx_vol_slider.set_value_no_signal(init_sv)
 	_music_vol_value_label.text = "%d%%" % init_mv
 	_sfx_vol_value_label.text = "%d%%" % init_sv
+	_add_replay_row_to_settings()
 
 func _on_face_player_toggled(pressed: bool) -> void:
 	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
@@ -603,3 +607,160 @@ func _play_menu_click() -> void:
 	tmp.stream = preload("res://assets/sounds/ui_button.mp3")
 	tmp.finished.connect(tmp.queue_free)
 	tmp.play()
+
+# ── Game Replay ────────────────────────────────────────────────────────────
+
+## Adds a "Load Replay" row to the bottom of the Settings scroll content (before BackBtn).
+func _add_replay_row_to_settings() -> void:
+	if _settings_panel == null or _settings_content == null:
+		return
+	var back_btn := _settings_panel.get_node_or_null("BackBtn") as Button
+	if back_btn == null:
+		return
+
+	var sep := HSeparator.new()
+	_settings_content.add_child(sep)
+
+	var row := HBoxContainer.new()
+	row.name = "ReplayRow"
+	row.add_theme_constant_override("separation", 40)
+	_settings_content.add_child(row)
+
+	var lbl := Label.new()
+	lbl.custom_minimum_size = Vector2(220, 0)
+	lbl.theme = _MENU_LABEL_THEME
+	lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	lbl.text = "Game Replay"
+	row.add_child(lbl)
+
+	var btn := Button.new()
+	btn.name = "LoadReplayBtn"
+	btn.theme = _BUTTON_THEME
+	btn.text = "Load CSV…"
+	btn.pressed.connect(_on_load_replay_pressed)
+	btn.pressed.connect(_play_menu_click)
+	row.add_child(btn)
+
+## Opens a native file-picker to select a CSV history file.
+func _on_load_replay_pressed() -> void:
+	var dialog := FileDialog.new()
+	dialog.file_mode = FileDialog.FILE_MODE_OPEN_FILE
+	dialog.access = FileDialog.ACCESS_FILESYSTEM
+	dialog.filters = PackedStringArray(["*.csv ; CSV History Files"])
+	dialog.min_size = Vector2i(640, 480)
+
+	var base_dir: String
+	if OS.has_feature("editor"):
+		base_dir = ProjectSettings.globalize_path("res://")
+	else:
+		base_dir = OS.get_executable_path().get_base_dir()
+	dialog.current_dir = base_dir
+
+	add_child(dialog)
+	dialog.popup_centered()
+	dialog.file_selected.connect(func(path: String) -> void:
+		dialog.queue_free()
+		var replay_data := _parse_replay_csv(path)
+		if (replay_data["moves"] as Array).is_empty():
+			push_warning("MainMenu: replay CSV has no valid moves: %s" % path)
+			return
+		_launch_replay(replay_data)
+	)
+	dialog.canceled.connect(func() -> void:
+		dialog.queue_free()
+	)
+
+## Parses a CSV history file and returns a Dictionary:
+##   { "white": String, "black": String, "moves": Array[Dictionary] }
+## Each moves entry has: from_sq, to_sq, promotion_type (int), game_time_ms (int).
+func _parse_replay_csv(path: String) -> Dictionary:
+	var result := {"white": "White", "black": "Black", "moves": []}
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		push_error("MainMenu: cannot open replay CSV '%s' (error %d)" % [path, FileAccess.get_open_error()])
+		return result
+	var header_skipped := false
+	while not file.eof_reached():
+		var line := file.get_line().strip_edges()
+		if line.is_empty():
+			continue
+		# Metadata lines written by the exporter.
+		if line.begins_with("White,"):
+			result["white"] = line.substr(6)
+			continue
+		if line.begins_with("Black,"):
+			result["black"] = line.substr(6)
+			continue
+		# Column header row.
+		if line.begins_with("Move,"):
+			header_skipped = true
+			continue
+		if not header_skipped:
+			# Old-format CSV without metadata lines: first non-blank line is header.
+			header_skipped = true
+			continue
+		var parts := line.split(",")
+		# Columns: Move,Color,Piece,From,To,Type,Captured,Promotion,Notation,GameTime_ms
+		if parts.size() < 10:
+			continue
+		var from_str: String = parts[3].strip_edges()
+		var to_str: String   = parts[4].strip_edges()
+		var prom_str: String = parts[7].strip_edges()
+		var time_str: String = parts[9].strip_edges()
+		var from_sq := _csv_alg_to_sq(from_str)
+		var to_sq   := _csv_alg_to_sq(to_str)
+		if from_sq.x < 0 or to_sq.x < 0:
+			continue
+		var promo_type: int = _csv_piece_name_to_type(prom_str)
+		var game_time_ms: int = int(time_str) if time_str.is_valid_int() else 0
+		result["moves"].append({
+			"from_sq":        from_sq,
+			"to_sq":          to_sq,
+			"promotion_type": promo_type,
+			"game_time_ms":   game_time_ms,
+		})
+	file.close()
+	return result
+
+## Converts an algebraic square string (e.g. "e2") to the engine's internal Vector2i.
+## Engine stores files mirrored: 'a'→col 7, 'h'→col 0 (see chess_board_coords.md).
+func _csv_alg_to_sq(alg: String) -> Vector2i:
+	if alg.length() < 2:
+		return Vector2i(-1, -1)
+	var file_char := alg[0].to_lower()
+	var rank_char := alg[1]
+	var file_idx := file_char.unicode_at(0) - 97   # 'a'=0 … 'h'=7
+	var rank_idx := int(rank_char) - 1              # '1'=0 … '8'=7
+	if file_idx < 0 or file_idx > 7 or rank_idx < 0 or rank_idx > 7:
+		return Vector2i(-1, -1)
+	return Vector2i(7 - file_idx, rank_idx)         # flip file to engine's mirrored frame
+
+## Maps a piece-name string (as written in the CSV) to a ChessEnums.PieceType int.
+func _csv_piece_name_to_type(name_str: String) -> int:
+	match name_str.to_lower():
+		"queen":  return ChessEnums.PieceType.QUEEN
+		"rook":   return ChessEnums.PieceType.ROOK
+		"bishop": return ChessEnums.PieceType.BISHOP
+		"knight": return ChessEnums.PieceType.KNIGHT
+		"pawn":   return ChessEnums.PieceType.PAWN
+		"king":   return ChessEnums.PieceType.KING
+		_:        return ChessEnums.PieceType.NONE
+
+## Instantiates a game scene in replay mode and starts it.
+func _launch_replay(replay_data: Dictionary) -> void:
+	var white_name: String = replay_data.get("white", "White")
+	var black_name: String = replay_data.get("black", "Black")
+	var moves_data: Array  = replay_data.get("moves", [])
+	var game_scene_pack := load("res://scenes/game.tscn") as PackedScene
+	if game_scene_pack == null:
+		push_error("MainMenu: could not load game scene for replay")
+		return
+	var game_scene_node := game_scene_pack.instantiate()
+	var game_scene := game_scene_node as GameController
+	if game_scene == null:
+		push_error("MainMenu: game scene root is not GameController")
+		return
+	get_tree().root.add_child(game_scene)
+	game_scene.setup_replay(white_name, black_name, moves_data)
+	game_scene.start_game()
+	queue_free()

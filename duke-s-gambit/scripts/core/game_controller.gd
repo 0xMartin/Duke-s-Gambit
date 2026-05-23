@@ -30,27 +30,10 @@ var _hud: Node = null
 var _piece_scenes: Dictionary = {}   # PieceType -> PackedScene
 
 # ── Constants ──────────────────────────────────────────────────────────────
-# Piece outline colours (selection / attack target / king-in-check).
-const OUTLINE_SELECTED := Color(0.00, 1.00, 0.15, 1.0)
-const OUTLINE_ATTACK   := Color(1.00, 0.05, 0.00, 1.0)
-const OUTLINE_CHECK    := Color(1.00, 0.05, 0.00, 1.0)
-const OUTLINE_WIDTH    := 0.5
-
-# Promotion / intro impact effect.
+# Promotion VFX and game-over panel icons.
 const _PROMO_VFX_IMPACT_SCENE: PackedScene = preload("res://scenes/effects/spell.tscn")
-
-# Game-over panel icons.
 const _GAMEOVER_KING_ICON: Texture2D = preload("res://assets/textures/pieces/white_king.svg")
 const _GAMEOVER_PAWN_ICON: Texture2D = preload("res://assets/textures/pieces/white_pawn.svg")
-
-# Intro animation / overlay assets.
-const _INTRO_PIECE_INTERVAL   := 0.25   # seconds between successive piece appearances
-const _INTRO_VFX_PIECE_DELAY  := 0.10   # seconds: VFX fires, then piece becomes visible
-const _INTRO_FONT: FontFile     = preload("res://assets/fonts/Montserrat-Bold.ttf")
-const _INTRO_WHITE_QUEEN: Texture2D = preload("res://assets/textures/pieces/white_queen.svg")
-const _INTRO_WHITE_KING: Texture2D  = preload("res://assets/textures/pieces/white_king.svg")
-const _INTRO_BLACK_QUEEN: Texture2D = preload("res://assets/textures/pieces/black_queen.svg")
-const _INTRO_BLACK_KING: Texture2D  = preload("res://assets/textures/pieces/black_king.svg")
 
 # ── Signals ────────────────────────────────────────────────────────────────
 signal game_over(winner_color: int, reason: int)   # reason = ChessEnums.GameState
@@ -61,14 +44,6 @@ signal promotion_needed(sq: Vector2i, color: int)
 var _chess:       ChessBoardState = null
 var _controllers: Array           = []  # [white_ctrl, black_ctrl]
 var _sq_pieces:   Dictionary      = {}  # Vector2i -> BasePiece (live scene nodes)
-
-# Selection / highlights.
-var _selected_sq: Vector2i   = Vector2i(-1, -1)
-var _selected_piece: BasePiece = null
-var _legal_from_selected: Array = []
-var _pending_promotion_moves: Array = []
-var _attack_outlined_pieces: Array[BasePiece] = []
-var _check_outlined_king: BasePiece = null
 
 # Animation / move timing.
 var _busy: bool = false                  # true while piece animation is running
@@ -89,6 +64,12 @@ var _ai_difficulty_label: String = ""  # e.g. "Casual", "Challenger", "Master"
 # Online mode (server is the authority for move legality and game-over).
 var _online_mode: bool = false
 var _my_online_color: int = -1   # local player's color when online; -1 = none
+
+# Replay mode.
+var _replay_mode: bool = false
+var _replay_moves: Array = []   # Array[Dictionary] loaded from CSV
+var _game_start_time_ms: int = 0   # ticks_msec() at the moment the first turn begins
+var _current_legal_moves: Array = []   # legal moves at the start of the current turn
 # Queue of pending server-applied moves; processed strictly sequentially so a
 # rapidly-arriving opponent move cannot re-enter `_on_move_chosen` while the
 # previous animation is still awaiting (would desync the local board).
@@ -106,11 +87,9 @@ var _sfx_select: AudioStreamPlayer = null
 var _base_saturation: float = 0.9
 var _sat_tween: Tween = null
 
-# Intro overlay (built once in _ready, shown/hidden per phase).
-var _intro_overlay:    CanvasLayer = null
-var _intro_name_label: Label       = null
-var _intro_left_icon:  TextureRect = null
-var _intro_right_icon: TextureRect = null
+# Sub-controllers (created in _ready).
+var _intro_animator: GameIntroAnimator = null
+var _input: GameBoardInput = null
 
 # ── Lifecycle ──────────────────────────────────────────────────────────────
 func _process(_delta: float) -> void:
@@ -164,7 +143,12 @@ func _ready() -> void:
 		MusicManager.dynamic_preset_changed.connect(_on_dynamic_music_preset_changed)
 	MusicManager.play_game_music()
 	_on_dynamic_music_preset_changed("normal")
-	_build_intro_overlay()
+	_intro_animator = GameIntroAnimator.new()
+	add_child(_intro_animator)
+	_input = GameBoardInput.new()
+	add_child(_input)
+	_input.setup(self)
+	_input.promotion_requested.connect(_on_promotion_required)
 
 func _on_dynamic_music_preset_changed(preset: String) -> void:
 	if _world_env == null or _world_env.environment == null:
@@ -275,12 +259,77 @@ func setup(p1_name: String, p2_name: String,
 		ctrl.move_chosen.connect(_on_local_move_chosen)
 		_controllers.append(ctrl)
 
+## Sets up a replay game from CSV-parsed move data.
+## ``moves_data`` is an Array[Dictionary] with keys: from_sq, to_sq, promotion_type, game_time_ms.
+func setup_replay(white_name: String, black_name: String, moves_data: Array) -> void:
+	_replay_mode = true
+	_replay_moves = moves_data
+	_player_names[ChessEnums.PieceColor.WHITE] = white_name
+	_player_names[ChessEnums.PieceColor.BLACK] = black_name
+	_time_control_ms = 0
+	_is_player_vs_ai = false
+	_ai_color = -1
+	_ai_difficulty_label = ""
+	# Both sides use a passive controller (is_ai = true so mouse input is ignored).
+	_controllers.clear()
+	for color in [ChessEnums.PieceColor.WHITE, ChessEnums.PieceColor.BLACK]:
+		var ctrl := PlayerController.new()
+		ctrl.color = color
+		ctrl.player_name = _player_names[color]
+		ctrl.is_ai = true
+		ctrl.move_chosen.connect(_on_local_move_chosen)
+		_controllers.append(ctrl)
+	# Notify the game UI so it can show the "Stop Replay" button.
+	if _ui != null and _ui.has_method("set_replay_mode"):
+		_ui.call("set_replay_mode", true)
+
+## Coroutine that drives the replay: waits the correct inter-move delays and
+## feeds each move to the normal animation pipeline.
+func _run_replay() -> void:
+	var replay_ref_ms := Time.get_ticks_msec()   # wall-clock anchor for replay timing
+	var total := _replay_moves.size()
+	var current_move := 0
+	if _ui != null and _ui.has_method("update_replay_progress"):
+		_ui.call("update_replay_progress", 0, total)
+	for move_data in _replay_moves:
+		if _game_over_shown or not is_inside_tree():
+			return
+		# Compute how many ms should have elapsed since replay started for this move.
+		var target_ms: int = int(move_data.get("game_time_ms", 0))
+		var elapsed_ms := Time.get_ticks_msec() - replay_ref_ms
+		var wait_ms := target_ms - elapsed_ms
+		if wait_ms > 50:
+			await get_tree().create_timer(wait_ms / 1000.0).timeout
+		if _game_over_shown or not is_inside_tree():
+			return
+		var from_sq: Vector2i = move_data.get("from_sq", Vector2i(-1, -1))
+		var to_sq: Vector2i   = move_data.get("to_sq",   Vector2i(-1, -1))
+		if from_sq.x < 0 or to_sq.x < 0:
+			continue
+		var promo_type: int = int(move_data.get("promotion_type", ChessEnums.PieceType.NONE))
+		var mv := _resolve_legal_move(from_sq, to_sq, promo_type)
+		if mv == null:
+			push_warning("Replay: move not legal in current position: %s → %s" % [from_sq, to_sq])
+			continue
+		await _on_move_chosen(mv)
+		current_move += 1
+		if _ui != null and _ui.has_method("update_replay_progress"):
+			_ui.call("update_replay_progress", current_move, total)
+	# All moves played — return to menu after a short pause.
+	if not is_inside_tree():
+		return
+	await get_tree().create_timer(2.5).timeout
+	if is_inside_tree():
+		MusicManager.play_menu_music()
+		var menu: Node = load("res://scenes/main_menu.tscn").instantiate()
+		get_tree().root.add_child(menu)
+		queue_free()
+
 func start_game() -> void:
 	_chess = ChessBoardState.new()
 	_chess.pawn_promotion_required.connect(_on_promotion_required)
 	_busy = true   # blocked until intro finishes
 	_game_over_shown = false
-	_selected_sq = Vector2i(-1, -1)
 	_move_counts = [0, 0]
 	_move_times_ms = [0, 0]
 	_captured_by = [[], []]
@@ -299,19 +348,20 @@ func start_game() -> void:
 			_player_names[ChessEnums.PieceColor.WHITE], _player_elos[ChessEnums.PieceColor.WHITE],
 			_player_names[ChessEnums.PieceColor.BLACK], _player_elos[ChessEnums.PieceColor.BLACK],
 			_time_control_ms > 0,
-			not _online_mode,
+			not _online_mode and not _replay_mode,   # hide ELO in replay
 			white_elo_override,
 			black_elo_override
 		)
 		if _hud.has_method("reset_move_history"):
 			_hud.call("reset_move_history")
-	await _play_intro_animation()
+	await _intro_animator.play(self)
 	# In online mode, hold the clock until both clients have finished loading.
 	# Server only arms the chess clock once it receives C_CLIENT_READY from both
 	# sides; while we wait for the opponent, reuse the "thinking" progress bar.
 	if _online_mode:
 		await _await_online_ready()
 	_busy = false
+	_game_start_time_ms = Time.get_ticks_msec()
 	var initial_camera_color: int = ChessEnums.PieceColor.WHITE
 	if _online_mode and _my_online_color != -1:
 		initial_camera_color = _my_online_color
@@ -319,6 +369,8 @@ func start_game() -> void:
 		initial_camera_color = _human_player_color()
 	_camera.snap_to_player(initial_camera_color)
 	_start_turn()
+	if _replay_mode:
+		_run_replay()   # fire-and-forget coroutine
 
 func _await_online_ready() -> void:
 	var oc := get_node_or_null("/root/OnlineClient")
@@ -337,149 +389,8 @@ func _await_online_ready() -> void:
 	if bar_shown and game_ui != null and game_ui.has_method("hide_status"):
 		game_ui.hide_status()
 
-# ── Intro animation ────────────────────────────────────────────────────────
-func _play_intro_animation() -> void:
-	if _ui != null:
-		_ui.visible = false
-	_camera.lock_input()
-	# Pan lasts the full shot: 16 pieces * interval + inter-phase pause = 4.0 + 0.5 = 4.5 s.
-	var sway_dur: float = 16.0 * _INTRO_PIECE_INTERVAL + 0.5
-	# Fixed look-at targets: centre of each player's edge (mid of row 0 / row 7).
-	var white_target := (_board.sq_to_world(Vector2i(3, 0)) + _board.sq_to_world(Vector2i(4, 0))) * 0.5 \
-		+ Vector3(0, 0.5, 0)
-	var black_target := (_board.sq_to_world(Vector2i(3, 7)) + _board.sq_to_world(Vector2i(4, 7))) * 0.5 \
-		+ Vector3(0, 0.5, 0)
-	# Phase 1: white pieces appear
-	_camera.set_intro_view(ChessEnums.PieceColor.WHITE, white_target, sway_dur)
-	_show_intro_label(ChessEnums.PieceColor.WHITE)
-	await _intro_spawn_side(ChessEnums.PieceColor.WHITE)
-	await get_tree().create_timer(0.5).timeout
-	_hide_intro_label()
-	# Phase 2: black pieces appear
-	_camera.set_intro_view(ChessEnums.PieceColor.BLACK, black_target, sway_dur)
-	_show_intro_label(ChessEnums.PieceColor.BLACK)
-	await _intro_spawn_side(ChessEnums.PieceColor.BLACK)
-	await get_tree().create_timer(0.4).timeout
-	_hide_intro_label()
-	# Restore
-	_camera.stop_intro_sway()
-	_camera.unlock_input()
-	if _ui != null:
-		_ui.visible = true
 
-func _intro_spawn_side(color: int) -> void:
-	var squares: Array = []
-	for c in range(8):
-		for r in range(8):
-			var p: Variant = _chess.board[c][r]
-			if p == null:
-				continue
-			var pd: Dictionary = p
-			if pd["color"] == color:
-				squares.append(Vector2i(c, r))
-	squares.shuffle()
-	for sq in squares:
-		var p: Variant = _chess.board[sq.x][sq.y]
-		if p == null:
-			continue
-		var pd: Dictionary = p
-		var piece := _spawn_piece(sq, pd["type"], pd["color"])
-		if piece == null:
-			continue
-		piece.visible = false
-		# VFX fires first
-		_spawn_intro_vfx(_board.sq_to_world(sq) + Vector3(0, 0.5, 0))
-		await get_tree().create_timer(_INTRO_VFX_PIECE_DELAY).timeout
-		# Piece pops into view
-		if is_instance_valid(piece):
-			piece.visible = true
-		await get_tree().create_timer(_INTRO_PIECE_INTERVAL - _INTRO_VFX_PIECE_DELAY).timeout
 
-func _spawn_intro_vfx(world_pos: Vector3) -> void:
-	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
-	if cam_cfg != null and cam_cfg.get("vfx_enabled") == false:
-		return
-	var vfx: Node3D = _PROMO_VFX_IMPACT_SCENE.instantiate() as Node3D
-	vfx.position = world_pos   # set before add_child so _ready() emits at correct position
-	get_tree().root.add_child(vfx)
-
-func _play_intro_spell_sfx() -> void:
-	pass  # sound is embedded in spell.tscn
-
-# ── Intro overlay ──────────────────────────────────────────────────────────
-func _build_intro_overlay() -> void:
-	_intro_overlay = CanvasLayer.new()
-	_intro_overlay.layer = 10
-	_intro_overlay.visible = false
-	add_child(_intro_overlay)
-
-	var root := Control.new()
-	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_intro_overlay.add_child(root)
-
-	var center := CenterContainer.new()
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(center)
-
-	var panel := PanelContainer.new()
-	var style := StyleBoxFlat.new()
-	style.bg_color                   = Color(0.0, 0.0, 0.0, 0.45)
-	style.corner_radius_top_left     = 10
-	style.corner_radius_top_right    = 10
-	style.corner_radius_bottom_left  = 10
-	style.corner_radius_bottom_right = 10
-	style.content_margin_left   = 36.0
-	style.content_margin_right  = 36.0
-	style.content_margin_top    = 18.0
-	style.content_margin_bottom = 18.0
-	panel.add_theme_stylebox_override("panel", style)
-	center.add_child(panel)
-
-	var hbox := HBoxContainer.new()
-	hbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	hbox.add_theme_constant_override("separation", 22)
-	panel.add_child(hbox)
-
-	_intro_left_icon = TextureRect.new()
-	_intro_left_icon.custom_minimum_size = Vector2(54, 54)
-	_intro_left_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_intro_left_icon.expand_mode  = TextureRect.EXPAND_IGNORE_SIZE
-	hbox.add_child(_intro_left_icon)
-
-	_intro_name_label = Label.new()
-	_intro_name_label.add_theme_font_override("font", _INTRO_FONT)
-	_intro_name_label.add_theme_font_size_override("font_size", 50)
-	_intro_name_label.add_theme_color_override("font_color", Color.WHITE)
-	_intro_name_label.add_theme_constant_override("outline_size", 20)
-	_intro_name_label.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.75))
-	_intro_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_intro_name_label.vertical_alignment   = VERTICAL_ALIGNMENT_CENTER
-	hbox.add_child(_intro_name_label)
-
-	_intro_right_icon = TextureRect.new()
-	_intro_right_icon.custom_minimum_size = Vector2(54, 54)
-	_intro_right_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_intro_right_icon.expand_mode  = TextureRect.EXPAND_IGNORE_SIZE
-	hbox.add_child(_intro_right_icon)
-
-func _show_intro_label(color: int) -> void:
-	if _intro_overlay == null:
-		return
-	var is_white := color == ChessEnums.PieceColor.WHITE
-	_intro_left_icon.texture  = _INTRO_WHITE_QUEEN if is_white else _INTRO_BLACK_QUEEN
-	_intro_right_icon.texture = _INTRO_WHITE_KING  if is_white else _INTRO_BLACK_KING
-	_intro_name_label.text    = _player_names[color]
-	var accent := Color(1.0, 0.95, 0.76) if is_white else Color(0.74, 0.88, 1.0)
-	_intro_name_label.add_theme_color_override("font_color", accent)
-	_intro_left_icon.modulate  = accent
-	_intro_right_icon.modulate = accent
-	_intro_overlay.visible = true
-
-func _hide_intro_label() -> void:
-	if _intro_overlay != null:
-		_intro_overlay.visible = false
 
 # ── Piece scene setup ──────────────────────────────────────────────────────
 func _setup_piece_scenes() -> void:
@@ -529,15 +440,13 @@ func _clear_pieces() -> void:
 
 # ── Turn loop ──────────────────────────────────────────────────────────────
 func _start_turn() -> void:
-	_clear_check_outline()
-	_deselect_piece()
-	_board.clear_highlights()
-	_selected_sq = Vector2i(-1, -1)
-	_legal_from_selected.clear()
+	_input.clear_check_outline()
+	_input.clear_selection()
 
 	var color  := _chess.active_color
 	var state  := _chess.get_game_state()
 	var legal  := _chess.get_legal_moves(color)
+	_current_legal_moves = legal
 	_update_surrender_ui()
 	if _hud != null and _hud.has_method("set_active_color"):
 		_hud.set_active_color(color)
@@ -565,7 +474,7 @@ func _start_turn() -> void:
 		MusicManager.set_check_tension(true)
 		var king_sq := _chess._find_king(color)
 		_board.highlight_check(king_sq)
-		_apply_check_outline(color)
+		_input.apply_check_outline(color)
 	else:
 		MusicManager.set_check_tension(false)
 
@@ -578,7 +487,8 @@ func _start_turn() -> void:
 		ai_ctrl.time_left_ms = _time_remaining_ms[color] if _time_control_ms > 0 else 0
 		ai_ctrl.increment_ms = 0  # no increment system yet; wire when added.
 	# Show thinking indicator for AI or remote (online) opponent.
-	if ctrl.is_ai and _ui != null:
+	# Never show these boxes during replay — the ReplayBox already fills that slot.
+	if ctrl.is_ai and not _replay_mode and _ui != null:
 		var game_ui = _ui as Control
 		if _online_mode:
 			if game_ui.has_method("show_opponent_turn"):
@@ -610,6 +520,8 @@ func _difficulty_label(diff: int) -> String:
 		_: return ""
 
 func can_surrender() -> bool:
+	if _replay_mode:
+		return false
 	if _game_over_shown or _chess == null:
 		return false
 	if _online_mode:
@@ -687,157 +599,6 @@ func surrender() -> void:
 	_show_game_over(winner, "Surrender")
 	_start_defeat_sequence(surrendering)
 
-func _format_time(ms: int) -> String:
-	var secs: int = int(ms / 1000.0)
-	var mins: int = int(secs / 60.0)
-	var sec_rem: int = secs % 60
-	if mins > 0:
-		return "%d:%02d" % [mins, sec_rem]
-	return "%d s" % secs
-
-# ── Input routing (human clicks) ───────────────────────────────────────────
-func _unhandled_input(event: InputEvent) -> void:
-	if _busy:
-		return
-	if not event is InputEventMouseButton:
-		return
-	var mb := event as InputEventMouseButton
-	if not mb.pressed or mb.button_index != MOUSE_BUTTON_LEFT:
-		return
-
-	var color: int = _chess.active_color
-	var ctrl: PlayerController = _controllers[color] as PlayerController
-	if ctrl.is_ai:
-		return   # ignore clicks during AI turn
-
-	# Raycast to board plane
-	var clicked_sq := _raycast_board(mb.position)
-	if clicked_sq.x < 0:
-		return
-	var human_ctrl := ctrl as HumanController
-	if human_ctrl == null:
-		return
-
-	_handle_human_click(clicked_sq, human_ctrl)
-
-func _handle_human_click(sq: Vector2i, ctrl: HumanController) -> void:
-	var color := _chess.active_color
-
-	# Clicking a valid move square?
-	for mv in _legal_from_selected:
-		if mv.to_sq == sq:
-			if mv.move_type == ChessEnums.MoveType.PROMOTION \
-			or mv.move_type == ChessEnums.MoveType.PROMOTION_CAPTURE:
-				_request_promotion(sq, color)
-				return
-			_board.clear_highlights()
-			_deselect_piece()
-			ctrl.try_move(mv)
-			return
-
-	# Clicking own piece?
-	var piece := _chess.get_piece(sq)
-	if not piece.is_empty() and piece["color"] == color:
-		_deselect_piece()
-		_selected_sq = sq
-		_select_piece(sq)
-		_legal_from_selected = ctrl.get_legal_moves_from(sq)
-		_highlight_attack_targets(_legal_from_selected)
-		_board.clear_highlights()
-		_board.highlight_selected(sq)
-		_board.highlight_moves(_legal_from_selected)
-		if _sfx_select != null:
-			_sfx_select.play()
-		# Re-draw check highlight if still in check
-		if _chess.get_game_state() == ChessEnums.GameState.CHECK:
-			_board.highlight_check(_chess._find_king(color))
-			_apply_check_outline(color)
-		return
-
-	# Click on empty or enemy without selection → deselect
-	_deselect_piece()
-	_selected_sq = Vector2i(-1, -1)
-	_legal_from_selected.clear()
-	_board.clear_highlights()
-
-func _request_promotion(sq: Vector2i, color: int) -> void:
-	_pending_promotion_moves.clear()
-	for mv in _legal_from_selected:
-		if mv.to_sq == sq and (
-			mv.move_type == ChessEnums.MoveType.PROMOTION
-			or mv.move_type == ChessEnums.MoveType.PROMOTION_CAPTURE
-		):
-			_pending_promotion_moves.append(mv)
-	if _pending_promotion_moves.is_empty():
-		return
-	_busy = true
-	_board.clear_highlights()
-	_deselect_piece()
-	emit_signal("promotion_needed", sq, color)
-
-# ── Selection & outline highlights ─────────────────────────────────────────
-func _select_piece(sq: Vector2i) -> void:
-	var bp: BasePiece = _sq_pieces.get(sq) as BasePiece
-	if bp:
-		_selected_piece = bp
-		_selected_piece.set_outline(OUTLINE_SELECTED, OUTLINE_WIDTH)
-
-func _deselect_piece() -> void:
-	if _selected_piece != null and is_instance_valid(_selected_piece):
-		_selected_piece.clear_outline()
-	for bp in _attack_outlined_pieces:
-		if bp != null and is_instance_valid(bp):
-			bp.clear_outline()
-	_attack_outlined_pieces.clear()
-	_selected_piece = null
-
-func _highlight_attack_targets(moves: Array) -> void:
-	_attack_outlined_pieces.clear()
-	var seen := {}
-	for mv in moves:
-		if not mv.is_capture():
-			continue
-		var target_sq: Vector2i = mv.to_sq
-		if mv.move_type == ChessEnums.MoveType.EN_PASSANT:
-			target_sq = Vector2i(mv.to_sq.x, mv.from_sq.y)
-		var key := "%d,%d" % [target_sq.x, target_sq.y]
-		if seen.has(key):
-			continue
-		seen[key] = true
-		var target: BasePiece = _sq_pieces.get(target_sq) as BasePiece
-		if target != null and is_instance_valid(target):
-			target.set_outline(OUTLINE_ATTACK, OUTLINE_WIDTH)
-			_attack_outlined_pieces.append(target)
-
-func _apply_check_outline(color: int) -> void:
-	_clear_check_outline()
-	var king_sq := _chess._find_king(color)
-	var king_piece: BasePiece = _sq_pieces.get(king_sq) as BasePiece
-	if king_piece != null and is_instance_valid(king_piece):
-		king_piece.set_outline(OUTLINE_CHECK, OUTLINE_WIDTH)
-		_check_outlined_king = king_piece
-
-func _clear_check_outline() -> void:
-	if _check_outlined_king != null and is_instance_valid(_check_outlined_king):
-		_check_outlined_king.clear_outline()
-	_check_outlined_king = null
-
-# ── Board raycast ──────────────────────────────────────────────────────────
-func _raycast_board(screen_pos: Vector2) -> Vector2i:
-	var camera := _camera.get_node("Camera3D") as Camera3D
-	if camera == null:
-		return Vector2i(-1, -1)
-	var ray_origin := camera.project_ray_origin(screen_pos)
-	var ray_dir    := camera.project_ray_normal(screen_pos)
-	# Intersect with Y=0 plane
-	if abs(ray_dir.y) < 0.001:
-		return Vector2i(-1, -1)
-	var t := -ray_origin.y / ray_dir.y
-	if t < 0:
-		return Vector2i(-1, -1)
-	var hit := ray_origin + ray_dir * t
-	return _board.world_to_sq(hit)
-
 # ── Move execution ─────────────────────────────────────────────────────────
 ## Slot fed by controllers (HumanController.try_move → move_chosen).
 ## In offline play it applies directly; in online play it routes the move to
@@ -847,16 +608,13 @@ func _on_local_move_chosen(mv: ChessMove) -> void:
 		var oc := get_node_or_null("/root/OnlineClient")
 		if oc == null:
 			return
-		oc.send_move(_move_to_uci(mv))
+		oc.send_move(GameUtils.move_to_uci(mv))
 		# Lock input until the server's authoritative echo arrives and the
 		# local animation finishes. Without this, the player can click other
 		# pieces during the roundtrip and hit a stale empty `_pending_legal`
 		# (HumanController.try_move clears it on send), or accidentally
 		# re-trigger a move via the still-populated `_legal_from_selected`.
-		_legal_from_selected.clear()
-		_selected_sq = Vector2i(-1, -1)
-		_deselect_piece()
-		_board.clear_highlights()
+		_input.clear_selection()
 		_busy = true
 		return
 	_on_move_chosen(mv)
@@ -881,7 +639,7 @@ func _on_move_chosen(mv: ChessMove) -> void:
 		if game_ui.has_method("hide_status"):
 			game_ui.hide_status()
 	_busy = true
-	_deselect_piece()   # clear outline before move animation
+	_input.deselect()   # clear outline before move animation
 	# Track timing + deduct from clock.  In online mode the server is the
 	# authoritative source for the clock (see `_on_server_clock_update`)
 	# so we skip the local deduction — doing it here would subtract the
@@ -895,6 +653,10 @@ func _on_move_chosen(mv: ChessMove) -> void:
 	# Freeze clock updates until the next turn is officially started.
 	_move_start_time_ms = 0
 
+	# Record move metadata before applying to board.
+	mv.game_time_ms = Time.get_ticks_msec() - _game_start_time_ms
+	GameUtils.compute_disambiguation(mv, _current_legal_moves)
+
 	# Track captured pieces for HUD
 	if mv.captured_type != ChessEnums.PieceType.NONE:
 		_captured_by[mv.piece_color].append(mv.captured_type)
@@ -905,6 +667,15 @@ func _on_move_chosen(mv: ChessMove) -> void:
 
 	# Apply to logic board BEFORE animation so board state is updated
 	_chess.make_move(mv)
+
+	# Record check/checkmate annotation now that the board is in the new state.
+	var _post_state := _chess.get_game_state()
+	if _post_state == ChessEnums.GameState.CHECKMATE:
+		mv.check_annotation = "#"
+	elif _post_state == ChessEnums.GameState.CHECK:
+		mv.check_annotation = "+"
+	else:
+		mv.check_annotation = ""
 
 	# Kill cam: dramatic close-up for captures.
 	# In online mode kill cam is always on (settings ignored); otherwise honor settings.
@@ -935,6 +706,11 @@ func _on_move_chosen(mv: ChessMove) -> void:
 	if not _is_checkmate:
 		if _online_mode or _is_player_vs_ai:
 			# Stay on the local player's perspective; restore after kill cam.
+			if _use_kill_cam:
+				_camera.restore_pre_kill_cam_view()
+		elif _replay_mode:
+			# Camera stays free — never auto-rotate to a player's side.
+			# But if a kill cam ran, we must restore the view it displaced.
 			if _use_kill_cam:
 				_camera.restore_pre_kill_cam_view()
 		elif cam_cfg == null or cam_cfg.get("face_player_after_move") != false:
@@ -1036,7 +812,7 @@ func _on_promotion_required(sq: Vector2i, color: int) -> void:
 
 func get_pending_promotion_types(sq: Vector2i) -> Array[int]:
 	var result: Array[int] = []
-	for mv in _pending_promotion_moves:
+	for mv in _input.pending_promotion_moves:
 		if mv.to_sq != sq:
 			continue
 		if not result.has(mv.promotion_type):
@@ -1046,7 +822,7 @@ func get_pending_promotion_types(sq: Vector2i) -> Array[int]:
 func choose_promotion(sq: Vector2i, piece_type: int) -> bool:
 	# Called by UI after player picks promoted piece.
 	var chosen: ChessMove = null
-	for mv in _pending_promotion_moves:
+	for mv in _input.pending_promotion_moves:
 		if mv.to_sq == sq and mv.promotion_type == piece_type:
 			chosen = mv
 			break
@@ -1054,7 +830,7 @@ func choose_promotion(sq: Vector2i, piece_type: int) -> bool:
 		# Invalid option for current position; allow player to choose again.
 		_busy = false
 		return false
-	_pending_promotion_moves.clear()
+	_input.pending_promotion_moves.clear()
 	_on_move_chosen(chosen)
 	return true
 
@@ -1076,6 +852,9 @@ func _start_defeat_sequence(loser_color: int) -> void:
 
 
 func _show_game_over(winner_color: int, reason: String) -> void:
+	# In replay mode we never show the game-over panel or save stats.
+	if _replay_mode:
+		return
 	if _hud != null and _hud.has_method("set_active_color"):
 		_hud.set_active_color(-1)
 	var panel := _ui.get_node_or_null("GameOverPanel") as Control
@@ -1135,11 +914,11 @@ func _show_game_over(winner_color: int, reason: String) -> void:
 	var white_time: String = ""
 	var black_time: String = ""
 	if _time_control_ms > 0:
-		white_time = _format_time(_time_remaining_ms[ChessEnums.PieceColor.WHITE])
-		black_time = _format_time(_time_remaining_ms[ChessEnums.PieceColor.BLACK])
+		white_time = GameUtils.format_time(_time_remaining_ms[ChessEnums.PieceColor.WHITE])
+		black_time = GameUtils.format_time(_time_remaining_ms[ChessEnums.PieceColor.BLACK])
 	else:
-		white_time = _format_time(_move_times_ms[ChessEnums.PieceColor.WHITE])
-		black_time = _format_time(_move_times_ms[ChessEnums.PieceColor.BLACK])
+		white_time = GameUtils.format_time(_move_times_ms[ChessEnums.PieceColor.WHITE])
+		black_time = GameUtils.format_time(_move_times_ms[ChessEnums.PieceColor.BLACK])
 
 	var white_avg_ms: float = 0.0
 	var black_avg_ms: float = 0.0
@@ -1182,35 +961,6 @@ func _show_game_over(winner_color: int, reason: String) -> void:
 		)
 
 # ── Online helpers ─────────────────────────────────────────────────────────
-const _FILES := "abcdefgh"
-const _PROMO_CHAR := {
-	ChessEnums.PieceType.QUEEN:  "q",
-	ChessEnums.PieceType.ROOK:   "r",
-	ChessEnums.PieceType.BISHOP: "b",
-	ChessEnums.PieceType.KNIGHT: "n",
-}
-const _CHAR_TO_PROMO := {
-	"q": ChessEnums.PieceType.QUEEN,
-	"r": ChessEnums.PieceType.ROOK,
-	"b": ChessEnums.PieceType.BISHOP,
-	"n": ChessEnums.PieceType.KNIGHT,
-}
-
-# Engine stores files mirrored vs. standard chess (king at internal col=3,
-# queen at col=4); visual rendering + native AI are consistent with that
-# layout. UCI is standard-chess-frame, so files must be flipped both ways
-# when crossing the boundary — otherwise asymmetric moves (e.g. d8 queen)
-# get rejected by python-chess on the server.
-func _move_to_uci(mv: ChessMove) -> String:
-	var s := "%s%d%s%d" % [
-		_FILES[7 - mv.from_sq.x], mv.from_sq.y + 1,
-		_FILES[7 - mv.to_sq.x],   mv.to_sq.y + 1,
-	]
-	if mv.move_type == ChessEnums.MoveType.PROMOTION \
-	or mv.move_type == ChessEnums.MoveType.PROMOTION_CAPTURE:
-		s += _PROMO_CHAR.get(mv.promotion_type, "q")
-	return s
-
 func _resolve_legal_move(from_sq: Vector2i, to_sq: Vector2i, promo_type: int) -> ChessMove:
 	if _chess == null:
 		return null
@@ -1228,26 +978,6 @@ func _resolve_legal_move(from_sq: Vector2i, to_sq: Vector2i, promo_type: int) ->
 		return mv
 	return null
 
-func _parse_uci(uci: String) -> Dictionary:
-	if uci.length() < 4:
-		return {}
-	var ff := _FILES.find(uci.substr(0, 1).to_lower())
-	var fr := int(uci.substr(1, 1)) - 1
-	var tf := _FILES.find(uci.substr(2, 1).to_lower())
-	var trank := int(uci.substr(3, 1)) - 1
-	if ff < 0 or tf < 0 or fr < 0 or fr > 7 or trank < 0 or trank > 7:
-		return {}
-	var promo_type: int = ChessEnums.PieceType.NONE
-	if uci.length() >= 5:
-		var ch := uci.substr(4, 1).to_lower()
-		promo_type = _CHAR_TO_PROMO.get(ch, ChessEnums.PieceType.NONE)
-	# Flip files back into the engine's mirrored frame (see `_move_to_uci`).
-	return {
-		"from": Vector2i(7 - ff, fr),
-		"to":   Vector2i(7 - tf, trank),
-		"promotion": promo_type,
-	}
-
 func _on_server_move_applied(payload: Dictionary) -> void:
 	if not _online_mode or _chess == null:
 		return
@@ -1264,7 +994,7 @@ func _apply_server_move(payload: Dictionary) -> void:
 	if not _online_mode or _chess == null or _game_over_shown:
 		return
 	var uci := str(payload.get("uci", ""))
-	var parsed := _parse_uci(uci)
+	var parsed := GameUtils.parse_uci(uci)
 	if parsed.is_empty():
 		push_warning("GameController: bad UCI from server: %s" % uci)
 		return

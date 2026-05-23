@@ -16,6 +16,11 @@ var prev_en_passant_sq: Vector2i
 var prev_castling_rights: int    # bitmask: bit0=W-K, bit1=W-Q, bit2=B-K, bit3=B-Q
 var prev_halfmove_clock: int
 
+# Metadata recorded at move-execution time
+var game_time_ms: int = 0           # ms elapsed since game start when move was made
+var check_annotation: String = ""   # "+", "#", or "" — computed after make_move
+var disambiguation: String = ""     # "a", "1", "a1" etc. — computed before make_move
+
 func _init(f: Vector2i, t: Vector2i, mt: int = ChessEnums.MoveType.NORMAL,
 		pt: int = ChessEnums.PieceType.NONE, pc: int = ChessEnums.PieceColor.WHITE,
 		cap: int = ChessEnums.PieceType.NONE,

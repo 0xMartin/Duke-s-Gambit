@@ -152,6 +152,7 @@ theme = ExtResource("9_5dd4i")
 metadata/_edit_use_anchors_ = true
 
 [node name="MainVBox" type="GridContainer" parent="MainPanel" unique_id=1054197032]
+visible = false
 layout_mode = 2
 size_flags_vertical = 4
 theme_override_constants/h_separation = 25
@@ -458,7 +459,7 @@ visible = false
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_constants/separation = 25
+theme_override_constants/separation = 12
 
 [node name="Title" type="Label" parent="MainPanel/SettingsVBox" unique_id=2128207688]
 layout_mode = 2
@@ -466,17 +467,28 @@ theme = ExtResource("16_hstxw")
 text = "Settings"
 horizontal_alignment = 1
 
-[node name="MusicVolRow" type="HBoxContainer" parent="MainPanel/SettingsVBox" unique_id=20073938]
+[node name="SettingsScroll" type="ScrollContainer" parent="MainPanel/SettingsVBox" unique_id=888000001]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="SettingsContent" type="VBoxContainer" parent="MainPanel/SettingsVBox/SettingsScroll" unique_id=888000002]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 25
+
+[node name="MusicVolRow" type="HBoxContainer" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent" unique_id=20073938]
 layout_mode = 2
 theme_override_constants/separation = 40
 
-[node name="MusicVolLabel" type="Label" parent="MainPanel/SettingsVBox/MusicVolRow" unique_id=2044876493]
+[node name="MusicVolLabel" type="Label" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/MusicVolRow" unique_id=2044876493]
 custom_minimum_size = Vector2(220, 0)
 layout_mode = 2
 theme = ExtResource("16_a8gd2")
 text = "Music Volume"
 
-[node name="MusicVolSlider" type="HSlider" parent="MainPanel/SettingsVBox/MusicVolRow" unique_id=848671361]
+[node name="MusicVolSlider" type="HSlider" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/MusicVolRow" unique_id=848671361]
 layout_mode = 2
 size_flags_horizontal = 3
 theme = ExtResource("21_gw5y6")
@@ -485,24 +497,24 @@ value = 50.0
 tick_count = 5
 ticks_on_borders = true
 
-[node name="MusicVolValueLabel" type="Label" parent="MainPanel/SettingsVBox/MusicVolRow" unique_id=1287734509]
+[node name="MusicVolValueLabel" type="Label" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/MusicVolRow" unique_id=1287734509]
 custom_minimum_size = Vector2(90, 0)
 layout_mode = 2
 theme = ExtResource("16_a8gd2")
 text = "50%"
 horizontal_alignment = 2
 
-[node name="SFXVolRow" type="HBoxContainer" parent="MainPanel/SettingsVBox" unique_id=1838517052]
+[node name="SFXVolRow" type="HBoxContainer" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent" unique_id=1838517052]
 layout_mode = 2
 theme_override_constants/separation = 40
 
-[node name="SFXVolLabel" type="Label" parent="MainPanel/SettingsVBox/SFXVolRow" unique_id=1171189584]
+[node name="SFXVolLabel" type="Label" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/SFXVolRow" unique_id=1171189584]
 custom_minimum_size = Vector2(220, 0)
 layout_mode = 2
 theme = ExtResource("16_a8gd2")
 text = "SFX Volume"
 
-[node name="SFXVolSlider" type="HSlider" parent="MainPanel/SettingsVBox/SFXVolRow" unique_id=1578007712]
+[node name="SFXVolSlider" type="HSlider" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/SFXVolRow" unique_id=1578007712]
 layout_mode = 2
 size_flags_horizontal = 3
 theme = ExtResource("21_gw5y6")
@@ -511,71 +523,71 @@ value = 100.0
 tick_count = 5
 ticks_on_borders = true
 
-[node name="SFXVolValueLabel" type="Label" parent="MainPanel/SettingsVBox/SFXVolRow" unique_id=21640665]
+[node name="SFXVolValueLabel" type="Label" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/SFXVolRow" unique_id=21640665]
 custom_minimum_size = Vector2(90, 0)
 layout_mode = 2
 theme = ExtResource("16_a8gd2")
 text = "100%"
 horizontal_alignment = 2
 
-[node name="FacePlayerRow" type="HBoxContainer" parent="MainPanel/SettingsVBox" unique_id=2050643938]
+[node name="FacePlayerRow" type="HBoxContainer" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent" unique_id=2050643938]
 layout_mode = 2
 theme_override_constants/separation = 40
 
-[node name="FacePlayerLabel" type="Label" parent="MainPanel/SettingsVBox/FacePlayerRow" unique_id=962295887]
+[node name="FacePlayerLabel" type="Label" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/FacePlayerRow" unique_id=962295887]
 custom_minimum_size = Vector2(220, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme = ExtResource("16_a8gd2")
 text = "Auto-rotate camera after move"
 
-[node name="FacePlayerCheck" type="CheckButton" parent="MainPanel/SettingsVBox/FacePlayerRow" unique_id=847821193]
+[node name="FacePlayerCheck" type="CheckButton" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/FacePlayerRow" unique_id=847821193]
 layout_mode = 2
 theme = ExtResource("22_svtp6")
 
-[node name="KillCamRow" type="HBoxContainer" parent="MainPanel/SettingsVBox" unique_id=2124416438]
+[node name="KillCamRow" type="HBoxContainer" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent" unique_id=2124416438]
 layout_mode = 2
 theme_override_constants/separation = 40
 
-[node name="KillCamLabel" type="Label" parent="MainPanel/SettingsVBox/KillCamRow" unique_id=369233713]
+[node name="KillCamLabel" type="Label" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/KillCamRow" unique_id=369233713]
 custom_minimum_size = Vector2(220, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme = ExtResource("16_a8gd2")
 text = "Kill Cam"
 
-[node name="KillCamCheck" type="CheckButton" parent="MainPanel/SettingsVBox/KillCamRow" unique_id=262230345]
+[node name="KillCamCheck" type="CheckButton" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/KillCamRow" unique_id=262230345]
 layout_mode = 2
 theme = ExtResource("22_svtp6")
 button_pressed = true
 
-[node name="VFXRow" type="HBoxContainer" parent="MainPanel/SettingsVBox" unique_id=1723013363]
+[node name="VFXRow" type="HBoxContainer" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent" unique_id=1723013363]
 layout_mode = 2
 theme_override_constants/separation = 40
 
-[node name="VFXLabel" type="Label" parent="MainPanel/SettingsVBox/VFXRow" unique_id=548584609]
+[node name="VFXLabel" type="Label" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/VFXRow" unique_id=548584609]
 custom_minimum_size = Vector2(220, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme = ExtResource("16_a8gd2")
 text = "Visual effects (VFX)"
 
-[node name="VFXCheck" type="CheckButton" parent="MainPanel/SettingsVBox/VFXRow" unique_id=2064261084]
+[node name="VFXCheck" type="CheckButton" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/VFXRow" unique_id=2064261084]
 layout_mode = 2
 theme = ExtResource("22_svtp6")
 button_pressed = true
 
-[node name="PanSensRow" type="HBoxContainer" parent="MainPanel/SettingsVBox" unique_id=1531540557]
+[node name="PanSensRow" type="HBoxContainer" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent" unique_id=1531540557]
 layout_mode = 2
 theme_override_constants/separation = 40
 
-[node name="PanSensLabel" type="Label" parent="MainPanel/SettingsVBox/PanSensRow" unique_id=2121897254]
+[node name="PanSensLabel" type="Label" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/PanSensRow" unique_id=2121897254]
 custom_minimum_size = Vector2(220, 0)
 layout_mode = 2
 theme = ExtResource("16_a8gd2")
 text = "Pan Sensitivity"
 
-[node name="PanSensSlider" type="HSlider" parent="MainPanel/SettingsVBox/PanSensRow" unique_id=1200927991]
+[node name="PanSensSlider" type="HSlider" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/PanSensRow" unique_id=1200927991]
 layout_mode = 2
 size_flags_horizontal = 3
 theme = ExtResource("21_gw5y6")
@@ -585,24 +597,24 @@ value = 5.0
 tick_count = 10
 ticks_on_borders = true
 
-[node name="PanSensValueLabel" type="Label" parent="MainPanel/SettingsVBox/PanSensRow" unique_id=20621712]
+[node name="PanSensValueLabel" type="Label" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/PanSensRow" unique_id=20621712]
 custom_minimum_size = Vector2(90, 0)
 layout_mode = 2
 theme = ExtResource("16_a8gd2")
 text = "5"
 horizontal_alignment = 2
 
-[node name="TiltSensRow" type="HBoxContainer" parent="MainPanel/SettingsVBox" unique_id=1367002245]
+[node name="TiltSensRow" type="HBoxContainer" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent" unique_id=1367002245]
 layout_mode = 2
 theme_override_constants/separation = 40
 
-[node name="TiltSensLabel" type="Label" parent="MainPanel/SettingsVBox/TiltSensRow" unique_id=762740595]
+[node name="TiltSensLabel" type="Label" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/TiltSensRow" unique_id=762740595]
 custom_minimum_size = Vector2(220, 0)
 layout_mode = 2
 theme = ExtResource("16_a8gd2")
 text = "Tilt Sensitivity"
 
-[node name="TiltSensSlider" type="HSlider" parent="MainPanel/SettingsVBox/TiltSensRow" unique_id=1414890674]
+[node name="TiltSensSlider" type="HSlider" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/TiltSensRow" unique_id=1414890674]
 layout_mode = 2
 size_flags_horizontal = 3
 theme = ExtResource("21_gw5y6")
@@ -612,7 +624,7 @@ value = 5.0
 tick_count = 10
 ticks_on_borders = true
 
-[node name="TiltSensValueLabel" type="Label" parent="MainPanel/SettingsVBox/TiltSensRow" unique_id=1047562893]
+[node name="TiltSensValueLabel" type="Label" parent="MainPanel/SettingsVBox/SettingsScroll/SettingsContent/TiltSensRow" unique_id=1047562893]
 custom_minimum_size = Vector2(90, 0)
 layout_mode = 2
 theme = ExtResource("16_a8gd2")
