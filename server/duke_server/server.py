@@ -581,6 +581,7 @@ class Server:
         member = room.members[ctx.nickname]
         member.conn = ctx.conn
         ctx.room_id = room.room_id
+        ctx.music_track_idx = 0  # Reset so both clients start at index 0 in the new room's sequence.
         ctx.in_lobby = False
         self.lobby.remove_listener(ctx.conn)
 
@@ -620,6 +621,7 @@ class Server:
         member = room.join(ctx.nickname)
         member.conn = ctx.conn
         ctx.room_id = room.room_id
+        ctx.music_track_idx = 0  # Reset so both clients start at index 0 in the new room's sequence.
         ctx.in_lobby = False
         self.lobby.remove_listener(ctx.conn)
 

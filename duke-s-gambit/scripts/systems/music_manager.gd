@@ -221,6 +221,16 @@ func _load_tracks() -> void:
 func play_menu_music() -> void:
 	_game_active = false
 	reset_dynamic_music()
+	# Discard any in-flight online-streaming state from the previous game so it
+	# cannot interfere with the next game (stale _track_info_mode would block
+	# _request_online_track; a late _on_download_complete would send an extra
+	# prefetch request and shift the server-side track index out of sync).
+	_track_info_mode    = _TrackMode.NONE
+	_pending_track      = ""
+	_prefetched_track   = ""
+	_prefetch_done      = false
+	_play_after_prefetch = false
+	_disconnect_online_track_signals()
 	if not _menu_player.playing:
 		_menu_player.play()
 	_crossfade(_game_player, _menu_player)
@@ -517,6 +527,14 @@ func _on_download_complete(result: int, response_code: int, _headers: PackedStri
 	var track  := _pending_track
 	_pending_track = ""
 	_http_request.set_download_file("")
+	# Guard: the game may have ended while the download was in flight (surrender).
+	# If so, discard the result silently — play_menu_music() already cleared the
+	# streaming state, and sending a prefetch request here would shift the
+	# server-side track index out of sync with the other client.
+	if not _game_active:
+		if not track.is_empty() and result != HTTPRequest.RESULT_SUCCESS:
+			DirAccess.remove_absolute(MUSIC_CACHE_DIR + track)
+		return
 	if result != HTTPRequest.RESULT_SUCCESS or response_code != 200:
 		push_warning("MusicManager: music download failed (result=%d, code=%d) — using local fallback" % [result, response_code])
 		if not track.is_empty():

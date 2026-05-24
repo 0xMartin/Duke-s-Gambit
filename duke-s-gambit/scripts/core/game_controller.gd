@@ -134,7 +134,7 @@ func _ready() -> void:
 	_sfx_select = AudioStreamPlayer.new()
 	_sfx_select.bus = "SFX"
 	_sfx_select.stream = preload("res://assets/sounds/piece_select.mp3")
-	_sfx_select.volume_db = -10.0
+	_sfx_select.volume_db = -11.0
 	add_child(_sfx_select)
 	if _world_env != null and _world_env.environment != null:
 		_base_saturation = _world_env.environment.adjustment_saturation
