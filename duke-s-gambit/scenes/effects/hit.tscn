@@ -190,6 +190,7 @@ draw_pass_1 = SubResource("QuadMesh_dllk2")
 [node name="AudioStreamPlayer3D" type="AudioStreamPlayer3D" parent="." unique_id=1371160265]
 stream = ExtResource("2_3rge5")
 volume_db = 10.0
+bus = &"SFX"
 autoplay = true
 
 [node name="Flash" type="OmniLight3D" parent="." unique_id=1024676145]
