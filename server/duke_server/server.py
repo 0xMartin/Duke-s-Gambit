@@ -43,10 +43,12 @@ import http
 import json
 import logging
 import os
+import random
 import re
 import signal
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Optional
 
 import websockets
@@ -134,6 +136,8 @@ class ClientCtx:
     last_msg_ts: float = field(default_factory=time.monotonic)
     msg_count_window: int = 0
     window_start: float = field(default_factory=time.monotonic)
+    # Music: index into the room's shared sequence for this client.
+    music_track_idx: int = 0
 
 
 class Server:
@@ -162,6 +166,11 @@ class Server:
         # TLS bootstrap data served via HTTP for TOFU certificate pinning.
         self._cert_pem: Optional[bytes] = None
         self._fingerprint: Optional[str] = None
+        # Music file serving — tracks are cached in RAM at startup to avoid
+        # blocking disk I/O inside the asyncio event loop during requests.
+        # Key: filename, Value: (raw_bytes, content_type)
+        self._music_cache: dict[str, tuple[bytes, str]] = {}
+        self._music_names: list[str] = []  # sorted snapshot for random.choice
         # Live stats exposed to the admin CLI.
         self._stats: dict = {
             "peak_players": 0,
@@ -197,6 +206,7 @@ class Server:
             logger.warning("TLS DISABLED — server speaks plain ws://. Use only on trusted LAN.")
 
         logger.info("Listening on %s://%s:%d", scheme, self.config.host, self.config.port)
+        self._load_music_dir()
 
         async with websockets.serve(
             self._handler,
@@ -226,6 +236,40 @@ class Server:
         """Signal :meth:`run` to exit; safe to call from a signal handler."""
         self._stop_event.set()
 
+    # ── Music directory ────────────────────────────────────────────────────
+    def _load_music_dir(self) -> None:
+        """Scan :attr:`config.music_dir` for supported audio files.
+
+        Populates :attr:`_music_dir` and :attr:`_music_tracks`. If the
+        directory is missing or the config value is empty, music serving
+        is silently disabled.
+        """
+        raw = self.config.music_dir
+        if not raw or not self.config.music_enabled:
+            if not self.config.music_enabled:
+                logger.info("Music serving disabled (DUKE_MUSIC_ENABLED=0).")
+            return
+        p = Path(raw).resolve()
+        if not p.is_dir():
+            logger.warning("DUKE_MUSIC_DIR=%r is not a directory — music serving disabled", raw)
+            return
+        _CONTENT_TYPES = {".mp3": "audio/mpeg", ".ogg": "audio/ogg", ".wav": "audio/wav"}
+        loaded = 0
+        total_bytes = 0
+        for f in sorted(p.iterdir()):
+            if not f.is_file() or f.suffix.lower() not in _CONTENT_TYPES:
+                continue
+            ct = _CONTENT_TYPES[f.suffix.lower()]
+            data = f.read_bytes()
+            self._music_cache[f.name] = (data, ct)
+            total_bytes += len(data)
+            loaded += 1
+        self._music_names = list(self._music_cache.keys())
+        logger.info(
+            "Music: %d track(s) cached in RAM (%.1f MB) from %s",
+            loaded, total_bytes / 1_048_576, p,
+        )
+
     # ── HTTP bootstrap endpoint ────────────────────────────────────────────
     async def _http_process_request(
         self, path: str, request_headers
@@ -253,7 +297,27 @@ class Server:
                 {"Content-Type": "text/plain; charset=utf-8"},
                 body,
             )
+        if path.startswith("/music/") and self._music_cache:
+            return self._serve_music_file(path[len("/music/"):])
         return None
+
+    def _serve_music_file(self, track_name: str) -> tuple:
+        """Return an HTTP response tuple for a cached music file.
+
+        All files were read into :attr:`_music_cache` at startup, so this
+        method never touches the disk and never blocks the event loop.
+        Guards against path-traversal with a simple cache-key lookup:
+        only names that exist verbatim in the cache are served.
+        """
+        entry = self._music_cache.get(track_name)
+        if entry is None:
+            return (http.HTTPStatus.NOT_FOUND, {"Content-Type": "text/plain"}, b"Not Found")
+        data, content_type = entry
+        return (
+            http.HTTPStatus.OK,
+            {"Content-Type": content_type, "Content-Length": str(len(data))},
+            data,
+        )
 
     # ── Connection handler ──────────────────────────────────────────────────────
     async def _handler(self, conn: WebSocketServerProtocol) -> None:
@@ -356,6 +420,7 @@ class Server:
             P.C_ACCEPT_DRAW: self._handle_accept_draw,
             P.C_DECLINE_DRAW: self._handle_decline_draw,
             P.C_PING: self._handle_ping,
+            P.C_REQUEST_TRACK: self._handle_request_track,
         }.get(mtype)
 
         if handler is None:
@@ -516,6 +581,7 @@ class Server:
         member = room.members[ctx.nickname]
         member.conn = ctx.conn
         ctx.room_id = room.room_id
+        ctx.music_track_idx = 0  # Reset so both clients start at index 0 in the new room's sequence.
         ctx.in_lobby = False
         self.lobby.remove_listener(ctx.conn)
 
@@ -555,6 +621,7 @@ class Server:
         member = room.join(ctx.nickname)
         member.conn = ctx.conn
         ctx.room_id = room.room_id
+        ctx.music_track_idx = 0  # Reset so both clients start at index 0 in the new room's sequence.
         ctx.in_lobby = False
         self.lobby.remove_listener(ctx.conn)
 
@@ -748,6 +815,60 @@ class Server:
     async def _handle_ping(self, ctx: ClientCtx, _msg: dict) -> None:
         """Reply to a client heartbeat with a :data:`S_PONG` carrying server time."""
         await self._send(ctx.conn, P.S_PONG, t=time.time())
+
+    async def _handle_request_track(self, ctx: ClientCtx, _msg: dict) -> None:
+        """Return the next track for this client from the room's shared sequence.
+
+        All clients in the same room receive tracks in the same order, so the
+        "playlist" feels coordinated even though each side plays independently.
+        Clients outside any room (e.g. during lobby browsing) receive a
+        randomly chosen track instead.  If no music is available,
+        :data:`ERR_NOT_FOUND` is raised so the client falls back to local assets.
+        """
+        if not self._music_names:
+            raise _ClientError(P.ERR_NOT_FOUND, "no music available on this server")
+
+        room = self.lobby.get(ctx.room_id) if ctx.room_id else None
+        if room is not None:
+            track_name = self._room_next_track(room, ctx)
+        else:
+            track_name = self._pick_random_track(avoid="")
+
+        ctx.music_track_idx += 1
+        await self._send(ctx.conn, P.S_TRACK_INFO, track_name=track_name)
+
+    def _room_next_track(self, room: "Room", ctx: ClientCtx) -> str:
+        """Return room.music_sequence[ctx.music_track_idx], extending the sequence if needed."""
+        while ctx.music_track_idx >= len(room.music_sequence):
+            last = room.music_sequence[-1] if room.music_sequence else ""
+            room.music_sequence.extend(self._shuffled_tracks(avoid_first=last))
+        return room.music_sequence[ctx.music_track_idx]
+
+    def _shuffled_tracks(self, avoid_first: str = "") -> list:
+        """Return a shuffled copy of all track names.
+
+        If *avoid_first* is given and there are at least two tracks,
+        the first element in the result is guaranteed to differ from it —
+        preventing two consecutive plays of the same song across shuffle
+        boundaries.
+        """
+        if len(self._music_names) <= 1:
+            return list(self._music_names)
+        tracks = list(self._music_names)
+        random.shuffle(tracks)
+        if tracks[0] == avoid_first:
+            for i in range(1, len(tracks)):
+                if tracks[i] != avoid_first:
+                    tracks[0], tracks[i] = tracks[i], tracks[0]
+                    break
+        return tracks
+
+    def _pick_random_track(self, avoid: str) -> str:
+        """Pick a random track, avoiding *avoid* if there is more than one choice."""
+        if len(self._music_names) <= 1:
+            return self._music_names[0] if self._music_names else ""
+        candidates = [t for t in self._music_names if t != avoid]
+        return random.choice(candidates if candidates else self._music_names)
 
     # ── Helpers ────────────────────────────────────────────────────────────────
     def _require_room(self, ctx: ClientCtx) -> Room:

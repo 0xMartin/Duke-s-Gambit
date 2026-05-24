@@ -513,7 +513,7 @@ func _start_attack() -> void:
 	_play(anim_attack)
 	if piece_type != ChessEnums.PieceType.KNIGHT and _sfx != null:
 		_sfx.stream = _SFX_SWORD
-		_sfx.volume_db = -1.5
+		_sfx.volume_db = -2.5
 		_sfx.play()
 	# Trail start
 	await get_tree().create_timer(attack_trail_start).timeout

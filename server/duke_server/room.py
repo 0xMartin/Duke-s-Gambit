@@ -128,6 +128,9 @@ class Room:
     # so a slow-loading client cannot lose time before its intro finishes.
     ready_members: set = field(default_factory=set)
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+    # Shared music track sequence: both clients in this room receive tracks in
+    # the same order. Extended on-demand as clients consume entries.
+    music_sequence: list = field(default_factory=list)
 
     # ── Factory ────────────────────────────────────────────────────────────
     @classmethod

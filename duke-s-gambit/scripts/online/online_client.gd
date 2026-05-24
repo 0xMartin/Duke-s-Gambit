@@ -35,6 +35,7 @@ signal game_over_received(payload: Dictionary)
 
 signal server_error(code: String, message: String)
 signal player_kicked(reason: String, is_ban: bool)
+signal track_info_received(track_name: String)
 
 # ── Configuration / state ──────────────────────────────────────────────────
 const PROTOCOL_VERSION := 1
@@ -248,6 +249,18 @@ func send_accept_draw() -> void:
 func send_decline_draw() -> void:
 	_send({"type": "decline_draw"})
 
+func send_request_track() -> void:
+	_send({"type": "request_track"})
+
+## Returns the HTTP(S) base URL derived from the active WebSocket URL.
+## Used by MusicManager to construct music download URLs.
+func get_http_base_url() -> String:
+	if _url.begins_with("wss://"):
+		return "https://" + _url.substr(6)
+	if _url.begins_with("ws://"):
+		return "http://" + _url.substr(5)
+	return ""
+
 # ── Process loop ───────────────────────────────────────────────────────────
 func _process(_delta: float) -> void:
 	if _peer == null:
@@ -391,6 +404,8 @@ func _handle_raw(raw: String) -> void:
 				disconnect_from_server()
 		"pong":
 			pass
+		"track_info":
+			emit_signal("track_info_received", str(msg.get("track_name", "")))
 		"kicked":
 			var kick_reason: String = str(msg.get("reason", ""))
 			var kick_is_ban: bool = bool(msg.get("is_ban", false))

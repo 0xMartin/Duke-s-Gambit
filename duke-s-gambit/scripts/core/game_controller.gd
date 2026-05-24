@@ -134,13 +134,12 @@ func _ready() -> void:
 	_sfx_select = AudioStreamPlayer.new()
 	_sfx_select.bus = "SFX"
 	_sfx_select.stream = preload("res://assets/sounds/piece_select.mp3")
-	_sfx_select.volume_db = -10.0
+	_sfx_select.volume_db = -11.0
 	add_child(_sfx_select)
 	if _world_env != null and _world_env.environment != null:
 		_base_saturation = _world_env.environment.adjustment_saturation
 	if not MusicManager.dynamic_preset_changed.is_connected(_on_dynamic_music_preset_changed):
 		MusicManager.dynamic_preset_changed.connect(_on_dynamic_music_preset_changed)
-	MusicManager.play_game_music()
 	_on_dynamic_music_preset_changed("normal")
 	# Apply notation visibility setting.
 	if _board_notation != null:
@@ -331,6 +330,7 @@ func _run_replay() -> void:
 func start_game() -> void:
 	_chess = ChessBoardState.new()
 	_chess.pawn_promotion_required.connect(_on_promotion_required)
+	MusicManager.play_game_music(_online_mode)
 	_busy = true   # blocked until intro finishes
 	_game_over_shown = false
 	_move_counts = [0, 0]
