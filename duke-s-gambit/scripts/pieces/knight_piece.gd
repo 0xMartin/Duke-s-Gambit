@@ -35,7 +35,7 @@ func _ready() -> void:
 	_land_player = AudioStreamPlayer.new()
 	_land_player.bus = "SFX"
 	_land_player.stream = _SFX_LAND
-	_land_player.volume_db = 6.0
+	_land_player.volume_db = 5.0
 	add_child(_land_player)
 
 # ── Override: move_to ──────────────────────────────────────────────────────
@@ -135,7 +135,7 @@ func _process_jump(delta: float) -> void:
 			var atk := AudioStreamPlayer.new()
 			atk.bus = "SFX"
 			atk.stream = preload("res://assets/sounds/knight_attack.mp3")
-			atk.volume_db = 2.0
+			atk.volume_db = -2.0
 			get_tree().root.add_child(atk)
 			atk.finished.connect(atk.queue_free)
 			atk.play()
