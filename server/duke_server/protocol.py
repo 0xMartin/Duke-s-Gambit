@@ -47,6 +47,7 @@ C_OFFER_DRAW = "offer_draw"
 C_ACCEPT_DRAW = "accept_draw"
 C_DECLINE_DRAW = "decline_draw"
 C_PING = "ping"
+C_REQUEST_TRACK = "request_track"   # {} — request next music track from server
 
 # ── Server → Client ────────────────────────────────────────────────────────
 S_WELCOME = "welcome"            # {protocol, session_token, online_count}
@@ -63,6 +64,7 @@ S_CLOCK_UPDATE = "clock_update"  # {white_ms, black_ms, active} — periodic aut
 S_DRAW_OFFER = "draw_offer"      # {from_color}
 S_DRAW_DECLINED = "draw_declined"
 S_GAME_OVER = "game_over"        # {winner: "white"|"black"|"draw", reason, white_ms, black_ms}
+S_TRACK_INFO = "track_info"      # {track_name} — music track name; client fetches via HTTP /music/<track_name>
 S_ERROR = "error"                # {code, message}
 S_PONG = "pong"
 S_KICKED = "kicked"              # {reason}

@@ -108,6 +108,8 @@ class ServerConfig:
     log_level: str
     min_client_version: str
     ban_file: str
+    music_dir: str               # DUKE_MUSIC_DIR; empty string disables music serving
+    music_enabled: bool          # DUKE_MUSIC_ENABLED; toggle without clearing the path
 
     @classmethod
     def from_env(cls) -> "ServerConfig":
@@ -138,5 +140,7 @@ class ServerConfig:
             log_level=os.environ.get("DUKE_LOG_LEVEL", "INFO").upper(),
             min_client_version=os.environ.get("DUKE_MIN_CLIENT_VERSION", "").strip(),
             ban_file=os.environ.get("DUKE_BAN_FILE", "/data/banlist.json"),
+            music_dir=os.environ.get("DUKE_MUSIC_DIR", "").strip(),
+            music_enabled=_env_bool("DUKE_MUSIC_ENABLED", True),
         )
 

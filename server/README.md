@@ -92,6 +92,114 @@ All settings come from environment variables.
 | `DUKE_MIN_CLIENT_VERSION`| *(unset)*      | If set (e.g. `1.2.0`), clients with an older game version are rejected with `outdated_client`. |
 | `DUKE_LOG_LEVEL`         | `INFO`         | Standard Python log level.                                        |
 | `DUKE_BAN_FILE`          | `/data/banlist.json` | Path to the JSON file storing banned IPs (persisted via volume). |
+| `DUKE_MUSIC_DIR`         | *(unset)*      | Path to a directory containing music files (`.mp3`, `.ogg`, `.wav`). If empty, music serving is disabled and clients fall back to local offline assets. |
+| `DUKE_MUSIC_ENABLED`     | `1`            | `0` disables music serving at runtime without removing the directory (convenient for toggling without reconfiguring the volume). |
+
+---
+
+## Music streaming
+
+The server optionally serves background music tracks to online clients over plain
+HTTP on the **same port** as the WebSocket. Clients download tracks on demand
+and play them locally; the server only sends a file name over WebSocket, so
+bandwidth stays modest.
+
+### How it works
+
+```
+Client (Godot)                         Server
+───────────────────────────────────────────────────────
+WebSocket:  request_track  ──────────────────────────▶
+                           ◀──────────────── track_info  {track_name}
+HTTP GET:   /music/<track_name>  ───────────────────▶
+                           ◀──────────────── audio file (mp3/ogg/wav)
+[song plays; near the end, client sends request_track again for prefetch]
+```
+
+1. After a game starts the client sends `request_track` over WebSocket.
+2. The server replies with `track_info { "track_name": "song01.mp3" }`.
+3. The client issues `GET /music/song01.mp3` (plain HTTP, same port) to
+   download the file, caches it to the user-data directory, and plays it.
+4. While the current song is playing the client prefetches the *next* track in
+   the background (sends another `request_track`), so playback is gapless.
+
+**Per-room track sequence** — both players in a room always receive tracks in
+the same order. The server maintains a shared shuffled queue per room; each
+client has its own position pointer within that queue. Because both pointers
+start at 0 and the queue is identical, player A and player B hear the same
+sequence of songs (each plays them locally when their current song finishes).
+
+**No consecutive repeats** — the server shuffles tracks using Fisher-Yates and
+ensures the first track of a new shuffle batch differs from the last track of
+the previous batch.
+
+**In-memory cache** — all audio files are read into RAM at startup. Serving a
+track never touches the disk and never blocks the async event loop.
+
+### Setup with Docker (recommended)
+
+Place your music files in a `music/` directory next to `docker-compose.yml`:
+
+```
+server/
+  docker-compose.yml
+  music/
+    track01.mp3
+    track02.ogg
+    track03.mp3
+```
+
+The `docker-compose.yml` already mounts `./music` to `/data/music` read-only and
+sets `DUKE_MUSIC_DIR=/data/music`:
+
+```yaml
+volumes:
+  - ./music:/data/music:ro
+environment:
+  DUKE_MUSIC_DIR: "/data/music"
+  DUKE_MUSIC_ENABLED: "1"
+```
+
+Rebuild and restart after adding or removing tracks:
+
+```bash
+docker compose up -d --build
+```
+
+The startup log confirms how many tracks were loaded:
+
+```
+Music: 5 track(s) cached in RAM (42.3 MB) from /data/music
+```
+
+### Setup without Docker
+
+Pass the path via environment variable before starting the server:
+
+```bash
+DUKE_MUSIC_DIR=/path/to/music DUKE_TLS=0 python -m duke_server
+```
+
+### Disabling music streaming
+
+```bash
+# Option A — unset the directory
+DUKE_MUSIC_DIR=""
+
+# Option B — keep the directory, toggle the switch
+DUKE_MUSIC_ENABLED=0
+```
+
+When music is disabled the game client transparently falls back to its bundled
+offline soundtrack — no configuration is needed on the client side.
+
+### Supported formats
+
+| Format | MIME type |
+|---|---|
+| `.mp3` | `audio/mpeg` |
+| `.ogg` | `audio/ogg` |
+| `.wav` | `audio/wav` |
 
 ---
 

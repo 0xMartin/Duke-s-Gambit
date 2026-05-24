@@ -23,12 +23,18 @@ services:
       # Optional: minimum required client game version (e.g. "1.2.0").
       # Empty/unset disables the check. Outdated clients receive an
       # `outdated_client` error during hello.
-      DUKE_MIN_CLIENT_VERSION: "1.0.3"
+      DUKE_MIN_CLIENT_VERSION: "1.0.4"
       # Path to the JSON file that stores banned IPs (persisted via the duke-data volume).
       DUKE_BAN_FILE: "/data/banlist.json"
+      # Directory containing music files (.mp3/.ogg/.wav) to serve to online clients.
+      # Leave empty to disable music serving (clients fall back to local assets).
+      DUKE_MUSIC_DIR: "/data/music"
+      # Set to "0" to disable server-side music serving without removing the directory.
+      DUKE_MUSIC_ENABLED: "1"
     volumes:
       - duke-certs:/data/certs
       - duke-data:/data
+      - ./music:/data/music:ro
 
 volumes:
   duke-certs:
