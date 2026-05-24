@@ -513,7 +513,7 @@ func _start_attack() -> void:
 	_play(anim_attack)
 	if piece_type != ChessEnums.PieceType.KNIGHT and _sfx != null:
 		_sfx.stream = _SFX_SWORD
-		_sfx.volume_db = -2.5
+		_sfx.volume_db = 1.0
 		_sfx.play()
 	# Trail start
 	await get_tree().create_timer(attack_trail_start).timeout
@@ -563,7 +563,7 @@ func die() -> void:
 		dtmp.bus = "SFX"
 		get_tree().root.add_child(dtmp)
 		dtmp.stream = _SFX_DEATH
-		dtmp.volume_db = 3.0
+		dtmp.volume_db = 1.0
 		dtmp.finished.connect(dtmp.queue_free)
 		dtmp.play()
 	)
@@ -686,7 +686,7 @@ func _play_footstep() -> void:
 		0: _sfx.stream = _SFX_STEP1
 		1: _sfx.stream = _SFX_STEP2
 		_: _sfx.stream = _SFX_STEP3
-	_sfx.volume_db = -10.0
+	_sfx.volume_db = -1.5
 	_sfx.play()
 
 func _start_footsteps() -> void:
