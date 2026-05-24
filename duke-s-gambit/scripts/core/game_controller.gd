@@ -140,7 +140,7 @@ func _ready() -> void:
 		_base_saturation = _world_env.environment.adjustment_saturation
 	if not MusicManager.dynamic_preset_changed.is_connected(_on_dynamic_music_preset_changed):
 		MusicManager.dynamic_preset_changed.connect(_on_dynamic_music_preset_changed)
-	MusicManager.play_game_music()
+	MusicManager.play_game_music(_online_mode)
 	_on_dynamic_music_preset_changed("normal")
 	# Apply notation visibility setting.
 	if _board_notation != null:

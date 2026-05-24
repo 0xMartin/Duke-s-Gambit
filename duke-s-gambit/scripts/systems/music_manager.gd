@@ -119,6 +119,12 @@ var _rng:          RandomNumberGenerator = RandomNumberGenerator.new()
 var _game_active:  bool                  = false
 
 # ── Online streaming state ───────────────────────────────────────────────────
+## True only when the current game was explicitly started as an online game
+## (play_game_music(online=true)). Prevents _is_online_mode() from accidentally
+## enabling server streaming for offline PvP/PvAI games when the WebSocket
+## connection happens to still be alive from a previous online session.
+var _is_streaming_mode: bool = false
+
 ## _track_info_mode routes the server's track_info response to either the
 ## "main" handler (download-then-play) or the "prefetch" handler (background
 ## download for the *next* song). Only one mode is active at a time — this
@@ -225,10 +231,11 @@ func play_menu_music() -> void:
 	# cannot interfere with the next game (stale _track_info_mode would block
 	# _request_online_track; a late _on_download_complete would send an extra
 	# prefetch request and shift the server-side track index out of sync).
-	_track_info_mode    = _TrackMode.NONE
-	_pending_track      = ""
-	_prefetched_track   = ""
-	_prefetch_done      = false
+	_is_streaming_mode   = false
+	_track_info_mode     = _TrackMode.NONE
+	_pending_track       = ""
+	_prefetched_track    = ""
+	_prefetch_done       = false
 	_play_after_prefetch = false
 	_disconnect_online_track_signals()
 	if not _menu_player.playing:
@@ -236,12 +243,15 @@ func play_menu_music() -> void:
 	_crossfade(_game_player, _menu_player)
 
 ## Fade in game music, fade out menu music. Call from game controller _ready().
-func play_game_music() -> void:
-	if _game_streams.is_empty() and not _is_online_mode():
+## Pass online=true when the game is played online so server tracks are streamed;
+## offline PvP and PvAI always pass false (or omit the argument).
+func play_game_music(online: bool = false) -> void:
+	_is_streaming_mode = online
+	if _game_streams.is_empty() and not _is_streaming_mode:
 		return
 	_game_active = true
 	reset_dynamic_music()
-	if _is_online_mode():
+	if _is_streaming_mode:
 		_request_online_track()
 	else:
 		_play_next_game_track()
@@ -309,7 +319,7 @@ func _on_menu_finished() -> void:
 func _on_game_finished() -> void:
 	if not _game_active:
 		return
-	if _is_online_mode():
+	if _is_streaming_mode:
 		_advance_online_playlist()
 	else:
 		_play_next_game_track()
