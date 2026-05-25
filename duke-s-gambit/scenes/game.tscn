@@ -796,7 +796,7 @@ alignment = 1
 layout_mode = 2
 theme = ExtResource("7_trtic")
 theme_override_font_sizes/font_size = 20
-text = "← Menu"
+text = "Menu"
 
 [node name="ReplayProgressLabel" type="Label" parent="HUD/ReplayBox/ReplayVBox/ReplayTopRow" unique_id=777000015]
 layout_mode = 2
