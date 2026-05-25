@@ -92,10 +92,10 @@ func _spawn_side(gc: GameController, color: int) -> void:
 
 func _spawn_vfx(world_pos: Vector3) -> void:
 	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
-	if cam_cfg != null and cam_cfg.get("vfx_enabled") == false:
-		return
 	var vfx: Node3D = _PROMO_VFX_IMPACT_SCENE.instantiate() as Node3D
 	vfx.position = world_pos
+	if cam_cfg != null and cam_cfg.get("vfx_enabled") == false:
+		vfx.visible = false    # hide visuals; audio in the scene still plays
 	get_tree().root.add_child(vfx)
 
 func _show_label(player_name: String, color: int) -> void:

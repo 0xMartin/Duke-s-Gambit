@@ -617,10 +617,10 @@ func _spawn_death_particles() -> void:
 ## by any parent node, then auto-free it after 4 seconds.
 func _spawn_vfx(vfx_scene: PackedScene, world_pos: Vector3) -> void:
 	var cam_cfg: Node = get_node_or_null("/root/CameraConfig")
-	if cam_cfg != null and cam_cfg.get("vfx_enabled") == false:
-		return
 	var vfx: Node3D = vfx_scene.instantiate() as Node3D
 	vfx.position = world_pos   # set before add_child so _ready() emits at correct position
+	if cam_cfg != null and cam_cfg.get("vfx_enabled") == false:
+		vfx.visible = false    # hide visuals; audio in the scene still plays
 	get_tree().root.add_child(vfx)
 
 ## Spawn both VFX far off-screen for 2 frames so the GPU compiles their shaders

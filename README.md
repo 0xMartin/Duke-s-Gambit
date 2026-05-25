@@ -4,7 +4,7 @@
 
 # Duke's Gambit
 
-[![Version](https://img.shields.io/badge/version-1.0.6-success)](duke-s-gambit/project.godot)
+[![Version](https://img.shields.io/badge/version-1.0.7-success)](duke-s-gambit/project.godot)
 [![Godot 4](https://img.shields.io/badge/Godot-4.6-478CBF?logo=godotengine&logoColor=white)](https://godotengine.org/)
 [![Language](https://img.shields.io/badge/language-GDScript%20%7C%20C%2B%2B-blue)](dukes_ai/)
 [![Server](https://img.shields.io/badge/server-Python%203.12-3776AB?logo=python&logoColor=white)](server/)
@@ -76,6 +76,13 @@ Duke's Gambit is available on the following platforms:
 | 📱 **Android** | `.apk` package |
 
 Download the build for your platform from the GitHub Releases page and run it — no installation required on desktop.
+
+> [!IMPORTANT]
+> **macOS — required step before first launch:** The app is not notarized, so macOS will block it by default. After mounting the `.dmg` and copying the app to your Applications folder, run the following command in Terminal to remove the quarantine flag:
+> ```bash
+> xattr -cr /Applications/DukesGambit.app
+> ```
+> Then open the app normally. You only need to do this once.
 
 ---
 

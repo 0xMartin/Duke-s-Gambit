@@ -291,17 +291,50 @@ func _run_replay() -> void:
 	var replay_ref_ms := Time.get_ticks_msec()   # wall-clock anchor for replay timing
 	var total := _replay_moves.size()
 	var current_move := 0
+	var last_move_game_ms: int = 0   # game_time_ms of the last played move
+	var prev_realtime: bool = true   # tracks previous frame's realtime state for re-anchoring
 	if _ui != null and _ui.has_method("update_replay_progress"):
 		_ui.call("update_replay_progress", 0, total)
 	for move_data in _replay_moves:
 		if _game_over_shown or not is_inside_tree():
 			return
-		# Compute how many ms should have elapsed since replay started for this move.
 		var target_ms: int = int(move_data.get("game_time_ms", 0))
-		var elapsed_ms := Time.get_ticks_msec() - replay_ref_ms
-		var wait_ms := target_ms - elapsed_ms
-		if wait_ms > 50:
-			await get_tree().create_timer(wait_ms / 1000.0).timeout
+		# Read realtime toggle from UI.
+		var realtime: bool = true
+		if _ui != null and "replay_realtime" in _ui:
+			realtime = _ui.replay_realtime
+		if realtime:
+			# Switched back from fixed mode — re-anchor so timing stays consistent.
+			if not prev_realtime:
+				replay_ref_ms = Time.get_ticks_msec() - last_move_game_ms
+			var elapsed_ms := Time.get_ticks_msec() - replay_ref_ms
+			var wait_ms := target_ms - elapsed_ms
+			# Polling loop: wake every 0.1 s so toggling off is immediately effective.
+			while wait_ms > 50:
+				if _game_over_shown or not is_inside_tree():
+					return
+				var cur_realtime: bool = _ui != null and "replay_realtime" in _ui \
+						and _ui.replay_realtime or _ui == null
+				if not cur_realtime:
+					break   # user switched off — stop waiting, handle below
+				await get_tree().create_timer(minf(0.1, wait_ms / 1000.0)).timeout
+				elapsed_ms = Time.get_ticks_msec() - replay_ref_ms
+				wait_ms = target_ms - elapsed_ms
+		else:
+			# Fixed 1 s wait, also interruptible when realtime is toggled back on.
+			var fixed_end_ms := Time.get_ticks_msec() + 1000
+			while Time.get_ticks_msec() < fixed_end_ms:
+				if _game_over_shown or not is_inside_tree():
+					return
+				var cur_realtime: bool = _ui != null and "replay_realtime" in _ui \
+						and _ui.replay_realtime or _ui == null
+				if cur_realtime:
+					break   # user switched back on — play move immediately
+				await get_tree().create_timer(0.1).timeout
+		# Re-read realtime after the wait (user may have toggled it mid-wait).
+		if _ui != null and "replay_realtime" in _ui:
+			realtime = _ui.replay_realtime
+		prev_realtime = realtime
 		if _game_over_shown or not is_inside_tree():
 			return
 		var from_sq: Vector2i = move_data.get("from_sq", Vector2i(-1, -1))
@@ -314,6 +347,7 @@ func _run_replay() -> void:
 			push_warning("Replay: move not legal in current position: %s → %s" % [from_sq, to_sq])
 			continue
 		await _on_move_chosen(mv)
+		last_move_game_ms = target_ms
 		current_move += 1
 		if _ui != null and _ui.has_method("update_replay_progress"):
 			_ui.call("update_replay_progress", current_move, total)

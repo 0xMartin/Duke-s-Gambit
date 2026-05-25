@@ -3,10 +3,19 @@
 extends Node3D
 
 func _ready() -> void:
+	_assign_sfx_bus(self)
 	_start_particles(self)
 	var max_lifetime := _get_max_particle_lifetime(self)
 	# Add 0.5 s buffer so the last particles fully fade before freeing.
 	get_tree().create_timer(max(max_lifetime + 0.5, 2.0)).timeout.connect(queue_free)
+
+## Routes all AudioStreamPlayer3D nodes in the subtree to the SFX bus.
+## Done in code so the Godot editor cannot reset the property in the .tscn file.
+func _assign_sfx_bus(node: Node) -> void:
+	if node is AudioStreamPlayer3D:
+		(node as AudioStreamPlayer3D).bus = &"SFX"
+	for child in node.get_children():
+		_assign_sfx_bus(child)
 
 ## Kicks off emitting on every GPUParticles3D in the subtree.
 func _start_particles(node: Node) -> void:

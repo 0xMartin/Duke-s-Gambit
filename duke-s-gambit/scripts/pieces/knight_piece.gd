@@ -35,7 +35,7 @@ func _ready() -> void:
 	_land_player = AudioStreamPlayer.new()
 	_land_player.bus = "SFX"
 	_land_player.stream = _SFX_LAND
-	_land_player.volume_db = 5.0
+	_land_player.volume_db = 6.5
 	add_child(_land_player)
 
 # ── Override: move_to ──────────────────────────────────────────────────────
