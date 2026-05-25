@@ -398,6 +398,10 @@ func start_game() -> void:
 		)
 		if _hud.has_method("reset_move_history"):
 			_hud.call("reset_move_history")
+		# Show eval label only for AI players.
+		if _hud.has_method("show_ai_eval"):
+			for _c in [ChessEnums.PieceColor.WHITE, ChessEnums.PieceColor.BLACK]:
+				_hud.call("show_ai_eval", _c, _controllers[_c] is AIController)
 	await _intro_animator.play(self)
 	# In online mode, hold the clock until both clients have finished loading.
 	# Server only arms the chess clock once it receives C_CLIENT_READY from both
@@ -538,8 +542,12 @@ func _start_turn() -> void:
 			if game_ui.has_method("show_opponent_turn"):
 				game_ui.show_opponent_turn()
 		else:
-			if game_ui.has_method("show_ai_thinking"):
-				game_ui.show_ai_thinking()
+			# Skip the thinking indicator if the speculative search already
+			# finished — the AI move will arrive on the next frame with no delay.
+			var _spec_check := ctrl as AIController
+			if _spec_check == null or not _spec_check.is_speculative_done():
+				if game_ui.has_method("show_ai_thinking"):
+					game_ui.show_ai_thinking()
 	ctrl.request_move(_chess, legal)
 
 func is_human_turn() -> bool:
@@ -720,6 +728,25 @@ func _on_move_chosen(mv: ChessMove) -> void:
 		mv.check_annotation = "+"
 	else:
 		mv.check_annotation = ""
+
+	# Speculative AI thinking: start the search immediately so the AI uses the
+	# move animation time instead of waiting for it to finish.
+	if not _online_mode \
+			and _post_state != ChessEnums.GameState.CHECKMATE \
+			and _post_state != ChessEnums.GameState.STALEMATE \
+			and _post_state != ChessEnums.GameState.DRAW:
+		var _spec_color := _chess.active_color
+		var _spec_ai := _controllers[_spec_color] as AIController
+		if _spec_ai != null:
+			_spec_ai.time_left_ms = _time_remaining_ms[_spec_color] if _time_control_ms > 0 else 0
+			_spec_ai.increment_ms = 0
+			_spec_ai.begin_speculative_search(_chess, _chess.get_legal_moves(_spec_color))
+
+	# Update the eval label in the HUD when AI plays a move.
+	if not _online_mode and _hud != null and _hud.has_method("update_ai_eval"):
+		var _eval_ai := _controllers[mv.piece_color] as AIController
+		if _eval_ai != null:
+			_hud.call("update_ai_eval", mv.piece_color, _eval_ai.last_score)
 
 	# Kill cam: dramatic close-up for captures.
 	# In online mode kill cam is always on (settings ignored); otherwise honor settings.

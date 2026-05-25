@@ -19,8 +19,15 @@ var time_left_ms: int = 0
 var increment_ms: int = 0
 var _native_available: bool = false
 var _search_in_progress: bool = false
+var _is_speculative: bool = false
+var _speculative_task_id: int = -1
 var _search_payload: Dictionary = {}
 var _result_mutex := Mutex.new()
+## Centipawn score from the most recent completed search (positive = good for
+## the colour that just searched). Read by GameController to update the HUD.
+var last_score: int = 0
+## Timestamp (ms) when begin_speculative_search() launched the background task.
+var _speculative_start_ms: int = 0
 
 
 func _init() -> void:
@@ -29,12 +36,51 @@ func _init() -> void:
 	_native_available = ClassDB.class_exists(_NATIVE_CLASS)
 
 func request_move(board: ChessBoardState, legal_moves: Array) -> void:
-	if legal_moves.is_empty() or _search_in_progress:
+	if legal_moves.is_empty():
 		return
 
 	if not _native_available:
-		var chosen := SimpleAIFallback.choose_move(board, legal_moves)
-		emit_signal("move_chosen", chosen if chosen != null else legal_moves[0])
+		var fallback_chosen := SimpleAIFallback.choose_move(board, legal_moves)
+		emit_signal("move_chosen", fallback_chosen if fallback_chosen != null else legal_moves[0])
+		return
+
+	var t := Engine.get_main_loop() as SceneTree
+
+	# ── Reuse a speculative search started during the opponent's move animation ──
+	if _is_speculative and _speculative_task_id >= 0:
+		var already_done := WorkerThreadPool.is_task_completed(_speculative_task_id)
+		if not already_done:
+			while not WorkerThreadPool.is_task_completed(_speculative_task_id):
+				if t:
+					await t.process_frame
+				else:
+					break
+		WorkerThreadPool.wait_for_task_completion(_speculative_task_id)
+		_search_in_progress = false
+		_is_speculative = false
+		_speculative_task_id = -1
+		_result_mutex.lock()
+		var spec_payload := _search_payload.duplicate()
+		_result_mutex.unlock()
+		last_score = int(spec_payload.get("score", 0))
+		if _LOG_TIMINGS:
+			var spec_elapsed := Time.get_ticks_msec() - _speculative_start_ms
+			var spec_depth   := int(spec_payload.get("reached_depth", -1))
+			var spec_ok      := bool(spec_payload.get("ok", false))
+			print("AI speculative | elapsed=%dms | depth_hit=%d | ok=%s | score=%d | waited=%s" % [
+				spec_elapsed, spec_depth, str(spec_ok), last_score, str(not already_done)
+			])
+		var spec_chosen: ChessMove = _resolve_payload_to_move(legal_moves, legal_moves[0])
+		if already_done:
+			# Emit on the next frame so _start_turn finishes before _on_move_chosen
+			# is re-entered (avoids potential re-entrancy with no await in path).
+			call_deferred("_deferred_emit_move_chosen", spec_chosen)
+		else:
+			emit_signal("move_chosen", spec_chosen)
+		return
+
+	# ── Normal (non-speculative) search ──
+	if _search_in_progress:
 		return
 	var fallback_move: ChessMove = legal_moves[0]
 
@@ -49,7 +95,6 @@ func request_move(board: ChessBoardState, legal_moves: Array) -> void:
 
 	var position_payload: Dictionary = _build_native_position(board)
 	var fallback_payload: Dictionary = _serialize_move(fallback_move)
-	var t := Engine.get_main_loop() as SceneTree
 	var search_started_ms := Time.get_ticks_msec()
 
 	_search_in_progress = true
@@ -57,11 +102,59 @@ func request_move(board: ChessBoardState, legal_moves: Array) -> void:
 
 	await _run_native_search(position_payload, search_depth, time_limit_ms, fallback_payload, t)
 	_search_in_progress = false
+	_result_mutex.lock()
+	last_score = int(_search_payload.get("score", 0))
+	_result_mutex.unlock()
 	if _LOG_TIMINGS:
 		_print_search_timing(search_started_ms, legal_moves.size(), selected_difficulty, search_depth, time_limit_ms)
 
 	var chosen: ChessMove = _resolve_payload_to_move(legal_moves, fallback_move)
 	emit_signal("move_chosen", chosen)
+
+## Start a non-blocking background search so the AI is already computing
+## while the opponent's move animation is playing. Called by GameController
+## immediately after apply the player's move to the board.
+func begin_speculative_search(board: ChessBoardState, legal_moves: Array) -> void:
+	if legal_moves.is_empty() or not _native_available:
+		return
+	# If a previous speculative search is still running, skip.
+	if _search_in_progress:
+		# If it finished already (e.g. stale result from a previous game), clean up.
+		if _is_speculative and _speculative_task_id >= 0 \
+				and WorkerThreadPool.is_task_completed(_speculative_task_id):
+			WorkerThreadPool.wait_for_task_completion(_speculative_task_id)
+			_search_in_progress = false
+			_is_speculative = false
+			_speculative_task_id = -1
+		else:
+			return
+	var selected_difficulty := maxi(Difficulty.CASUAL, mini(Difficulty.MASTER, difficulty))
+	var budget := _compute_search_budget(board, legal_moves.size(), selected_difficulty,
+			time_left_ms, increment_ms)
+	var search_depth := int(budget.get("depth", 4))
+	var time_limit_ms := int(budget.get("time_ms", 2000))
+	var position_payload := _build_native_position(board)
+	var fallback_payload := _serialize_move(legal_moves[0] as ChessMove)
+	_search_in_progress = true
+	_is_speculative = true
+	_search_payload = {}
+	_speculative_start_ms = Time.get_ticks_msec()
+	_speculative_task_id = WorkerThreadPool.add_task(
+		_run_native_search_task.bind(position_payload, search_depth, time_limit_ms, fallback_payload),
+		false,
+		"Chess Native AI Search (speculative)"
+	)
+	if _LOG_TIMINGS:
+		print("AI speculative search started | depth=%d | time=%dms" % [search_depth, time_limit_ms])
+
+## Returns true when a speculative search has already finished so the result
+## can be consumed by request_move without any waiting.
+func is_speculative_done() -> bool:
+	return _is_speculative and _speculative_task_id >= 0 \
+			and WorkerThreadPool.is_task_completed(_speculative_task_id)
+
+func _deferred_emit_move_chosen(mv: ChessMove) -> void:
+	emit_signal("move_chosen", mv)
 
 func _print_search_timing(started_ms: int, legal_count: int, selected_difficulty: int, search_depth: int, time_limit_ms: int) -> void:
 	var elapsed_ms := Time.get_ticks_msec() - started_ms
