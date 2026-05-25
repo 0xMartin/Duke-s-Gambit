@@ -77,6 +77,13 @@ Duke's Gambit is available on the following platforms:
 
 Download the build for your platform from the GitHub Releases page and run it — no installation required on desktop.
 
+> [!IMPORTANT]
+> **macOS — required step before first launch:** The app is not notarized, so macOS will block it by default. After mounting the `.dmg` and copying the app to your Applications folder, run the following command in Terminal to remove the quarantine flag:
+> ```bash
+> xattr -cr /Applications/DukesGambit.app
+> ```
+> Then open the app normally. You only need to do this once.
+
 ---
 
 ## 🎮 Controls
