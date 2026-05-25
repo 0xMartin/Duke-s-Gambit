@@ -74,6 +74,10 @@ var _current_legal_moves: Array = []   # legal moves at the start of the current
 # previous animation is still awaiting (would desync the local board).
 var _server_move_queue: Array = []
 var _processing_server_move: bool = false
+# Game-over payload received from the server while a move animation is still
+# playing. Finalisation (panel, cinematic, defeat sequence) is deferred until
+# the move queue drains so the cinematic order matches offline mode.
+var _pending_remote_game_over: Dictionary = {}
 const _RemoteControllerScript := preload("res://scripts/controllers/remote_controller.gd")
 
 # Chess clock (ms). 0 = no limit.
@@ -373,6 +377,7 @@ func start_game() -> void:
 	_time_remaining_ms = [_time_control_ms, _time_control_ms]
 	_server_move_queue.clear()
 	_processing_server_move = false
+	_pending_remote_game_over = {}
 	if _material_pressure_fx != null and _material_pressure_fx.has_method("reset_effects"):
 		_material_pressure_fx.call("reset_effects")
 	_clear_pieces()
@@ -974,6 +979,15 @@ func _on_server_move_applied(payload: Dictionary) -> void:
 		var p: Dictionary = _server_move_queue.pop_front()
 		await _apply_server_move(p)
 	_processing_server_move = false
+	# If a game_over arrived during the move animation, finalise it now that
+	# the last move (and its checkmate state) is fully visualised.
+	if not _pending_remote_game_over.is_empty() and not _game_over_shown:
+		var pending := _pending_remote_game_over
+		_pending_remote_game_over = {}
+		await _finalize_remote_game_over(
+			str(pending.get("winner", "")),
+			str(pending.get("reason", ""))
+		)
 
 func _apply_server_move(payload: Dictionary) -> void:
 	if not _online_mode or _chess == null or _game_over_shown:
@@ -1026,6 +1040,18 @@ func _on_server_game_over(payload: Dictionary) -> void:
 func apply_remote_game_over(winner: String, reason: String) -> void:
 	if _game_over_shown:
 		return
+	# If a server move is still being animated, the server has already detected
+	# the game-over (typically checkmate) but the local cinematic — moving piece,
+	# king death animation, dwell — hasn't played yet. Defer finalisation until
+	# the move queue drains so timing matches offline mode.
+	if _processing_server_move:
+		_pending_remote_game_over = {"winner": winner, "reason": reason}
+		return
+	_finalize_remote_game_over(winner, reason)
+
+func _finalize_remote_game_over(winner: String, reason: String) -> void:
+	if _game_over_shown:
+		return
 	var winner_color := -1
 	if winner == "white":
 		winner_color = ChessEnums.PieceColor.WHITE
@@ -1039,6 +1065,13 @@ func apply_remote_game_over(winner: String, reason: String) -> void:
 		state_reason = ChessEnums.GameState.DRAW
 	emit_signal("game_over", winner_color, state_reason)
 	var pretty_reason := reason.capitalize() if reason != "" else "Game over"
+	# Checkmate: play the same cinematic as offline (camera glides to king,
+	# king dies, dwell, then panel + defeat sequence). `_animate_checkmate_end`
+	# itself calls `_show_game_over` and `_start_defeat_sequence`.
+	if reason == "checkmate" and winner_color != -1:
+		MusicManager.set_checkmate_tension(true)
+		await _animate_checkmate_end(1 - winner_color)
+		return
 	if winner_color == -1:
 		_show_game_over(-1, pretty_reason)
 	else:
