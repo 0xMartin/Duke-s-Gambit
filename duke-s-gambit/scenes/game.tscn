@@ -93,6 +93,19 @@ content_margin_left = 10.0
 content_margin_right = 10.0
 bg_color = Color(0.050980393, 0.050980393, 0.050980393, 0.627451)
 
+[sub_resource type="StyleBoxFlat" id="EvalPillStyle"]
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
+bg_color = Color(0.19215687, 0.19215687, 0.19215687, 0.74509805)
+border_width_bottom = 4
+border_color = Color(0.050980393, 0.050980393, 0.050980393, 0.9019608)
+corner_radius_top_left = 100
+corner_radius_top_right = 100
+corner_radius_bottom_right = 100
+corner_radius_bottom_left = 100
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_trtic"]
 content_margin_left = 10.0
 content_margin_top = 4.0
@@ -577,6 +590,74 @@ mouse_filter = 2
 texture = ExtResource("10_ssvqc")
 expand_mode = 1
 stretch_mode = 5
+
+[node name="WhiteEvalPill" type="PanelContainer" parent="HUD" unique_id=1863000301]
+visible = false
+layout_mode = 1
+anchors_preset = -1
+anchor_top = 0.120314814
+anchor_bottom = 0.120314814
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 268.0
+offset_bottom = 68.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("EvalPillStyle")
+
+[node name="EvalHBox" type="HBoxContainer" parent="HUD/WhiteEvalPill" unique_id=1863000302]
+layout_mode = 2
+theme_override_constants/separation = 14
+alignment = 1
+
+[node name="ScoreText" type="Label" parent="HUD/WhiteEvalPill/EvalHBox" unique_id=1863000303]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65, 0.65, 0.65, 1)
+theme_override_fonts/font = ExtResource("12_wljb1")
+theme_override_font_sizes/font_size = 22
+text = "SCORE"
+vertical_alignment = 1
+
+[node name="WhiteEvalLabel" type="Label" parent="HUD/WhiteEvalPill/EvalHBox" unique_id=1863000201]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("12_wljb1")
+theme_override_font_sizes/font_size = 30
+text = "+0"
+vertical_alignment = 1
+
+[node name="BlackEvalPill" type="PanelContainer" parent="HUD" unique_id=495750394]
+visible = false
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 1.0
+anchor_top = 0.120314814
+anchor_right = 1.0
+anchor_bottom = 0.120314814
+offset_left = -268.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = 68.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("EvalPillStyle")
+
+[node name="EvalHBox" type="HBoxContainer" parent="HUD/BlackEvalPill" unique_id=495750395]
+layout_mode = 2
+theme_override_constants/separation = 14
+alignment = 1
+
+[node name="ScoreText" type="Label" parent="HUD/BlackEvalPill/EvalHBox" unique_id=495750396]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65, 0.65, 0.65, 1)
+theme_override_fonts/font = ExtResource("12_wljb1")
+theme_override_font_sizes/font_size = 22
+text = "SCORE"
+vertical_alignment = 1
+
+[node name="BlackEvalLabel" type="Label" parent="HUD/BlackEvalPill/EvalHBox" unique_id=495750294]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("12_wljb1")
+theme_override_font_sizes/font_size = 30
+text = "+0"
+vertical_alignment = 1
 
 [node name="MoveHistoryExpandButton" type="Button" parent="HUD" unique_id=946903513]
 custom_minimum_size = Vector2(26, 84)

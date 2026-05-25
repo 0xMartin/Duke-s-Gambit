@@ -66,6 +66,8 @@ var _history_panel_width: float = 300.0
 var _history_scroll_retry_count: int = 0
 
 var _has_time_limit: bool = false  # true = countdown mode
+var _eval_pill: Array = [null, null]  # [white, black] pill PanelContainer nodes
+var _eval_lbl:  Array = [null, null]  # [white, black] value Label nodes inside pills
 
 # ── Setup ──────────────────────────────────────────────────────────────────
 func _ready() -> void:
@@ -96,6 +98,10 @@ func _ready() -> void:
 		add_child(page_timer)
 		_captured_timer[c] = page_timer
 
+	_eval_pill[ChessEnums.PieceColor.WHITE] = get_parent().get_node_or_null("WhiteEvalPill") as PanelContainer
+	_eval_pill[ChessEnums.PieceColor.BLACK] = get_parent().get_node_or_null("BlackEvalPill") as PanelContainer
+	_eval_lbl[ChessEnums.PieceColor.WHITE]  = get_parent().get_node_or_null("WhiteEvalPill/EvalHBox/WhiteEvalLabel") as Label
+	_eval_lbl[ChessEnums.PieceColor.BLACK]  = get_parent().get_node_or_null("BlackEvalPill/EvalHBox/BlackEvalLabel") as Label
 	_history_panel = get_node_or_null("../MoveHistoryPanel") as PanelContainer
 	_history_scroll = get_node_or_null("../MoveHistoryPanel/Margin/VBox/HistoryScroll") as ScrollContainer
 	_history_list = get_node_or_null("../MoveHistoryPanel/Margin/VBox/HistoryScroll/HistoryList") as VBoxContainer
@@ -161,6 +167,26 @@ func _format_player_name(player_name: String) -> String:
 	if player_name.length() <= MAX_HUD_NAME_LENGTH:
 		return player_name
 	return player_name.left(MAX_HUD_NAME_LENGTH - 3) + "..."
+
+func show_ai_eval(color: int, enabled: bool) -> void:
+	var pill := _eval_pill[color] as PanelContainer
+	if pill != null:
+		pill.visible = enabled
+
+func update_ai_eval(color: int, score: int) -> void:
+	var pill := _eval_pill[color] as PanelContainer
+	var lbl  := _eval_lbl[color] as Label
+	if pill == null or lbl == null or not pill.visible:
+		return
+	if score > 0:
+		lbl.text = "+%d" % score
+		lbl.add_theme_color_override("font_color", Color(0.25, 0.9, 0.35))
+	elif score < 0:
+		lbl.text = "%d" % score
+		lbl.add_theme_color_override("font_color", Color(0.95, 0.25, 0.25))
+	else:
+		lbl.text = "0"
+		lbl.add_theme_color_override("font_color", Color(0.85, 0.85, 0.85))
 
 func reset_move_history() -> void:
 	_history_ply_count = 0
