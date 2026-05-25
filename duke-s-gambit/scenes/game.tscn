@@ -33,6 +33,7 @@
 [ext_resource type="PackedScene" uid="uid://bugscene" path="res://scenes/npc/bug.tscn" id="21_bugscene"]
 [ext_resource type="Script" uid="uid://ddsaxbyx2y3lc" path="res://scripts/ui/game_over_panel.gd" id="22_gameoverpanel"]
 [ext_resource type="Script" uid="uid://bw3hlf4apj4ur" path="res://scripts/ui/board_notation_highlighter.gd" id="23_notationhl"]
+[ext_resource type="Theme" uid="uid://btb433dt14txa" path="res://themes/check_button.tres" id="24_chkbtn"]
 
 [sub_resource type="PanoramaSkyMaterial" id="SkyMat1"]
 panorama = ExtResource("6")
@@ -796,14 +797,24 @@ alignment = 1
 layout_mode = 2
 theme = ExtResource("7_trtic")
 theme_override_font_sizes/font_size = 20
-text = "Menu"
+text = "Cancel Replay"
 
-[node name="ReplayProgressLabel" type="Label" parent="HUD/ReplayBox/ReplayVBox/ReplayTopRow" unique_id=777000015]
+[node name="ReplayRealTimeRow" type="HBoxContainer" parent="HUD/ReplayBox/ReplayVBox/ReplayTopRow" unique_id=777000017]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_constants/separation = 10
+alignment = 2
+
+[node name="RealTimeLabel" type="Label" parent="HUD/ReplayBox/ReplayVBox/ReplayTopRow/ReplayRealTimeRow" unique_id=777000018]
+layout_mode = 2
 theme = ExtResource("14_pl11u")
-text = "0 / 0"
-horizontal_alignment = 1
+theme_override_font_sizes/font_size = 25
+text = "Real time"
+
+[node name="RealTimeCheck" type="CheckButton" parent="HUD/ReplayBox/ReplayVBox/ReplayTopRow/ReplayRealTimeRow" unique_id=777000019]
+layout_mode = 2
+theme = ExtResource("24_chkbtn")
+button_pressed = true
 
 [node name="ReplayProgressBar" type="ProgressBar" parent="HUD/ReplayBox/ReplayVBox" unique_id=777000016]
 custom_minimum_size = Vector2(440, 24)
@@ -812,6 +823,13 @@ size_flags_horizontal = 3
 theme_override_styles/background = SubResource("StyleBoxFlat_sww3w")
 theme_override_styles/fill = SubResource("StyleBoxFlat_suyxu")
 show_percentage = false
+
+[node name="ReplayProgressLabel" type="Label" parent="HUD/ReplayBox/ReplayVBox" unique_id=777000015]
+layout_mode = 2
+size_flags_horizontal = 3
+theme = ExtResource("14_pl11u")
+text = "0 / 0"
+horizontal_alignment = 1
 
 [node name="GameOverPanel" type="PanelContainer" parent="HUD" unique_id=2010256283]
 visible = false

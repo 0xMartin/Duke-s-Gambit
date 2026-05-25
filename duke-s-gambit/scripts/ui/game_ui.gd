@@ -20,13 +20,15 @@ extends Control
 @onready var _kicked_title: Label = $KickedBannedPanel/VBox/TitleLabel
 @onready var _kicked_reason: Label = $KickedBannedPanel/VBox/ReasonLabel
 @onready var _replay_box: CenterContainer = $ReplayBox
-@onready var _replay_progress_label: Label = $ReplayBox/ReplayVBox/ReplayTopRow/ReplayProgressLabel
+@onready var _replay_progress_label: Label = $ReplayBox/ReplayVBox/ReplayProgressLabel
 @onready var _replay_progress_bar: ProgressBar = $ReplayBox/ReplayVBox/ReplayProgressBar
+@onready var _replay_realtime_check: CheckButton = $ReplayBox/ReplayVBox/ReplayTopRow/ReplayRealTimeRow/RealTimeCheck
 
 var _pending_promo_sq: Vector2i = Vector2i(-1, -1)
 var _pending_promo_color: int = 0
 var _status_tween: Tween = null
 var _is_replay_mode: bool = false
+var replay_realtime: bool = true
 
 # Full-screen overlay that absorbs mouse/touch input while a modal dialog is
 # open. Game board picking and camera orbit both use _unhandled_input, so a
@@ -43,6 +45,9 @@ func _ready() -> void:
 	$PromotionPanel/VBox/ContentCenter/HBox/KnightBtn.pressed.connect(func(): _choose(ChessEnums.PieceType.KNIGHT))
 	$SurrenderButton.pressed.connect(_on_surrender_pressed)
 	$ReplayBox/ReplayVBox/ReplayTopRow/ReplayBackButton.pressed.connect(_on_back_pressed)
+	$ReplayBox/ReplayVBox/ReplayTopRow/ReplayRealTimeRow/RealTimeCheck.toggled.connect(
+		func(on: bool) -> void: replay_realtime = on
+	)
 
 	$SurrenderConfirmPanel/VBox/ButtonHBox/YesButton.pressed.connect(_on_surrender_confirmed)
 	$SurrenderConfirmPanel/VBox/ButtonHBox/NoButton.pressed.connect(func(): _surrender_panel.visible = false)
@@ -219,6 +224,10 @@ func set_replay_mode(enabled: bool) -> void:
 	_is_replay_mode = enabled
 	if _replay_box != null:
 		_replay_box.visible = enabled
+	# Reset realtime to default each time replay starts.
+	replay_realtime = true
+	if _replay_realtime_check != null:
+		_replay_realtime_check.set_pressed_no_signal(true)
 	# Keep SurrenderButton hidden in replay mode (ReplayBox has the back button).
 	if _surrender_btn != null:
 		_surrender_btn.visible = not enabled
