@@ -691,10 +691,9 @@ anchor_top = 1.0
 anchor_bottom = 1.0
 offset_left = 8.0
 offset_top = -334.0
-offset_right = 388.0
+offset_right = 440.0
 offset_bottom = -14.0
-grow_horizontal = 0
-grow_vertical = 2
+grow_vertical = 0
 theme = ExtResource("5_bt5mj")
 
 [node name="Margin" type="MarginContainer" parent="HUD/MoveHistoryPanel" unique_id=554857996]
