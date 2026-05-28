@@ -213,8 +213,12 @@ func _compute_search_budget(board: ChessBoardState, legal_count: int, selected_d
 				target_time = clampf(target_time, 100.0, float(max(max_safe_time, 100)))
 				time_ms = int(target_time)
 			else:
-				# No clock info available: fall back to a sane fixed budget.
-				time_ms = 2500
+				# Unlimited time: pretend there are 10 minutes on the clock so the
+				# AI uses the same per-move formula and thinks properly instead of
+				# rushing with a tiny fixed fallback.
+				const VIRTUAL_CLOCK_MS := 600_000.0  # 10 minutes
+				time_ms = int(VIRTUAL_CLOCK_MS / 40.0)  # ~15 000 ms per move
+				# max_safe_time stays -1: no upper clamp, clock is unlimited.
 
 	# ---- Phase / position multiplier (applied to all difficulties) ----
 	var multiplier := 1.0
