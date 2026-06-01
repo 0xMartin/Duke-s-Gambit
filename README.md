@@ -18,6 +18,9 @@
 
 </div>
 
+> [!NOTE]
+> **Disclaimer:** This is an open-source, non-commercial fan game made for satirical and educational purposes. `Java` is a trademark of Oracle Corporation. This project is not affiliated with, endorsed, or sponsored by Oracle.
+
 ## 📑 Table of contents
 
 - [Duke's Gambit](#dukes-gambit)
@@ -39,9 +42,6 @@
     - [Sounds](#sounds)
   - [📄 License](#-license)
   - [👤 Author](#-author)
-
-> [!NOTE]
-> **Disclaimer:** This is an open-source, non-commercial fan game made for satirical and educational purposes. `Java` is a trademark of Oracle Corporation. This project is not affiliated with, endorsed, or sponsored by Oracle.
 
 ---
 
@@ -78,7 +78,7 @@ Duke's Gambit is available on the following platforms:
 Download the build for your platform from the GitHub Releases page and run it — no installation required on desktop.
 
 > [!IMPORTANT]
-> **macOS — required step before first launch:** The app is not notarized, so macOS will block it by default. After mounting the `.dmg` and copying the app to your Applications folder, run the following command in Terminal to remove the quarantine flag:
+> **macOS may require step before first launch:** The app is not notarized, so macOS will block it by default. After mounting the `.dmg` and copying the app to your Applications folder, run the following command in Terminal to remove the quarantine flag:
 > ```bash
 > xattr -cr /Applications/DukesGambit.app
 > ```
@@ -209,8 +209,8 @@ See [`server/README.md`](server/README.md) for the full configuration reference,
 - **All other 3D models** (board, terrain, weapons, NPC, environment, …) — created by `0xM4R71N`
 - **Duke chess pieces** — [github.com/openjdk/duke](https://github.com/openjdk/duke) — edited in Blender, animated via [mixamo.com](https://www.mixamo.com/)
 - **Chess icons** — [Wikimedia Commons — SVG chess pieces](https://commons.wikimedia.org/wiki/Category:SVG_chess_pieces)
-- **Skybox** — [Godot Asset Library #579](https://godotengine.org/asset-library/asset/579) — autor: `rpgwhitelock`
-- **Piece spawn texture** - [Radial lightning effect](https://opengameart.org/content/radial-lightning-effect) — autor: `13rice`
+- **Skybox** — [Godot Asset Library #579](https://godotengine.org/asset-library/asset/579) — author: `rpgwhitelock`
+- **Piece spawn texture** - [Radial lightning effect](https://opengameart.org/content/radial-lightning-effect) — author: `13rice`
 
 ### Sounds
 
