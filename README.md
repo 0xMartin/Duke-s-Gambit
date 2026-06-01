@@ -209,8 +209,8 @@ See [`server/README.md`](server/README.md) for the full configuration reference,
 - **All other 3D models** (board, terrain, weapons, NPC, environment, …) — created by `0xM4R71N`
 - **Duke chess pieces** — [github.com/openjdk/duke](https://github.com/openjdk/duke) — edited in Blender, animated via [mixamo.com](https://www.mixamo.com/)
 - **Chess icons** — [Wikimedia Commons — SVG chess pieces](https://commons.wikimedia.org/wiki/Category:SVG_chess_pieces)
-- **Skybox** — [Godot Asset Library #579](https://godotengine.org/asset-library/asset/579) — autor: `rpgwhitelock`
-- **Piece spawn texture** - [Radial lightning effect](https://opengameart.org/content/radial-lightning-effect) — autor: `13rice`
+- **Skybox** — [Godot Asset Library #579](https://godotengine.org/asset-library/asset/579) — author: `rpgwhitelock`
+- **Piece spawn texture** - [Radial lightning effect](https://opengameart.org/content/radial-lightning-effect) — author: `13rice`
 
 ### Sounds
 
